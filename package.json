@@ -1,4 +1,10 @@
 {
+  "name": "vaibhly-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.9.0",
@@ -20,7 +26,6 @@
     "qrcode": "^1.5.4",
     "razorpay": "^2.9.6",
     "socket.io": "^4.8.3",
-    "start": "node server.js",
     "twilio": "^5.11.2",
     "uuid": "^13.0.0",
     "xlsx": "^0.18.5"

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EduNexa | Notifications</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+  <script src="/js/auth-global.js"></script>
+</head>
+
+<body>
+
+<div class="admin-wrapper">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar" id="adminSidebar">
+    <h2>EduNexa</h2>
+    <ul>
+      <li><a href="/admin/admin.html">Dashboard</a></li>
+      <li><a href="/admin/admin-course-builder.html">Course Builder</a></li>
+      <li><a href="/admin/admin-analytics.html">Analytics</a></li>
+      <li><a class="active" href="/admin/admin-notifications.html">🔔 Notifications</a></li>
+      <li><a href="/admin/admin-orders.html">Orders</a></li>
+      <li><a href="/admin/admin-coupons.html">Coupons</a></li>
+      <li><a href="/admin/admin-enrollments.html">Enrollments</a></li>
+    </ul>
+    <button id="adminLogout" class="admin-logout">Logout</button>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Mobile Menu -->
+    <button class="mobile-toggle" onclick="toggleSidebar()">☰ Menu</button>
+
+    <h1>🔔 Send Notification</h1>
+
+    <div class="card admin-form">
+      <input id="title" placeholder="Notification title" />
+      <textarea id="message" placeholder="Notification message"></textarea>
+
+      <button class="btn-primary" onclick="sendNotification()">
+        Send Notification
+      </button>
+
+      <p id="statusMsg"></p>
+    </div>
+
+  </main>
+</div>
+
+<script>
+if (!requireAdmin()) {
+  throw new Error("Unauthorized");
+}
+
+/* Sidebar toggle */
+function toggleSidebar() {
+  const sidebar = document.getElementById("adminSidebar");
+  if (!sidebar) return;
+  sidebar.classList.toggle("active");
+}
+
+/* Send notification */
+async function sendNotification() {
+  const title = document.getElementById("title").value.trim();
+  const message = document.getElementById("message").value.trim();
+  const status = document.getElementById("statusMsg");
+
+  if (!title || !message) {
+    status.innerText = "❌ Title and message required";
+    return;
+  }
+
+  try {
+    const res = await authFetch("/api/notifications/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, message })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error("Failed");
+    }
+
+    document.getElementById("title").value = "";
+    document.getElementById("message").value = "";
+    status.innerText = "✅ Notification sent successfully";
+
+  } catch (err) {
+    console.error(err);
+    status.innerText = "❌ Failed to send notification";
+  }
+}
+
+bindLogout("#adminLogout");
+</script>
+
+</body>
+</html>

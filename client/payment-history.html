@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment History</title>
+</head>
+<body>
+
+<h2>💳 Payment History</h2>
+<div id="payments">Loading...</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async function () {
+
+  const token = localStorage.getItem("token");
+
+  try {
+
+    const res = await fetch("/api/recruiter/payments", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const data = await res.json();
+
+    console.log("PAYMENTS:", data);
+
+    if (!data.length) {
+      document.getElementById("payments").innerHTML =
+        "<p>No payments found.</p>";
+      return;
+    }
+
+    let html = "";
+
+    data.forEach(p => {
+      html += `
+        <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+          <p><strong>Payment ID:</strong> ${p.razorpay_payment_id}</p>
+          <p><strong>Amount:</strong> ₹${p.amount}</p>
+          <p><strong>Status:</strong> ${p.status}</p>
+          <p><strong>Date:</strong> ${new Date(p.created_at).toLocaleDateString()}</p>
+        </div>
+      `;
+    });
+
+    document.getElementById("payments").innerHTML = html;
+
+  } catch (err) {
+    console.error("Payment load error:", err);
+    document.getElementById("payments").innerHTML =
+      "<p>Error loading payments.</p>";
+  }
+
+});
+</script>
+
+</body>
+</html>

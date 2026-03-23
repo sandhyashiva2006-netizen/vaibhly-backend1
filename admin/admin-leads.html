@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EduNexa | Leads</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+  <script src="/js/auth-global.js"></script>
+</head>
+
+<body>
+
+<div class="admin-wrapper">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <h2>EduNexa</h2>
+    <ul>
+      <li><a href="/admin/admin.html">Dashboard</a></li>
+      <li><a href="/admin/admin-analytics.html">Analytics</a></li>
+      <li><a class="active" href="/admin/admin-leads.html">Leads</a></li>
+      <li><a href="/admin/admin-orders.html">Orders</a></li>
+      <li><a href="/admin/admin-coupons.html">Coupons</a></li>
+      <li><a href="/admin/admin-enrollments.html">Enrollments</a></li>
+    </ul>
+    <button id="adminLogout" class="admin-logout">Logout</button>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <h1>📞 Lead Management</h1>
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="card"><h3>Total</h3><h2 id="kpiTotal">0</h2></div>
+      <div class="card"><h3>New</h3><h2 id="kpiNew">0</h2></div>
+      <div class="card"><h3>Contacted</h3><h2 id="kpiContacted">0</h2></div>
+      <div class="card"><h3>Closed</h3><h2 id="kpiClosed">0</h2></div>
+    </div>
+
+    <br>
+
+    <button onclick="exportCSV()" class="btn-primary">
+      ⬇ Export CSV
+    </button>
+
+    <br><br>
+
+    <!-- Search -->
+    <input
+      id="searchInput"
+      placeholder="Search name / phone / course..."
+      style="padding:10px;width:300px;margin-bottom:10px;"
+      oninput="filterLeads()"
+    />
+
+    <!-- Table -->
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>Course</th>
+          <th>Status</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody id="leadTableBody">
+        <tr><td colspan="7">Loading leads...</td></tr>
+      </tbody>
+    </table>
+
+  </main>
+</div>
+
+<script>
+if (!requireAdmin()) throw new Error("Unauthorized");
+
+let leads = [];
+
+/* ================= LOAD LEADS ================= */
+async function loadLeads() {
+  try {
+    const res = await authFetch("/api/leads");
+
+    if (!res.ok) {
+      throw new Error("Leads API failed");
+    }
+
+    const data = await res.json();
+    leads = Array.isArray(data) ? data : [];
+    renderLeads(leads);
+
+  } catch (err) {
+    console.error("❌ Load leads failed:", err);
+    document.getElementById("leadTableBody").innerHTML =
+      `<tr><td colspan="7">Failed to load leads</td></tr>`;
+  }
+}
+
+/* ================= ANALYTICS ================= */
+async function loadAnalytics() {
+  try {
+    const res = await authFetch("/api/leads/analytics/summary");
+    if (!res.ok) throw new Error("Analytics failed");
+
+    const data = await res.json();
+
+    kpiTotal.innerText = data.total || 0;
+    kpiNew.innerText = data.new || 0;
+    kpiContacted.innerText = data.contacted || 0;
+    kpiClosed.innerText = data.closed || 0;
+
+  } catch (err) {
+    console.error("❌ Analytics load failed:", err);
+  }
+}
+
+/* ================= RENDER ================= */
+function renderLeads(list) {
+  const tbody = document.getElementById("leadTableBody");
+  tbody.innerHTML = "";
+
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="7">No leads found</td></tr>`;
+    return;
+  }
+
+  list.forEach((lead, index) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${lead.name}</td>
+      <td>${lead.phone}</td>
+      <td>${lead.email || "-"}</td>
+      <td>${lead.course_interest || "-"}</td>
+      <td>
+        <select onchange="updateStatus(${lead.id}, this.value)">
+          <option ${lead.status==="NEW"?"selected":""}>NEW</option>
+          <option ${lead.status==="CONTACTED"?"selected":""}>CONTACTED</option>
+          <option ${lead.status==="CLOSED"?"selected":""}>CLOSED</option>
+        </select>
+      </td>
+      <td>${new Date(lead.created_at).toLocaleString()}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+/* ================= SEARCH ================= */
+function filterLeads() {
+  const q = searchInput.value.toLowerCase();
+
+  const filtered = leads.filter(l =>
+    (l.name || "").toLowerCase().includes(q) ||
+    (l.phone || "").toLowerCase().includes(q) ||
+    (l.course_interest || "").toLowerCase().includes(q)
+  );
+
+  renderLeads(filtered);
+}
+
+/* ================= UPDATE STATUS ================= */
+async function updateStatus(id, status) {
+  try {
+    await authFetch(`/api/leads/${id}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+
+    loadLeads();
+    loadAnalytics();
+
+  } catch (err) {
+    alert("Failed to update status");
+  }
+}
+
+/* ================= CSV EXPORT (TOKEN SAFE) ================= */
+async function exportCSV() {
+  try {
+    const res = await authFetch("/api/leads/export");
+    if (!res.ok) throw new Error("Export failed");
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "leads.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+  } catch (err) {
+    alert("❌ CSV export failed");
+    console.error(err);
+  }
+}
+
+bindLogout("#adminLogout");
+
+/* INIT */
+loadLeads();
+loadAnalytics();
+</script>
+
+</body>
+</html>

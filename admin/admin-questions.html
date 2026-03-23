@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin – Questions</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+
+<div class="admin-container">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <h2>EduNexa</h2>
+    <ul>
+  <li><a href="/admin/admin.html">Dashboard</a></li>
+  <li><a href="/admin/admin-courses.html">Courses</a></li>
+  <li><a href="/admin/admin-modules.html">Modules</a></li>
+<li><a href="/admin/admin-lessons.html">Lessons</a></li>
+  <li><a href="/admin/admin-exams.html">Exams</a></li>
+  <li><a href="/admin/admin-questions.html">Questions</a></li>
+  <li><a href="/admin/admin-results.html">Results</a></li>
+</ul>
+
+
+
+
+    <button id="adminLogout" class="admin-logout">Logout</button>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+    <h1>Questions</h1>
+
+    <label>Select Exam:</label>
+    <select id="examSelect"></select>
+
+<h2 style="margin-top:30px;">Add Question</h2>
+<h2>Edit Question</h2>
+
+<div class="admin-form" id="editForm" style="display:none;">
+  <input type="hidden" id="editId">
+
+  <textarea id="editQuestion"></textarea>
+
+  <input id="editA" placeholder="Option A">
+  <input id="editB" placeholder="Option B">
+  <input id="editC" placeholder="Option C">
+  <input id="editD" placeholder="Option D">
+
+  <select id="editCorrect">
+    <option value="">Correct Option</option>
+    <option value="A">A</option>
+    <option value="B">B</option>
+    <option value="C">C</option>
+    <option value="D">D</option>
+  </select>
+
+  <button id="updateQuestionBtn">Update Question</button>
+  <button onclick="cancelEdit()">Cancel</button>
+</div>
+
+
+<div class="admin-form">
+  <textarea id="questionText" placeholder="Enter question"></textarea>
+
+  <input id="optA" placeholder="Option A">
+  <input id="optB" placeholder="Option B">
+  <input id="optC" placeholder="Option C">
+  <input id="optD" placeholder="Option D">
+
+  <select id="correctOpt">
+    <option value="">Correct Option</option>
+    <option value="A">A</option>
+    <option value="B">B</option>
+    <option value="C">C</option>
+    <option value="D">D</option>
+  </select>
+
+  <button id="addQuestionBtn">Add Question</button>
+
+  <p id="formMsg"></p>
+</div>
+
+
+    <table class="admin-table" style="margin-top:20px;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Question</th>
+          <th>Correct</th>
+<th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="questionsBody">
+        <tr>
+          <td colspan="3">Select an exam</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+
+</div>
+<script src="/admin/js/admin-auth.js"></script>
+<script src="/admin/auth.js"></script>
+
+<script src="/js/auth-global.js"></script>
+<script src="/admin/admin-questions.js"></script>
+<script>
+  bindLogout("#adminLogout", "/admin/admin-login.html");
+</script>
+</body>
+</html>

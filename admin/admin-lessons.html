@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin – Lessons</title>
+  <link rel="stylesheet" href="/admin/admin.css" />
+</head>
+<body>
+
+<div class="admin-container">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <h2>EduNexa</h2>
+    <ul>
+      <li><a href="/admin/admin.html">Dashboard</a></li>
+      <li><a href="/admin/admin-courses.html">Courses</a></li>
+      <li><a href="/admin/admin-modules.html">Modules</a></li>
+      <li><a href="/admin/admin-lessons.html">Lessons</a></li>
+      <li><a href="/admin/admin-exams.html">Exams</a></li>
+      <li><a href="/admin/admin-questions.html">Questions</a></li>
+      <li><a href="/admin/admin-results.html">Results</a></li>
+    </ul>
+
+    <button id="adminLogout" class="admin-logout">Logout</button>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+
+    <div class="exams-header">
+      <h2>Lesson Builder</h2>
+    </div>
+
+    <!-- Course Selector -->
+    <div class="admin-form">
+      <label>Course</label>
+      <select id="courseSelect"></select>
+    </div>
+
+    <!-- Module Selector -->
+    <div class="admin-form">
+      <label>Module</label>
+      <select id="moduleSelect"></select>
+    </div>
+
+    <!-- Create Lesson -->
+    <div class="admin-form">
+      <input type="text" id="lessonTitle" placeholder="Lesson title" />
+
+      <select id="lessonType">
+        <option value="video">Video</option>
+        <option value="pdf">PDF</option>
+        <option value="text">Text</option>
+      </select>
+
+      <input type="file" id="lessonFile" />
+
+<input type="text" id="lessonUrl" placeholder="Content URL or text content" />
+
+<button id="uploadBtn">⬆ Upload File</button>
+<button id="createLessonBtn">➕ Save Lesson</button>
+
+    </div>
+
+    <!-- Lessons Table -->
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Lesson Title</th>
+          <th>Type</th>
+          <th>Content</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody id="lessonTableBody">
+        <tr>
+          <td colspan="5">Select module to load lessons</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </main>
+</div>
+<script src="/admin/js/admin-auth.js"></script>
+
+<script src="/admin/admin-lessons.js"></script>
+<script>
+  bindLogout("#adminLogout", "/admin/admin-login.html");
+</script>
+</body>
+</html>

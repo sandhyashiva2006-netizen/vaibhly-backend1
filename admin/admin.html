@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Vaibhly Admin</title>
+  <link rel="stylesheet" href="/admin/admin.css" />
+
+  <!-- Optional: Card link styling -->
+  <style>
+    .stat-link {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .stat-link:hover .stat-box {
+      transform: translateY(-3px) scale(1.02);
+      transition: 0.2s ease;
+      cursor: pointer;
+    }
+
+.sidebar .leads-btn{
+display:block;
+margin:20px;
+padding:12px;
+background:#1f2937;
+color:white;
+border-radius:8px;
+text-align:center;
+cursor:pointer;
+}
+
+.sidebar{
+width:220px;
+overflow-y:auto;
+}
+
+.admin-sidebar{
+height:100vh;
+overflow-y:auto;
+}
+
+  </style>
+</head>
+<body>
+
+<!-- 🔐 AUTH -->
+<script src="/js/auth-global.js"></script>
+
+<div class="admin-container">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar" id="adminSidebar">
+    <h2>Vaibhly</h2>
+
+    <ul>
+      <li><a href="/admin/admin.html">Dashboard</a></li>
+      <li><a href="/admin/admin-course-builder.html">Course Builder</a></li>
+<li><a href="/admin/admin-exams.html">Exams</a></li>
+<li>
+<a href="/admin/admin-competitive-exams.html"> Competitive Exams
+</a>
+</li>
+      <li><a href="/admin/admin-questions.html">Questions</a></li>
+      <li><a href="/admin/admin-results.html">Results</a></li>
+      <li><a href="/admin/admin-analytics.html">Student Analytics</a></li>
+<li><a href="/admin/admin-recruiter-analytics.html" class="nav-link">
+  Recruiter Analytics
+</a></li>
+<li>
+<a href="/admin/admin-instructor-analytics.html">
+Instructor Analytics
+</a>
+</li>
+<li><a href="/admin/admin-withdrawals.html">Withdraw Requests</a></li>
+<li><a href="/admin/admin-revenue.html" class="nav-link">
+  Revenue Dashboard
+</a>
+</li>
+      <li><a href="/admin/admin-orders.html">Orders</a></li>
+      <li><a href="/admin/admin-coupons.html">Coupons</a></li>
+      <li><a href="/admin/admin-enrollments.html">Enrollments</a></li>
+<li><a href="/admin/admin-notifications.html">Notifications</a></li>
+<li><a href="/admin/admin-leads.html">Leads</a></li>
+</ul>
+    <button
+      class="admin-logout"
+      onclick="localStorage.clear(); window.location.href='/admin/admin-login.html';">
+      Logout
+    </button>
+
+  </aside>
+
+  <!-- Main Content -->
+  <main class="admin-main">
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-toggle" onclick="toggleSidebar()">☰ Menu</button>
+
+    <h1>Admin Dashboard</h1>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+
+      <!-- Students -->
+      <div class="stat-box">
+        <h4>👥 Students</h4>
+        <p id="aStudents">—</p>
+      </div>
+
+      <!-- 👉 CLICKABLE COURSES CARD -->
+      <a href="/admin/admin-course-builder.html" class="stat-link">
+        <div class="stat-box">
+          <h4>📚 Courses</h4>
+          <p id="aCourses">—</p>
+        </div>
+      </a>
+
+      <!-- Exams -->
+      <div class="stat-box">
+        <h4>📝 Exams</h4>
+        <p id="aExams">—</p>
+      </div>
+
+      <!-- Certificates -->
+      <div class="stat-box">
+        <h4>🎓 Certificates</h4>
+        <p id="aCertificates">—</p>
+      </div>
+
+      <!-- Completion -->
+      <div class="stat-box">
+        <h4>📈 Completion Rate</h4>
+        <p id="aCompletion">—</p>
+      </div>
+
+      <!-- 👉 CLICKABLE ANALYTICS CARD -->
+      <a href="/admin/admin-analytics.html" class="stat-link">
+        <div class="stat-box">
+          <h4>📊 Business Analytics</h4>
+          <p>View Reports</p>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Exams Table -->
+    <div class="admin-section">
+      <h2>Exams Overview</h2>
+
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Exam Name</th>
+            <th>Questions</th>
+            <th>Active</th>
+          </tr>
+        </thead>
+
+        <tbody id="examTableBody">
+          <tr>
+            <td colspan="4">Loading exams...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+
+
+<!-- ✅ Scripts -->
+<script src="/admin/dashboard.js"></script>
+
+<script>
+  // Mobile sidebar toggle
+  function toggleSidebar() {
+    const sidebar = document.getElementById("adminSidebar");
+    if (!sidebar) return;
+    sidebar.classList.toggle("active");
+  }
+</script>
+
+</body>
+</html>

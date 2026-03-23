@@ -1,0 +1,51 @@
+body {
+  margin: 0;
+  font-family: system-ui;
+  background: #f1f5f9;
+}
+
+.course-header {
+  background: #2563eb;
+  color: #fff;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.layout {
+  display: flex;
+  height: calc(100vh - 64px);
+}
+
+.modules {
+  width: 280px;
+  background: #fff;
+  border-right: 1px solid #ddd;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.module {
+  margin-bottom: 16px;
+}
+
+.module h4 {
+  margin-bottom: 6px;
+}
+
+.lesson {
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lesson:hover {
+  background: #eef2ff;
+}
+
+.lesson-area {
+  flex: 1;
+  background: #fff;
+  padding: 25px;
+  overflow-y: auto;
+}

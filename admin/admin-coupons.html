@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Coupons</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="admin-wrapper">
+
+  
+  <!-- Main -->
+  <main class="main">
+
+    <h1>🎟 Coupon Management</h1>
+
+    <!-- Create Coupon Card -->
+    <div class="card">
+      <h3>Create New Coupon</h3>
+
+      <div class="form-grid">
+        <input id="code" placeholder="Coupon Code (EX: SAVE10)" />
+        <input id="value" type="number" placeholder="Discount %" />
+
+        <button class="btn-primary" onclick="createCoupon()">
+          ➕ Create Coupon
+        </button>
+      </div>
+    </div>
+
+<input 
+  id="searchBox"
+  placeholder="Search coupon..."
+  style="margin-bottom:12px;padding:8px;width:250px"
+/>
+
+    <!-- Coupons Table -->
+    <div class="card">
+      <h3>Active Coupons</h3>
+
+      <table class="admin-table">
+        <thead>
+          <tr>
+  <th>Code</th>
+  <th>Discount</th>
+  <th>Used</th>
+  <th>Max</th>
+  <th>Expiry</th>
+  <th>Status</th>
+  <th>Actions</th>
+</tr>
+        </thead>
+        <tbody id="couponBody"></tbody>
+      </table>
+    </div>
+
+  </main>
+
+</div>
+
+
+<script src="/js/auth-global.js"></script>
+<script>
+if (!requireAdmin()) {
+  console.warn("Unauthorized admin access blocked");
+  throw new Error("Unauthorized");
+}
+
+
+async function loadCoupons() {
+  try {
+    const res = await authFetch("/api/coupons/list");
+    const data = await res.json();
+    console.log("🎟️ Coupons list:", data);
+
+    if (!res.ok) {
+      alert(data.error || "Failed to load coupons");
+      return;
+    }
+
+    const body = document.getElementById("couponBody");
+    body.innerHTML = "";
+
+    data.forEach(c => {
+  const percent = Math.min(
+    Math.round((c.used_count / c.max_uses) * 100),
+    100
+  );
+
+  body.innerHTML += `
+    <tr>
+      <td><strong>${c.code}</strong></td>
+      <td>${c.discount_value}%</td>
+      <td>
+        ${c.used_count}/${c.max_uses}
+        <div class="progress">
+          <div class="progress-bar" style="width:${percent}%"></div>
+        </div>
+      </td>
+      <td>${c.max_uses}</td>
+      <td>${c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "Never"}</td>
+      <td>
+        ${c.is_active
+          ? '<span class="badge active">Active</span>'
+          : '<span class="badge inactive">Inactive</span>'
+        }
+      </td>
+      <td>
+        <button class="btn-sm" onclick="toggleCoupon(${c.id})">Toggle</button>
+        <button class="btn-sm danger" onclick="deleteCoupon(${c.id})">Delete</button>
+      </td>
+    </tr>
+  `;
+});
+
+
+
+  } catch (err) {
+    console.error("❌ Load coupons failed", err);
+    alert("Load coupons failed – check console");
+  }
+}
+
+async function toggleCoupon(id) {
+  if (!confirm("Toggle coupon status?")) return;
+
+  await authFetch(`/api/coupons/toggle/${id}`, { method: "POST" });
+  loadCoupons();
+}
+
+async function deleteCoupon(id) {
+  if (!confirm("Delete this coupon permanently?")) return;
+
+  await authFetch(`/api/coupons/${id}`, { method: "DELETE" });
+  loadCoupons();
+}
+
+document.getElementById("searchBox").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll("#couponBody tr").forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(q)
+      ? ""
+      : "none";
+  });
+});
+
+async function createCoupon() {
+  try {
+    const res = await authFetch("/api/coupons/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code: document.getElementById("code").value,
+        discount_type: "PERCENT",
+        discount_value: document.getElementById("value").value
+      })
+    });
+
+    const data = await res.json();
+    console.log("🎟️ Create coupon response:", data);
+
+    if (!res.ok) {
+      alert(data.error || "Failed to create coupon");
+      return;
+    }
+
+    alert("✅ Coupon created successfully");
+    loadCoupons();
+
+  } catch (err) {
+    console.error("❌ Create coupon failed", err);
+    alert("Create coupon failed – check console");
+  }
+}
+
+bindLogout("#adminLogout");
+loadCoupons();
+</script>
+</body>
+</html>

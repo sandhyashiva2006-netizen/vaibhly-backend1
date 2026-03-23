@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin | Coupons</title>
+  <style>
+    body { font-family: Arial; background:#f8fafc; padding:30px; }
+    h2 { margin-bottom:20px; }
+
+    input, select, button {
+      padding:10px;
+      margin:6px 0;
+      width:100%;
+    }
+
+    .card {
+      background:white;
+      padding:20px;
+      border-radius:10px;
+      max-width:420px;
+      box-shadow:0 5px 15px rgba(0,0,0,.1);
+    }
+
+    table {
+      margin-top:30px;
+      width:100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding:10px;
+      border-bottom:1px solid #ddd;
+      text-align:center;
+    }
+
+    .active { color:green; font-weight:bold; }
+    .inactive { color:red; font-weight:bold; }
+  </style>
+</head>
+
+<body>
+
+<h2>🎟️ Coupon Manager</h2>
+
+<div class="card">
+  <input id="code" placeholder="Coupon Code (SAVE50)">
+  
+  <select id="type">
+    <option value="PERCENT">Percent</option>
+    <option value="FLAT">Flat</option>
+  </select>
+
+  <input id="value" type="number" placeholder="Discount Value">
+  <input id="max" type="number" placeholder="Max Uses">
+  <input id="expiry" type="date">
+
+  <button onclick="createCoupon()">Create Coupon</button>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>Discount</th>
+      <th>Used</th>
+      <th>Status</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody id="couponTable"></tbody>
+</table>
+
+<script>
+const token = localStorage.getItem("token");
+
+if (!token) {
+  alert("Admin login required");
+  location.href = "login.html";
+}
+
+async function loadCoupons() {
+  const res = await fetch("/api/coupons/list", {
+    headers: { Authorization: "Bearer " + token }
+  });
+  const coupons = await res.json();
+
+  const tbody = document.getElementById("couponTable");
+  tbody.innerHTML = "";
+
+  coupons.forEach(c => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${c.code}</td>
+      <td>${c.discount_type} ${c.discount_value}</td>
+      <td>${c.used_count}/${c.max_uses}</td>
+      <td class="${c.is_active ? 'active' : 'inactive'}">
+        ${c.is_active ? "Active" : "Inactive"}
+      </td>
+      <td>
+        <button onclick="toggleCoupon(${c.id})">Toggle</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+async function createCoupon() {
+  const payload = {
+    code: code.value,
+    discount_type: type.value,
+    discount_value: Number(value.value),
+    max_uses: Number(max.value),
+    expires_at: expiry.value || null
+  };
+
+  const res = await fetch("/api/coupons/create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    alert("Failed to create coupon");
+    return;
+  }
+
+  alert("✅ Coupon created");
+  loadCoupons();
+}
+
+async function toggleCoupon(id) {
+  await fetch(`/api/coupons/toggle/${id}`, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token }
+  });
+
+  loadCoupons();
+}
+
+loadCoupons();
+</script>
+
+</body>
+</html>

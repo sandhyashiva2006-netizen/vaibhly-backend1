@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EduNexa Admin - Competitive Exams</title>
+
+<link rel="stylesheet" href="/admin/admin.css">
+<script src="/js/auth-global.js"></script>
+
+<style>
+
+.form-card{
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  margin-bottom:20px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.05);
+}
+
+.form-card input{
+  display:block;
+  margin-bottom:10px;
+  padding:8px;
+  width:260px;
+}
+
+.form-card button{
+  padding:8px 16px;
+  background:#2563eb;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.admin-table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.admin-table th,
+.admin-table td{
+  padding:10px;
+  border-bottom:1px solid #ddd;
+  text-align:left;
+}
+
+.danger-btn{
+  background:#ef4444;
+  color:white;
+  border:none;
+  padding:6px 10px;
+  border-radius:5px;
+  cursor:pointer;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<div class="admin-wrapper">
+
+<!-- SIDEBAR -->
+<aside class="admin-sidebar">
+
+<h2>EduNexa</h2>
+
+<ul>
+<li><a href="/admin/admin.html">Dashboard</a></li>
+<li><a href="/admin/admin-course-builder.html">Courses</a></li>
+<li><a href="/admin/admin-exams.html">Course Exams</a></li>
+<li><a href="/admin/admin-competitive-exams.html" class="active">Competitive Exams</a></li>
+<li><a href="/admin/admin-results.html">Results</a></li>
+<li><a href="/admin/admin-analytics.html">Analytics</a></li>
+</ul>
+
+<button class="admin-logout" onclick="adminLogout()">Logout</button>
+
+</aside>
+
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+<h1>🏆 Competitive Exams</h1>
+
+
+<!-- CREATE EXAM -->
+<div class="form-card">
+
+<h3>Create Competitive Exam</h3>
+
+<input id="examTitle" placeholder="Exam Title">
+
+<input id="examPrice" type="number" placeholder="Price">
+
+<input id="passMarks" type="number" placeholder="Pass Marks">
+
+<input id="totalQuestions" type="number" placeholder="Total Questions">
+
+<button id="createExamBtn">Add Exam</button>
+
+</div>
+
+
+
+<!-- EXAM TABLE -->
+<div class="form-card">
+
+<h3>Existing Exams</h3>
+
+<table class="admin-table">
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Exam</th>
+<th>Price</th>
+<th>Pass Marks</th>
+<th>Total Questions</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody id="examTable">
+<tr>
+<td colspan="6">Loading exams...</td>
+</tr>
+</tbody>
+
+</table>
+
+</div>
+
+</main>
+
+</div>
+
+
+
+<script>
+
+const token = localStorage.getItem("token");
+
+
+/* CREATE EXAM */
+async function createCompetitiveExam(){
+
+const title = document.getElementById("examTitle").value;
+const price = document.getElementById("examPrice").value;
+const passMarks = document.getElementById("passMarks").value;
+const totalQuestions = document.getElementById("totalQuestions").value;
+
+if(!title){
+alert("Enter exam title");
+return;
+}
+
+try{
+
+const res = await fetch("/api/admin/competitive-exams",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+body:JSON.stringify({
+title,
+price,
+pass_marks:passMarks,
+total_questions:totalQuestions
+})
+});
+
+if(!res.ok) throw new Error("Create failed");
+
+document.getElementById("examTitle").value="";
+document.getElementById("examPrice").value="";
+document.getElementById("passMarks").value="";
+document.getElementById("totalQuestions").value="";
+
+loadCompetitiveExams();
+
+}catch(err){
+
+console.error(err);
+alert("Failed to create exam");
+
+}
+
+}
+
+
+
+/* LOAD EXAMS */
+async function loadCompetitiveExams(){
+
+try{
+
+const res = await fetch("/api/admin/competitive-exams",{
+headers:{
+Authorization:"Bearer "+token
+}
+});
+
+const exams = await res.json();
+
+const table = document.getElementById("examTable");
+
+table.innerHTML="";
+
+if(!exams.length){
+table.innerHTML=`<tr><td colspan="6">No exams found</td></tr>`;
+return;
+}
+
+exams.forEach(exam=>{
+
+table.innerHTML+=`
+<tr>
+<td>${exam.id}</td>
+<td>${exam.title}</td>
+<td>₹${exam.price}</td>
+<td>${exam.pass_marks}</td>
+<td>${exam.total_questions}</td>
+<td>
+
+<button onclick="openQuestions(${exam.id})">
+Add Questions
+</button>
+
+<button onclick="deleteExam(${exam.id})">
+Delete
+</button>
+
+</td>
+</tr>
+`;
+
+});
+
+}catch(err){
+console.error("Load exams error:",err);
+}
+
+}
+
+
+
+/* DELETE EXAM */
+async function deleteExam(id){
+
+if(!confirm("Delete this exam?")) return;
+
+await fetch("/api/admin/competitive-exams/"+id,{
+method:"DELETE",
+headers:{
+Authorization:"Bearer "+token
+}
+});
+
+loadCompetitiveExams();
+
+}
+
+function openQuestions(examId){
+
+  window.location.href =
+  "/admin/admin-competitive-questions.html?exam_id=" + examId;
+
+}
+
+/* BUTTON EVENT */
+document.getElementById("createExamBtn")
+.addEventListener("click", createCompetitiveExam);
+
+
+
+/* INITIAL LOAD */
+loadCompetitiveExams();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#2563eb">
+<title>My Profile | EduNexa</title>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root{
+  --primary:#4f46e5;
+  --bg:#f4f6fb;
+  --card:#ffffff;
+  --border:#e5e7eb;
+  --text:#0f172a;
+  --muted:#64748b;
+}
+
+/* ================= PAGE ================= */
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  margin: 0;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 30px auto;
+  padding: 20px;
+}
+
+.page-title {
+  font-size: 30px;
+  font-weight: 800;
+  margin-bottom: 24px;
+}
+
+/* ================= GRID ================= */
+.profile-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ================= CARDS ================= */
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+.card h3 {
+  margin-bottom: 14px;
+  font-size: 18px;
+}
+
+/* ================= PROFILE INFO ================= */
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 16px;
+}
+
+.profile-item strong {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.profile-item span {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ================= AVATAR ================= */
+.avatar-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.avatar-preview {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--primary);
+}
+
+/* ================= STATS ================= */
+.stat-grid {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  background: linear-gradient(135deg,#eef2ff,#ffffff);
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+}
+
+.stat-card h3 {
+  margin: 8px 0;
+  font-size: 22px;
+  color: var(--primary);
+}
+
+/* ================= FORMS ================= */
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+/* ================= BUTTONS ================= */
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+}
+
+.btn-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* ================= STATUS TEXT ================= */
+#usernameStatus {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.stat-box {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 14px;
+  min-width: 140px;
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+.stat-label {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.inbox-item {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.inbox-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.inbox-email {
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.inbox-message {
+  margin-top: 6px;
+  color: #334155;
+}
+
+/* ================= PROFILE POSTS ================= */
+
+.post-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.05);
+  transition: 0.2s ease;
+}
+
+.post-card:hover {
+  transform: translateY(-2px);
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.post-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.post-content {
+  color: #334155;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.post-footer {
+  font-size: 13px;
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.post-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.post-link {
+  color: #4f46e5;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.delete-btn {
+  color: #dc2626;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.post-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.post-actions span {
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.post-link {
+  color: #4f46e5;
+}
+
+.post-link:hover {
+  text-decoration: underline;
+}
+
+.edit-btn {
+  color: #0f172a;
+}
+
+.edit-btn:hover {
+  color: #2563eb;
+}
+
+.delete-btn {
+  color: #dc2626;
+}
+
+.delete-btn:hover {
+  color: #991b1b;
+}
+
+.post-actions span {
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #f1f5f9;
+}
+
+.post-actions span:hover {
+  background: #e2e8f0;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="page-title">👤 My Profile</div>
+
+<a id="followers-link">
+  <span id="followers-count"></span> Followers
+</a>
+
+<a id="following-link">
+  <span id="following-count"></span> Following
+</a>
+
+
+  <div class="profile-layout">
+
+    <!-- LEFT COLUMN -->
+    <div>
+
+      <!-- PROFILE INFO -->
+      <div class="card">
+        <h3>Profile Information</h3>
+        <div class="profile-grid">
+          <div class="profile-item">
+            <strong>Name</strong>
+            <span id="profileName">-</span>
+          </div>
+          <div class="profile-item">
+            <strong>Role</strong>
+            <span id="profileRole">-</span>
+          </div>
+          <div class="profile-item">
+            <strong>Current Course</strong>
+            <span id="profileCourse">-</span>
+          </div>
+          <div class="profile-item">
+            <strong>User ID</strong>
+            <span id="profileId">-</span>
+          </div>
+        </div>
+      </div>
+
+      
+
+      <!-- LMS STATS -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          ⏱ Total Learning Time
+          <h3 id="totalTime">0 mins</h3>
+        </div>
+
+        <div class="stat-card">
+          📘 Lessons Completed
+          <h3 id="lessonsCompleted">0</h3>
+        </div>
+
+        <div class="stat-card">
+          🎓 Certificates Earned
+          <h3 id="certCount">0</h3>
+        </div>
+      </div>
+
+<button onclick="location.href='/recruiter-inbox.html'">
+📨 Recruiter Messages
+</button>
+
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div>
+
+      <!-- SETTINGS -->
+      <div class="card">
+        <h3>Profile Settings</h3>
+
+        <div class="avatar-box">
+          <img id="avatarPreview" class="avatar-preview" style="display:none;">
+          <input id="avatarFileInput" type="file" accept="image/*">
+        </div>
+
+        <div class="form-group">
+          <label>Display Name</label>
+          <input id="displayNameInput" type="text">
+        </div>
+
+        <button class="btn btn-primary" onclick="saveProfileSettings()">💾 Save</button>
+<button id="follow-btn">Follow</button>
+
+      </div>
+
+      <!-- PUBLIC PROFILE -->
+      <div class="card" style="margin-top:20px;">
+        <h3>🌍 Public Profile</h3>
+
+        <div class="form-group">
+          <label>Username</label>
+          <input id="publicUsername">
+          <small id="usernameStatus"></small>
+        </div>
+
+        <div class="form-group">
+          <label>Headline</label>
+          <input id="publicHeadline">
+        </div>
+
+        <div class="form-group">
+          <label>Bio</label>
+          <textarea id="publicBio" rows="3"></textarea>
+        </div>
+
+        <label>
+          <input type="checkbox" id="publicToggle"> Make my profile public
+        </label>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="savePublicProfile()">💾 Save</button>
+          <button class="btn btn-secondary" onclick="previewPublicProfile()">👁 Preview</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<!-- ================= USER POSTS ================= -->
+<div class="card" style="margin-top:30px;">
+  <h3>📝 Posts</h3>
+  <div id="posts"></div>
+</div>
+
+<div id="inboxList"></div>
+
+<div id="profile-container">
+  <div id="banner"></div>
+  <img id="profile-image" />
+  <h2 id="name"></h2>
+  <p id="headline"></p>
+  <p id="followers"></p>
+  <div id="about"></div>
+</div>
+
+  <!-- FOOTER ACTIONS -->
+  <div class="btn-row" style="margin-top:30px;">
+    <button class="btn btn-primary" onclick="location.href='/certificates.html'">🎓 My Certificates</button>
+    <button class="btn btn-secondary" onclick="location.href='/dashboard.html'">⬅ Dashboard</button>
+  </div>
+
+
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+
+document.addEventListener("DOMContentLoaded", async () => {
+
+  try {
+
+    const token = localStorage.getItem("token");
+
+    const meRes = await fetch("/api/student/profile", {
+      headers: { Authorization: "Bearer " + token }
+    });
+
+    if (!meRes.ok) throw new Error("User fetch failed");
+
+    const me = await meRes.json();
+    const loggedUserId = me.id;
+
+    const params = new URLSearchParams(window.location.search);
+const urlUsername = params.get("u");
+
+// use username from the logged-in user if no URL param
+const username = urlUsername || me.username;
+
+if (!username) {
+  console.error("Username missing from /api/student/profile response:", me);
+  throw new Error("Username missing");
+}
+
+const profileRes = await fetch(`/api/profile/${username}`);
+
+    if (!profileRes.ok) throw new Error("Profile fetch failed");
+
+    const data = await profileRes.json();
+
+    document.getElementById("profileName").innerText =
+      data?.user?.username || me.name || "-";
+
+    document.getElementById("profileRole").innerText =
+      data?.user?.role || me.role || "-";
+
+    document.getElementById("profileCourse").innerText =
+      data?.user?.course || me.course || "-";
+
+    document.getElementById("profileId").innerText =
+      data?.user?.id || me.id || "-";
+
+    const postsDiv = document.getElementById("posts");
+    postsDiv.innerHTML = "";
+
+    data.posts.forEach(post => {
+
+      const postCard = document.createElement("div");
+      postCard.classList.add("post-card");
+
+      postCard.innerHTML = `
+        <div class="post-header">
+          <span>@${data.user.username}</span>
+          <span>${formatTime(post.created_at)}</span>
+        </div>
+
+        <div class="post-title">${post.title}</div>
+
+        <div class="post-content">
+          ${post.content.substring(0, 200)}...
+        </div>
+
+        ${
+          post.image_url
+            ? `<img src="${post.image_url}" 
+               style="width:100%;margin-top:10px;border-radius:12px;">`
+            : ""
+        }
+
+        <div class="post-footer">
+          ❤️ ${post.likes}
+        </div>
+
+        <div class="post-actions">
+
+          <span class="post-link" data-id="${post.id}">
+            View Full Post
+          </span>
+
+          ${
+            data.user.id === loggedUserId
+              ? `
+                <span class="edit-btn" data-id="${post.id}">Edit</span>
+                <span class="delete-btn" data-id="${post.id}">Delete</span>
+              `
+              : ""
+          }
+
+        </div>
+      `;
+
+      postsDiv.appendChild(postCard);
+
+    });
+
+  } catch (err) {
+    console.error("Profile load failed", err);
+  }
+
+});
+
+document.addEventListener("click", async (e) => {
+
+  const editBtn = e.target.closest(".edit-btn");
+  if (editBtn) {
+    const postId = editBtn.dataset.id;
+    window.location.href = `/edit-post.html?id=${postId}`;
+  }
+
+  const deleteBtn = e.target.closest(".delete-btn");
+  if (deleteBtn) {
+
+    const confirmDelete = confirm("Delete this post?");
+    if (!confirmDelete) return;
+
+    const postId = deleteBtn.dataset.id;
+
+    await fetch(`/api/posts/${postId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token")
+      }
+    });
+
+    location.reload();
+  }
+
+});
+
+document.addEventListener("click", async (e) => {
+
+  // View Full Post
+  const viewBtn = e.target.closest(".post-link");
+  if (viewBtn) {
+    const postId = viewBtn.dataset.id;
+    window.location.href = `/post.html?id=${postId}`;
+  }
+
+  // Delete Post
+  const deleteBtn = e.target.closest(".delete-btn");
+  if (deleteBtn) {
+
+    const postId = deleteBtn.dataset.id;
+
+    const confirmDelete = confirm("Are you sure you want to delete this post?");
+    if (!confirmDelete) return;
+
+    await fetch(`/api/posts/${postId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: "Bearer " + token
+      }
+    });
+
+    location.reload();
+  }
+
+});
+
+/* ================= LOAD PROFILE ================= */
+async function loadProfile() {
+  try {
+    const res = await fetch("/api/student/profile", {
+      headers: { Authorization: "Bearer " + token }
+    });
+    const data = await res.json();
+
+    profileName.innerText = data.name || "-";
+    profileRole.innerText = data.role || "-";
+    profileCourse.innerText = data.course || "-";
+    profileId.innerText = data.id || "-";
+
+  } catch {
+    console.warn("Profile load failed");
+  }
+}
+
+
+
+/* ================= AVATAR ================= */
+avatarFileInput?.addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    avatarPreview.src = reader.result;
+    avatarPreview.style.display = "block";
+    localStorage.setItem("customAvatar", reader.result);
+  };
+  reader.readAsDataURL(file);
+});
+
+function saveProfileSettings() {
+  const name = displayNameInput.value.trim();
+  if (name) localStorage.setItem("displayName", name);
+  alert("✅ Profile updated");
+}
+
+/* ================= STATS ================= */
+async function loadStats() {
+  try {
+
+    console.log("Token used:", token);
+
+    const res = await fetch("/api/activity/my", {
+      headers: { Authorization: "Bearer " + token }
+    });
+
+    console.log("Activity status:", res.status);
+
+    const data = await res.json();
+    console.log("Activity data:", data);
+
+    totalTime.innerText =
+      Math.round((data.totals?.total_seconds || 0) / 60) + " mins";
+
+    lessonsCompleted.innerText =
+      data.totals?.lessons_completed || 0;
+
+  } catch (err) {
+    console.error("Stats load failed", err);
+  }
+}
+
+async function loadCertificates() {
+  try {
+    const res = await fetch("/api/certificates/my", {
+      headers: { Authorization: "Bearer " + token }
+    });
+    const data = await res.json();
+    certCount.innerText = data.certificates?.length || 0;
+  } catch {
+    certCount.innerText = "0";
+  }
+}
+
+/* ================= NAVIGATION ================= */
+function goCertificates() {
+  location.href = "/certificates.html";
+}
+
+function goDashboard() {
+  location.href = "/dashboard.html";
+}
+
+/* ================= PUBLIC PROFILE ================= */
+async function loadPublicProfile() {
+  try {
+    const res = await fetch("/api/profile/public/me", {
+      headers: { Authorization: "Bearer " + token }
+    });
+    const data = await res.json();
+
+    publicUsername.value = data.username || "";
+    publicHeadline.value = data.headline || "";
+    publicBio.value = data.bio || "";
+    publicToggle.checked = !!data.is_public;
+
+  } catch {}
+}
+
+let usernameTimer = null;
+
+publicUsername?.addEventListener("input", () => {
+  clearTimeout(usernameTimer);
+  const val = publicUsername.value.trim();
+  if (val.length < 3) return usernameStatus.innerText = "❌ Min 3 characters";
+
+  usernameTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/profile/check-username/${val}`, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await res.json();
+      usernameStatus.innerText = data.available ? "✅ Available" : "❌ Taken";
+    } catch {
+      usernameStatus.innerText = "⚠️ Error";
+    }
+  }, 500);
+});
+
+async function savePublicProfile() {
+  try {
+    const res = await fetch("/api/profile/public/save", {
+      method: "POST",
+      headers: {
+        "Content-Type":"application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({
+        username: publicUsername.value.trim(),
+        headline: publicHeadline.value.trim(),
+        bio: publicBio.value.trim(),
+        is_public: publicToggle.checked
+      })
+    });
+
+    if (!res.ok) throw 0;
+    alert("✅ Public profile saved!");
+
+  } catch {
+    alert("❌ Failed to save profile");
+  }
+}
+
+function previewPublicProfile() {
+  window.open(`/preview-profile.html`, "_blank");
+}
+
+async function loadResumeAnalytics() {
+  const res = await fetch("/api/public/resume/analytics/me", {
+    headers: {
+      Authorization: "Bearer " + localStorage.getItem("token")
+    }
+  });
+
+  const data = await res.json();
+
+  const views = data.resume_views || data.views || 0;
+  const contacts = data.contact_clicks || data.contacts || 0;
+  const conversion = views ? Math.round((contacts / views) * 100) : 0;
+
+  document.getElementById("resumeViews").innerText = views;
+  document.getElementById("resumeContacts").innerText = contacts;
+  document.getElementById("resumeConversion").innerText = conversion + "%";
+}
+
+
+let resumeChart = null;
+
+async function loadResumeChart() {
+  try {
+    const res = await fetch("/api/public/resume-analytics/chart", {
+      headers: { Authorization: "Bearer " + token }
+    });
+
+    const data = await res.json();
+    if (!Array.isArray(data)) return;
+
+    const labels = data.map(r => r.date);
+    const values = data.map(r => Number(r.views));
+
+    const ctx = document.getElementById("resumeChart");
+    if (!ctx) return;
+
+    if (resumeChart) resumeChart.destroy();
+
+    resumeChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Resume Views",
+          data: values,
+          tension: 0.3,
+          fill: true
+        }]
+      }
+    });
+
+  } catch (err) {
+    console.warn("Resume chart unavailable");
+  }
+}
+
+async function loadResumeAnalytics() {
+  try {
+    const res = await fetch("/api/public/resume/analytics/me", {
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token")
+      }
+    });
+
+    const data = await res.json();
+
+    document.getElementById("viewCount").innerText = data.views || 0;
+    document.getElementById("contactCount").innerText = data.contacts || 0;
+    document.getElementById("conversionRate").innerText =
+      (data.conversion || 0) + "%";
+
+  } catch (err) {
+    console.error("Failed to load analytics", err);
+  }
+}
+
+loadResumeAnalytics();
+
+async function loadInbox() {
+  try {
+    const res = await fetch("/api/resume/messages", {
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token")
+      }
+    });
+
+    const messages = await res.json();
+
+    const box = document.getElementById("inboxList");
+
+    if (!messages.length) {
+      box.innerHTML = "<p>No recruiter messages yet.</p>";
+      return;
+    }
+
+    box.innerHTML = messages.map(m => `
+      <div class="inbox-item">
+        <div class="inbox-header">
+          <strong>${m.type.toUpperCase()}</strong>
+          <span>${new Date(m.created_at).toLocaleDateString()}</span>
+        </div>
+        <div class="inbox-email">
+          ${m.recruiter_email || "Anonymous recruiter"}
+        </div>
+        <div class="inbox-message">
+          ${m.message || "No message provided"}
+        </div>
+      </div>
+    `).join("");
+
+  } catch (err) {
+    console.error("Inbox load failed", err);
+  }
+}
+
+loadInbox();
+
+document.getElementById("follow-btn").addEventListener("click", async () => {
+
+  await fetch(`/api/follow/${profileUserId}`, {
+    method: "POST"
+  });
+
+  alert("Followed!");
+});
+
+function formatTime(dateString) {
+  const date = new Date(dateString);
+  const diff = (Date.now() - date) / 1000;
+
+  if (diff < 60) return "Just now";
+  if (diff < 3600) return Math.floor(diff / 60) + " min ago";
+  if (diff < 86400) return Math.floor(diff / 3600) + " hrs ago";
+  return Math.floor(diff / 86400) + " days ago";
+}
+
+
+ 
+/* ================= INIT ================= */
+loadProfile();
+loadStats();
+loadCertificates();
+loadPublicProfile();
+loadResumeAnalytics();
+loadResumeChart();
+
+</script>
+
+</body>
+</html>

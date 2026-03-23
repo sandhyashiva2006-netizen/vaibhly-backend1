@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Certificate Verification | EduNexa</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/verify.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <img src="/assets/logo.png">
+    </div>
+
+    <nav>
+      <a href="/dashboard.html">🏠 Dashboard</a>
+      <a href="/verify.html" class="active">🔍 Verify Certificate</a>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <main class="main verify-container">
+
+    <h1>🔍 Certificate Verification</h1>
+    <p class="subtitle">Enter Certificate ID to validate authenticity</p>
+
+    <div class="verify-box">
+      <input id="certInput" placeholder="Enter Certificate ID" />
+      <button onclick="verify()">Verify</button>
+    </div>
+
+    <div id="resultBox"></div>
+
+  </main>
+
+</div>
+
+<script src="/verify.js"></script>
+</body>
+</html>

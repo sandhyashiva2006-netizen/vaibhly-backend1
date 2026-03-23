@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EduNexa | Course Builder</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+  <script src="/js/auth-global.js"></script>
+
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+</head>
+
+<body>
+
+<div class="admin-wrapper">
+
+  <aside id="adminSidebar" class="admin-sidebar">
+    <h2>EduNexa</h2>
+    <ul>
+      <li><a href="/admin/admin.html">Dashboard</a></li>
+      <li><a href="/admin/admin-analytics.html">Analytics</a></li>
+      <li><a class="active" href="/admin/admin-course-builder.html">Course Builder</a></li>
+      <li><a href="/admin/admin-orders.html">Orders</a></li>
+      <li><a href="/admin/admin-coupons.html">Coupons</a></li>
+      <li><a href="/admin/admin-enrollments.html">Enrollments</a></li>
+    </ul>
+    <button id="adminLogout" class="admin-logout">Logout</button>
+  </aside>
+
+  <main class="main">
+
+    <h1>🎓 Course Builder</h1>
+    <button class="mobile-toggle" onclick="toggleSidebar()">☰ Menu</button>
+<!-- ================= BULK IMPORT ================= -->
+<div class="card">
+  <h3>📥 Bulk Import (Excel)</h3>
+
+  <input type="file" id="excelFile" accept=".xlsx,.xls" />
+
+  <button onclick="importExcel()">Import Excel</button>
+
+  <p id="importStatus" style="margin-top:10px;"></p>
+</div>
+
+    <!-- Course Creation -->
+    <div class="card">
+      <h3>Create Course</h3>
+      <input id="courseTitle" placeholder="Course Title" />
+      <input id="coursePrice" type="number" placeholder="Price" />
+      <textarea id="courseDesc" placeholder="Description"></textarea>
+      <button class="btn-primary" onclick="createCourse()">Create Course</button>
+    </div>
+
+    <!-- Course Selector -->
+    <div class="card">
+      <h3>Select Course</h3>
+
+      <div style="display:flex; gap:10px; align-items:center;">
+        <select id="courseSelect" onchange="loadCourseDetails()"></select>
+<button onclick="editCoursePrice()">💰 Edit Price</button>
+        <button id="publishBtn" onclick="togglePublish()" class="btn-primary">
+          Publish
+        </button>
+
+        <button onclick="previewCourse()" class="btn-secondary">
+          👁 Preview
+        </button>
+      </div>
+
+      <p id="publishStatus" style="margin-top:6px;"></p>
+    </div>
+
+    <!-- Modules -->
+    <div class="card">
+      <h3>Modules (Drag to reorder)</h3>
+      <input id="moduleTitle" placeholder="Module title" />
+      <button onclick="createModule()">Add Module</button>
+      <ul id="modulesList"></ul>
+    </div>
+
+    <!-- Lessons -->
+    <div class="card">
+      <h3>Lessons</h3>
+
+      <input id="lessonTitle" placeholder="Lesson title" />
+
+      <!-- Rich Text Editor -->
+      <div id="lessonEditor" style="height:180px;background:white;"></div>
+
+      <button onclick="createLesson()">Add Lesson</button>
+
+      <hr>
+
+      <h4>🎥 Upload / Replace Video</h4>
+<input type="file" id="videoFile" accept="video/*" />
+<button onclick="uploadLessonVideo()">Upload Video</button>
+<button onclick="deleteLessonVideo()" style="margin-left:8px;">🗑 Delete Video</button>
+
+<video id="videoPreview"
+       controls
+       style="width:100%;margin-top:10px;display:none"></video>
+
+<hr>
+
+<h4>📄 Upload / Replace PDF</h4>
+<input type="file" id="pdfFile" accept="application/pdf" />
+<button onclick="uploadLessonPdf()">Upload PDF</button>
+<button onclick="deleteLessonPdf()" style="margin-left:8px;">🗑 Delete PDF</button>
+
+<iframe id="pdfPreview"
+        style="width:100%;height:300px;margin-top:10px;display:none;border:1px solid #ccc;"></iframe>
+
+
+
+      <ul id="lessonsList"></ul>
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+if (!requireAdmin()) throw new Error("Unauthorized");
+
+let selectedCourse = null;
+let selectedModule = null;
+let selectedLesson = null;
+
+/* ================= COURSES ================= */
+
+let coursesCache = [];
+
+async function loadCourses() {
+  const res = await authFetch("/api/admin/courses");
+  coursesCache = await res.json();
+
+  const select = document.getElementById("courseSelect");
+  select.innerHTML = "<option value=''>Select Course</option>";
+
+  coursesCache.forEach(c => {
+    const label = c.is_published ? "✅ " + c.title : "📝 " + c.title;
+    select.innerHTML += `<option value="${c.id}">${label}</option>`;
+  });
+}
+
+function loadCourseDetails() {
+  const courseId = courseSelect.value;
+  if (!courseId) return;
+
+  const course = coursesCache.find(c => c.id == courseId);
+  if (!course) return;
+
+  document.getElementById("publishBtn").innerText =
+    course.is_published ? "Unpublish" : "Publish";
+
+  document.getElementById("publishStatus").innerText =
+    course.is_published
+      ? "🟢 Published (Visible to students)"
+      : "🟡 Draft (Hidden)";
+
+  loadModules();
+}
+
+async function togglePublish() {
+  const courseId = courseSelect.value;
+  if (!courseId) return alert("Select a course");
+
+  const course = coursesCache.find(c => c.id == courseId);
+  const newStatus = !course.is_published;
+
+  await authFetch("/api/admin/courses/publish", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: courseId, is_published: newStatus })
+  });
+
+  course.is_published = newStatus;
+  loadCourseDetails();
+  loadCourses();
+}
+
+async function createCourse() {
+  await authFetch("/api/admin/courses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: courseTitle.value,
+      price: coursePrice.value,
+      description: courseDesc.value
+    })
+  });
+
+  courseTitle.value = "";
+  coursePrice.value = "";
+  courseDesc.value = "";
+  loadCourses();
+}
+
+/* ================= MODULES ================= */
+
+async function loadModules(autoSelectLast = false) {
+  selectedCourse = courseSelect.value;
+  if (!selectedCourse) return;
+
+  const res = await authFetch("/api/admin/modules?course_id=" + selectedCourse);
+  let modules = await res.json();
+  if (!Array.isArray(modules)) modules = [];
+
+  const list = document.getElementById("modulesList");
+  list.innerHTML = "";
+  selectedModule = null;
+  selectedLesson = null;
+  document.getElementById("lessonsList").innerHTML = "";
+  document.getElementById("videoPreview").style.display = "none";
+
+  modules.forEach((m, index) => {
+    const li = document.createElement("li");
+    li.dataset.id = m.id;
+    li.setAttribute("draggable", true);
+
+    li.innerHTML = `
+      <span>${m.title}</span>
+      <div>
+        <button onclick="editModule(${m.id}, '${m.title.replace(/'/g,"\\'")}')">✏️</button>
+        <button onclick="deleteModule(${m.id})">🗑</button>
+      </div>
+    `;
+
+    li.onclick = () => {
+      document.querySelectorAll("#modulesList li").forEach(x => x.classList.remove("active"));
+      li.classList.add("active");
+      selectedModule = m.id;
+      loadLessons();
+    };
+
+    li.ondragstart = e => e.dataTransfer.setData("text/plain", m.id);
+    li.ondragover = e => e.preventDefault();
+    li.ondrop = e => {
+      e.preventDefault();
+      reorderUI("modulesList", e.dataTransfer.getData("text/plain"), m.id, saveModuleOrder);
+    };
+
+    list.appendChild(li);
+    if (autoSelectLast && index === modules.length - 1) li.click();
+  });
+}
+
+/* ================= CREATE MODULE ================= */
+
+async function createModule() {
+  if (!selectedCourse) {
+    alert("Select a course first");
+    return;
+  }
+
+  const title = document.getElementById("moduleTitle").value.trim();
+  if (!title) {
+    alert("Enter module title");
+    return;
+  }
+
+  try {
+    await authFetch("/api/admin/modules", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        course_id: selectedCourse,
+        title
+      })
+    });
+
+    document.getElementById("moduleTitle").value = "";
+    loadModules(true); // reload + auto select new module
+
+  } catch (err) {
+    console.error("Create module failed:", err);
+    alert("❌ Failed to create module");
+  }
+}
+
+/* ================= LESSONS ================= */
+
+async function loadLessons() {
+  const res = await authFetch("/api/admin/lessons?module_id=" + selectedModule);
+  let lessons = await res.json();
+  if (!Array.isArray(lessons)) lessons = [];
+
+  const list = document.getElementById("lessonsList");
+  list.innerHTML = "";
+  selectedLesson = null;
+
+  lessons.forEach(l => {
+    const li = document.createElement("li");
+    li.dataset.id = l.id;
+    li.setAttribute("draggable", true);
+
+    li.innerHTML = `
+      <span>${l.title}</span>
+      <div>
+        <button onclick="editLesson(${l.id}, '${l.title.replace(/'/g,"\\'")}', '${(l.content||"").replace(/'/g,"\\'")}', '${(l.video_url||"").replace(/'/g,"\\'")}')">✏️</button>
+        <button onclick="deleteLesson(${l.id})">🗑</button>
+      </div>
+    `;
+
+    /* ✅ ACTIVE SELECTION */
+    li.onclick = () => {
+      document.querySelectorAll("#lessonsList li").forEach(x => x.classList.remove("active"));
+      li.classList.add("active");
+      selectedLesson = l;
+
+      if (l.video_url) {
+  showVideoPreview(l.video_url);
+  document.getElementById("pdfPreview").style.display = "none";
+}
+else if (l.pdf_url) {
+  showPdfPreview(l.pdf_url);
+  document.getElementById("videoPreview").style.display = "none";
+}
+else {
+  document.getElementById("videoPreview").style.display = "none";
+  document.getElementById("pdfPreview").style.display = "none";
+}
+
+
+    };
+
+    li.ondragstart = e => e.dataTransfer.setData("text/plain", l.id);
+    li.ondragover = e => e.preventDefault();
+    li.ondrop = e => {
+      e.preventDefault();
+      reorderUI("lessonsList", e.dataTransfer.getData("text/plain"), l.id, saveLessonOrder);
+    };
+
+    list.appendChild(li);
+  });
+}
+
+async function createLesson() {
+  if (!selectedModule) return alert("Select module first");
+
+  await authFetch("/api/admin/lessons", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      module_id: selectedModule,
+      title: lessonTitle.value,
+      content: quill.root.innerHTML
+    })
+  });
+
+  lessonTitle.value = "";
+  quill.root.innerHTML = "";
+  loadLessons();
+}
+
+/* ================= VIDEO UPLOAD ================= */
+
+async function uploadLessonVideo() {
+  if (!selectedLesson) return alert("Select a lesson first");
+
+  const file = document.getElementById("videoFile").files[0];
+  if (!file) return alert("Select a video file");
+
+  const formData = new FormData();
+  formData.append("video", file);
+
+  try {
+    const res = await authFetch(`/api/admin/lessons/${selectedLesson.id}/video`, {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (data.video_url) {
+      alert("✅ Video uploaded");
+      showVideoPreview(data.video_url);
+      loadLessons();
+    } else {
+      alert("❌ Upload failed");
+    }
+  } catch (err) {
+    console.error("Upload error:", err);
+    alert("❌ Upload failed");
+  }
+}
+
+function showVideoPreview(url) {
+  const video = document.getElementById("videoPreview");
+  video.src = url;
+  video.style.display = "block";
+}
+
+/* ================= PDF UPLOAD ================= */
+
+async function uploadLessonPdf() {
+  if (!selectedLesson) return alert("Select a lesson first");
+
+  const file = document.getElementById("pdfFile").files[0];
+  if (!file) return alert("Select a PDF file");
+
+  const formData = new FormData();
+  formData.append("pdf", file);
+
+  try {
+    const res = await authFetch(
+      `/api/admin/lessons/${selectedLesson.id}/pdf`,
+      {
+        method: "POST",
+        body: formData
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.pdf_url) {
+      alert("✅ PDF uploaded");
+      showPdfPreview(data.pdf_url);
+      loadLessons();
+    } else {
+      alert("❌ PDF upload failed");
+    }
+
+  } catch (err) {
+    console.error("PDF upload error:", err);
+    alert("❌ PDF upload failed");
+  }
+}
+
+function showPdfPreview(url) {
+  const frame = document.getElementById("pdfPreview");
+  frame.src = url;
+  frame.style.display = "block";
+
+  document.getElementById("videoPreview").style.display = "none";
+}
+
+
+
+
+/* ================= DRAG HELPERS ================= */
+
+function reorderUI(listId, draggedId, targetId, saveFn) {
+  const list = document.getElementById(listId);
+  const draggedEl = [...list.children].find(li => li.dataset.id == draggedId);
+  const targetEl = [...list.children].find(li => li.dataset.id == targetId);
+  if (!draggedEl || !targetEl || draggedEl === targetEl) return;
+
+  list.insertBefore(draggedEl, targetEl);
+
+  const items = [...list.children].map((li, index) => ({
+    id: Number(li.dataset.id),
+    position: index + 1
+  }));
+
+  saveFn(items);
+}
+
+async function saveModuleOrder(items) {
+  await authFetch("/api/admin/modules/reorder", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items })
+  });
+}
+
+async function saveLessonOrder(items) {
+  await authFetch("/api/admin/lessons/reorder", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items })
+  });
+}
+
+/* ================= EDIT / DELETE ================= */
+
+async function editModule(id, title) {
+  const newTitle = prompt("Edit module title:", title);
+  if (!newTitle) return;
+
+  await authFetch("/api/admin/modules", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, title: newTitle })
+  });
+
+  loadModules();
+}
+
+async function deleteModule(id) {
+  if (!confirm("Delete this module and lessons?")) return;
+  await authFetch("/api/admin/modules/" + id, { method: "DELETE" });
+  loadModules();
+}
+
+async function editLesson(id, title, content, video_url) {
+  const newTitle = prompt("Edit lesson title:", title);
+  if (!newTitle) return;
+
+  await authFetch("/api/admin/lessons", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, title: newTitle, content, video_url })
+  });
+
+  loadLessons();
+}
+
+async function deleteLesson(id) {
+  if (!confirm("Delete this lesson?")) return;
+  await authFetch("/api/admin/lessons/" + id, { method: "DELETE" });
+  loadLessons();
+}
+
+async function deleteLessonVideo() {
+  if (!selectedLesson) return;
+
+  if (!confirm("Delete this video?")) return;
+
+  await authFetch(`/api/admin/lessons/${selectedLesson.id}/video`, {
+    method: "DELETE"
+  });
+
+  alert("🗑 Video removed");
+  document.getElementById("videoPreview").style.display = "none";
+  loadLessons();
+}
+
+async function deleteLessonPdf() {
+  if (!selectedLesson) return;
+
+  if (!confirm("Delete this PDF?")) return;
+
+  await authFetch(`/api/admin/lessons/${selectedLesson.id}/pdf`, {
+    method: "DELETE"
+  });
+
+  alert("🗑 PDF removed");
+  document.getElementById("pdfPreview").style.display = "none";
+  loadLessons();
+}
+
+async function editCoursePrice() {
+
+  const courseId = courseSelect.value;
+  if (!courseId) return alert("Select course");
+
+  const course = coursesCache.find(c => c.id == courseId);
+
+  const newPrice = prompt("Enter new price:", course.price);
+
+  if (newPrice === null) return;
+
+  await authFetch("/api/admin/courses/price", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: courseId,
+      price: Number(newPrice)
+    })
+  });
+
+  alert("✅ Price updated");
+
+  loadCourses();
+}
+
+/* ================= UI HELPERS ================= */
+
+function previewCourse() {
+  const courseId = courseSelect.value;
+  if (!courseId) return alert("Select a course first");
+  window.open(`/player.html?preview=1&course_id=${courseId}`, "_blank");
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById("adminSidebar");
+  sidebar.classList.toggle("active");
+}
+
+/* ================= INIT ================= */
+
+const quill = new Quill("#lessonEditor", {
+  theme: "snow",
+  placeholder: "Write lesson content...",
+  modules: {
+    toolbar: [
+      ["bold", "italic", "underline"],
+      [{ header: [1, 2, false] }],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link", "image", "code-block"],
+      ["clean"]
+    ]
+  }
+});
+
+/* ================= EXCEL IMPORT ================= */
+
+async function importExcel() {
+  try {
+    const input = document.getElementById("excelFile");
+    if (!input || !input.files.length) {
+      alert("Please select an Excel file first");
+      return;
+    }
+
+    const file = input.files[0];   // ✅ FIX: define file
+
+    const formData = new FormData();
+    formData.append("file", file); // must match backend
+
+    const res = await authFetch("/api/admin/import-courses", {
+      method: "POST",
+      body: formData
+    });
+
+    const text = await res.text();
+    console.log("🧪 Import raw response:", text);
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error("Invalid server response");
+    }
+
+    if (!res.ok) {
+      throw new Error(data.message || data.error || "Import failed");
+    }
+
+    alert(`✅ Imported ${data.importedRows} rows successfully`);
+
+    // Optional refresh
+    loadCourses();
+
+  } catch (err) {
+    console.error("❌ Import error:", err);
+    alert("❌ Import failed: " + err.message);
+  }
+}
+
+bindLogout("#adminLogout");
+loadCourses();
+</script>
+
+</body>
+</html>

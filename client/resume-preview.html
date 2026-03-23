@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Resume Preview</title>
+
+  <!-- Use same CSS as builder -->
+  <link rel="stylesheet" href="/css/resume.css">
+
+  <style>
+    body {
+      margin: 0;
+      background: white;
+    }
+
+    /* Hide anything unwanted */
+    .builder,
+    #templateSelect,
+    .premium-banner {
+      display: none !important;
+    }
+
+    .preview {
+      width: 100% !important;
+      padding: 40px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="preview" id="resumePreview"></div>
+
+  <script>
+    const userId = new URLSearchParams(window.location.search).get("userId");
+
+    async function loadResume() {
+
+      const res = await fetch(`/api/recruiter/candidate/${userId}/resume`);
+      const data = await res.json();
+
+      const r = data.resume_data || {};
+      const template = r.template || "modern";
+
+      document.getElementById("resumePreview").innerHTML = `
+        <div class="resume-sheet template-${template}">
+          <h1>${r.name || ""}</h1>
+          <h3>${r.title || ""}</h3>
+          <p>${r.email || ""} | ${r.phone || ""}</p>
+
+          <hr>
+
+          <h3>Summary</h3>
+          <p>${r.summary || ""}</p>
+
+          <h3>Skills</h3>
+          <p>${r.skills || ""}</p>
+
+          <h3>Projects</h3>
+          <p>${r.projects || ""}</p>
+
+          <h3>Education</h3>
+          <p>${r.education || ""}</p>
+
+          <h3>Links</h3>
+          <p>${r.linkedin || ""}<br>${r.github || ""}</p>
+        </div>
+      `;
+    }
+
+    loadResume();
+  </script>
+
+</body>
+</html>

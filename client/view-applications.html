@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hiring Pipeline</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f7fb;
+      padding: 30px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    .tabs {
+  display: flex;
+  gap: 30px;
+  border-bottom: 2px solid #e5e7eb;
+  margin-top: 20px;
+}
+
+.tab {
+  padding-bottom: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #6b7280;
+  transition: all 0.2s;
+}
+
+.tab.active {
+  color: #4f46e5;
+  border-bottom: 3px solid #4f46e5;
+}
+
+    .tab.active::after {
+      content: "";
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: #4f46e5;
+    }
+
+    .candidate-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease;
+}
+
+.candidate-card:hover {
+  transform: translateY(-2px);
+}
+
+    .info {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    .score {
+      font-size: 13px;
+      color: #f59e0b;
+      margin-bottom: 10px;
+    }
+
+    .actions button {
+      padding: 6px 10px;
+      margin-right: 6px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      background: #e5e7eb;
+    }
+
+    .actions button:hover {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .empty {
+      color: #9ca3af;
+      font-size: 14px;
+    }
+
+.resume-panel {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 45%;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+  transition: right 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 1000;
+  border-left: 1px solid #e5e7eb;
+}
+
+.resume-panel.open {
+  right: 0;
+}
+
+.resume-content {
+  padding: 30px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.resume-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.resume-header h3 {
+  margin: 0;
+}
+
+.resume-header button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.download-btn {
+  padding: 8px 14px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.download-btn:hover {
+  background: #4338ca;
+}
+
+.resume-wrapper {
+  font-family: 'Segoe UI', sans-serif;
+  padding: 30px;
+  max-width: 700px;
+  margin: auto;
+}
+
+.resume-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.resume-title {
+  color: #6b7280;
+  margin: 5px 0;
+}
+
+.resume-contact {
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.resume-section {
+  margin-bottom: 25px;
+}
+
+.resume-section h3 {
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+  color: #111827;
+}
+
+.resume-section p {
+  color: #374151;
+  line-height: 1.6;
+}
+
+.download-btn {
+  padding: 10px 16px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.download-btn:hover {
+  background: #4338ca;
+}
+
+  </style>
+</head>
+
+<body>
+
+<h2>Hiring Pipeline</h2>
+<a href="recruiter-dashboard.html">← Back</a>
+
+<div class="tabs" id="tabs"></div>
+<div id="candidates"></div>
+
+<script>
+let applications = [];
+
+const token = localStorage.getItem("token");
+const jobId = new URLSearchParams(window.location.search).get("jobId");
+
+const stages = [
+  "applied",
+  "screening",
+  "interview",
+  "offer",
+  "hired",
+  "rejected"
+];
+
+let allApplications = [];
+let currentStage = "applied";
+
+async function loadApplications() {
+
+  const res = await fetch(`/api/recruiter/jobs/${jobId}/applications`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  allApplications = await res.json();
+
+  console.log("Loaded applications FULL:", JSON.stringify(allApplications, null, 2));
+
+  renderTabs();
+  renderCandidates(currentStage);
+}
+
+function renderTabs() {
+
+  let html = "";
+
+  stages.forEach(stage => {
+
+    const count = allApplications.filter(a =>
+  (a.stage || "").toLowerCase().trim() === stage
+).length;
+
+    html += `
+      <div class="tab ${currentStage === stage ? "active" : ""}"
+           onclick="changeStage('${stage}')">
+        ${stage.toUpperCase()} (${count})
+      </div>
+    `;
+  });
+
+  document.getElementById("tabs").innerHTML = html;
+}
+
+function renderCandidates(stage) {
+
+  const filtered = allApplications.filter(a =>
+    (a.stage || "").toLowerCase().trim() === stage
+  );
+
+  console.log("Filtered for stage:", stage, filtered);
+
+  let html = "";
+
+  if (filtered.length === 0) {
+    html = `<div class="empty">No candidates in this stage.</div>`;
+  }
+
+  filtered.forEach(app => {
+    html += `
+      <div class="candidate-card">
+        <h4>${app.name}</h4>
+        <div class="info">Username: ${app.username}</div>
+        <div class="score">⭐ Match Score: ${app.ai_score || 0}</div>
+
+        <div class="actions">
+          ${stage !== "screening" ? `<button onclick="move(${app.application_id}, 'screening')">Screen</button>` : ""}
+          ${stage !== "interview" ? `<button onclick="move(${app.application_id}, 'interview')">Interview</button>` : ""}
+          ${stage !== "offer" ? `<button onclick="move(${app.application_id}, 'offer')">Offer</button>` : ""}
+          ${stage !== "hired" ? `<button onclick="move(${app.application_id}, 'hired')">Hire</button>` : ""}
+          ${stage !== "rejected" ? `<button onclick="move(${app.application_id}, 'rejected')">Reject</button>` : ""}
+          <button onclick="viewResume(${app.id})">Resume</button>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById("candidates").innerHTML = html;
+}
+
+function changeStage(stage) {
+  currentStage = stage;
+  renderTabs();
+  renderCandidates(currentStage);
+}
+
+async function move(id, status) {
+
+  await fetch(`/api/recruiter/applications/${id}/status`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ status: status.toLowerCase() })
+  });
+
+  await loadApplications();
+}
+
+async function viewResume(userId) {
+
+  const res = await fetch(`/api/recruiter/candidate/${userId}/resume`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const data = await res.json();
+
+  const container = document.getElementById("resumeData");
+
+  // If uploaded PDF exists
+  if (data.resume_file) {
+
+    container.innerHTML = `
+      <iframe 
+        src="/uploads/resumes/${data.resume_file}" 
+        width="100%" 
+        height="600px"
+        style="border:none;">
+      </iframe>
+      <br/>
+      <a href="/uploads/resumes/${data.resume_file}" 
+         target="_blank"
+         class="download-btn">
+         Download PDF
+      </a>
+    `;
+
+  } else if (data.resume_data) {
+
+    const r = data.resume_data;
+
+document.getElementById("resumeData").innerHTML = `
+  <div class="resume-wrapper">
+
+    <div class="resume-header">
+      <h2>${r.name}</h2>
+      <p class="resume-title">${r.title || ""}</p>
+      <div class="resume-contact">
+        ${r.email || ""} | ${r.phone || ""}
+      </div>
+    </div>
+
+    <div class="resume-section">
+      <h3>Professional Summary</h3>
+      <p>${r.summary || "—"}</p>
+    </div>
+
+    <div class="resume-section">
+      <h3>Skills</h3>
+      <p>${r.skills || "—"}</p>
+    </div>
+
+    <div class="resume-section">
+      <h3>Projects</h3>
+      <p>${r.projects || "—"}</p>
+    </div>
+
+    <div class="resume-section">
+      <h3>Education</h3>
+      <p>${r.education || "—"}</p>
+    </div>
+
+<h3>Certificates</h3>
+<ul>
+  ${
+    data.certificates && data.certificates.length > 0
+      ? data.certificates.map(c => `
+          <li>
+            ${c.course_name}
+            (${new Date(c.issued_on).toLocaleDateString()})
+          </li>
+        `).join("")
+      : "<li>No certificates</li>"
+  }
+</ul>
+
+    <button class="download-btn" onclick="downloadResumePDF(${userId})">
+      Download PDF
+    </button>
+
+  </div>
+`;
+  }
+
+  document.getElementById("resumePanel").classList.add("open");
+}
+
+function closeResume() {
+  document.getElementById("resumePanel").classList.remove("open");
+}
+
+
+function downloadResumePDF(userId) {
+  const token = localStorage.getItem("token");
+
+  window.open(
+    `/api/recruiter/candidate/${userId}/resume-pdf?token=${token}`,
+    "_blank"
+  );
+}
+
+async function scheduleInterview(applicationId) {
+
+  const date = prompt("Interview date (YYYY-MM-DD HH:MM)");
+  const link = prompt("Meeting link (Zoom/Google Meet)");
+
+  if (!date || !link) return;
+
+  await fetch(`/api/recruiter/applications/${applicationId}/schedule`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      interview_date: date,
+      meeting_link: link
+    })
+  });
+
+  alert("Interview Scheduled & moved to Interview stage");
+  loadApplications();
+}
+
+function viewDetail(userId) {
+  window.location.href = `/candidate-detail.html?id=${userId}`;
+}
+
+loadApplications();
+
+</script>
+
+<!-- Resume Side Panel -->
+<div id="resumePanel" class="resume-panel">
+  <div class="resume-content">
+    <div class="resume-header">
+      <h3>Candidate Resume</h3>
+      <button onclick="closeResume()">✖</button>
+    </div>
+    <div id="resumeData"></div>
+  </div>
+</div>
+
+</body>
+</html>
+
+
+
+
+

@@ -1,0 +1,342 @@
+/* ================= PAGE ================= */
+@page {
+  size: 11.5in 8in;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #e5e7eb;
+  font-family: "Georgia", serif;
+  margin: 0;
+}
+
+/* ================= CERTIFICATE ================= */
+.certificate {
+  width: 11.5in;
+  height: 8in;
+
+  margin: 0 auto;
+  padding: 0.6in 1in;
+
+  background: url("/assets/certificate-bg.png") no-repeat center;
+  background-size: cover;
+
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.certificate-id {
+  font-size: 12px;
+  margin-top: 10px;
+  color: #374151;
+}
+
+/* ================= LOGO ================= */
+.logo {
+  width: 120px;
+  margin-top: -22px;   /* 🔼 moved UP slightly */
+  margin-bottom: 6px;
+}
+
+/* ================= HEADINGS ================= */
+.title {
+  font-size: 44px;
+  letter-spacing: 3px;
+  margin-top: -1px;   /* 🔼 CERTIFICATE moved UP */
+  margin-bottom: 0;
+}
+
+.subtitle {
+  font-size: 25px;
+  color: #b45309;
+  margin-top: 1px;    /* 🔼 OF COMPLETION moved UP */
+  margin-bottom: 18px;
+}
+
+.student-name {
+  font-size: 56px;
+  color: blue;
+  font-family: "Brush Script MT", cursive;
+
+  margin-top: -30px;   /* ⬅️ moves ONLY the name UP */
+  margin-bottom: 36px; /* space before yellow line */
+}
+
+
+/* ================= CONTENT BLOCK ================= */
+.presented {
+  font-size: 14px;
+  letter-spacing: 1px;
+  margin-bottom: 18px;
+}
+
+
+
+.divider {
+  width: 260px;
+  height: 2px;
+  background: #d4af37;
+  margin: 6px auto 14px;  /* small top, more space below */
+  position: relative;
+}
+
+
+.description {
+  font-size: 16px;
+  margin-top: -10px;   /* keeps it clearly below the line */
+}
+
+.course {
+  font-size: 24px;
+  color: #1e40af;
+  margin: 8px 0.5 8px;
+}
+
+.exam {
+  font-size: 18px;
+  margin-top: 5px;      /* ⬆️ pulls exam name UP */
+  margin-bottom: 5px;
+}
+
+
+.score {
+  font-size: 16px;
+  margin-top: 4px;
+}
+
+/* ================= SIGNATURE ================= */
+.signature-area {
+  position: absolute;
+  bottom: 1.15in;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.signature-img {
+  width: 120px;
+  opacity: 0.8;
+  margin-bottom: -18px;
+}
+
+.sign-line {
+  width: 180px;
+  height: 1px;
+  background: #b45309;
+  margin: 4px auto;
+}
+
+.sign-name {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.sign-title {
+  font-size: 13px;
+  color: #374151;
+}
+
+/* ================= BUTTON ================= */
+.print-btn {
+  position: absolute;
+  bottom: 0.25in;        /* ⬇️ moved lower */
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 28px;
+  font-size: 15px;
+  background: #1e40af;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  z-index: 10;           /* ⬅️ prevents overlap with signature */
+}
+
+
+
+
+/* ================= PRINT ================= */
+@media print {
+  body {
+    background: none;
+  }
+
+  .print-btn {
+    display: none;
+  }
+}
+
+.qr-container {
+  position: absolute;
+  top: 40px;
+  right: 40px;
+  z-index: 10;
+}
+
+
+.qr-container img {
+  width: 90px;
+  height: 90px;
+}
+
+.certificate-id {
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+@media print {
+  .print-btn {
+    display: none;
+  }
+}
+
+.certificate {
+  text-align: center;
+}
+
+.student-name {
+  margin-top: 10px;
+}
+
+.course {
+  margin-top: 15px;
+}
+
+.exam {
+  margin-top: 10px;
+}
+
+.score {
+  margin-top: 10px;
+}
+
+/* ================= CERTIFICATE LAYOUT FIXES ================= */
+
+/* Keep certificate relative for QR overlay */
+.certificate{
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Move QR to top-right corner */
+.qr-container {
+  position: absolute;
+  top: 40px;
+  right: 40px;
+  width: 120px;
+  height: 120px;
+}
+
+/* Student name slightly higher */
+.student-name {
+  margin-top: -18px !important;
+  margin-bottom: 6px !important;
+}
+
+/* Course title spacing */
+.course {
+  margin-top: 44px !important;
+  margin-bottom: 10px !important;
+}
+
+/* Exam name spacing */
+.exam {
+  margin-top: 8px !important;
+  margin-bottom: 10px !important;
+}
+
+/* Description spacing */
+.description {
+  margin-top: 6px !important;
+  margin-bottom: 6px !important;
+}
+
+/* Score spacing */
+.score {
+  margin-top: 10px !important;
+  margin-bottom: 8px !important;
+  font-weight: 600;
+}
+
+/* Certificate ID spacing */
+.certificate-id {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+/* Signature spacing */
+.signature-area {
+  margin-top: 12px !important;
+}
+
+.student-name {
+  font-size: 54px;
+  color: #1a33ff;
+  margin: 8px 0 16px;
+}
+
+.description {
+  font-size: 18px;
+  margin: 14px 0;      /* smaller gap */
+  color: #333;
+}
+
+/* ================= TEXT SPACING FIX ================= */
+
+/* Sentence above course */
+.description {
+  font-size: 18px;
+  margin: 4px 0;
+  color: #333;
+}
+
+/* Course title */
+.course {
+  font-size: 24px;
+  color: #1e40af;
+  margin-top: 4px !important;
+  margin-bottom: 6px !important;
+}
+
+/* Assessment sentence */
+.exam {
+  font-size: 18px;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+}
+
+/* Certificate ID */
+.certificate-id {
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.course-block{
+  margin-top:-18px;
+}
+
+.middle-block{
+  margin-top: 24px;
+}
+
+.content-center{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  }
+
+.exam-name{
+  font-size:16px;
+  font-style:italic;
+  color:blue;
+  margin-top:4px;
+  margin-bottom:6px;
+}
+

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📄 Admin Invoices</title>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+
+<div class="admin-container">
+
+  <div class="admin-title">📄 Invoices Management</div>
+
+  <div class="admin-table">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Invoice No</th>
+          <th>Student</th>
+          <th>Email</th>
+          <th>Course</th>
+          <th>Amount</th>
+          <th>Date</th>
+          <th>Download</th>
+        </tr>
+      </thead>
+      <tbody id="invoiceBody">
+        <tr><td colspan="8">Loading invoices...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <button class="admin-logout" onclick="logout()">Logout</button>
+
+</div>
+
+<!-- ✅ GLOBAL AUTH -->
+<script src="/js/auth-global.js"></script>
+
+<script>
+/* ================= LOAD INVOICES ================= */
+async function loadInvoices() {
+  try {
+    const res = await fetch("/api/invoice/admin", {
+      headers: {
+        Authorization: "Bearer " + window.token
+      }
+    });
+
+    if (!res.ok) throw new Error("API failed");
+
+    const invoices = await res.json();
+    const body = document.getElementById("invoiceBody");
+    body.innerHTML = "";
+
+    if (!invoices.length) {
+      body.innerHTML = "<tr><td colspan='7'>No invoices found</td></tr>";
+      return;
+    }
+
+    invoices.forEach((inv, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${inv.invoice_no}</td>
+        <td>${inv.student_name}</td>
+        <td>${inv.email}</td>
+        <td>${inv.course_name}</td>
+        <td>₹${inv.total_amount}</td>
+        <td>${new Date(inv.created_at).toLocaleDateString()}</td>
+        <td>
+          <button onclick="downloadInvoice('${inv.invoice_file}')">
+            Download
+          </button>
+        </td>
+      `;
+      body.appendChild(tr);
+    });
+
+  } catch (err) {
+    console.error("Invoice load error:", err);
+    document.getElementById("invoiceBody").innerHTML =
+      "<tr><td colspan='7'>❌ Failed to load invoices</td></tr>";
+  }
+}
+
+/* ================= DOWNLOAD INVOICE ================= */
+async function downloadInvoice(fileName) {
+  try {
+    const res = await fetch(`/api/invoice/download/${fileName}`, {
+      headers: {
+        Authorization: "Bearer " + window.token
+      }
+    });
+
+    if (!res.ok) throw new Error("Download failed");
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+
+  } catch (err) {
+    alert("❌ Invoice download failed");
+    console.error(err);
+  }
+}
+
+/* ================= LOGOUT ================= */
+function logout() {
+  localStorage.clear();
+  window.location.href = "/admin/admin-login.html";
+}
+
+/* ================= INIT ================= */
+loadInvoices();
+</script>

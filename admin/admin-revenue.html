@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Revenue Dashboard</title>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f6fb;
+      margin: 0;
+      padding: 40px;
+    }
+
+    h2 {
+      margin-bottom: 30px;
+      color: #111827;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+    }
+
+    .title {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+
+    .value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #111827;
+    }
+
+    .revenue {
+      border-left: 5px solid #4f46e5;
+    }
+
+    .premium {
+      border-left: 5px solid #f59e0b;
+    }
+
+    .subtext {
+      font-size: 13px;
+      color: #9ca3af;
+      margin-top: 8px;
+    }
+
+  </style>
+</head>
+<body>
+
+<h2>📊 Revenue Dashboard</h2>
+
+<div class="dashboard">
+
+  <div class="card revenue">
+    <div class="title">Total Revenue</div>
+    <div class="value" id="revenue">₹0</div>
+    <div class="subtext">All-time premium earnings</div>
+  </div>
+
+  <div class="card premium">
+    <div class="title">Active Premium Recruiters</div>
+    <div class="value" id="premium">0</div>
+    <div class="subtext">Currently subscribed</div>
+  </div>
+
+<div class="card">
+  <div class="title">Monthly Recurring Revenue</div>
+  <div class="value" id="mrr">₹0</div>
+</div>
+
+</div>
+
+<span id="revenue"></span>
+<span id="premium"></span>
+<span id="mrr"></span>
+
+<script>
+document.addEventListener("DOMContentLoaded", async function () {
+
+  const token = localStorage.getItem("token");
+
+  try {
+
+    const res = await fetch("/api/admin/revenue", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const data = await res.json();
+
+    document.getElementById("revenue").innerText =
+"₹" + Number(data.revenue || 0).toFixed(2);
+
+document.getElementById("premium").innerText =
+data.activePremium || 0;
+
+document.getElementById("mrr").innerText =
+"₹" + Number(data.mrr || 0).toFixed(2);
+
+  } catch (err) {
+    console.error("Revenue load error:", err);
+  }
+
+});
+
+
+
+</script>
+
+</body>
+</html>

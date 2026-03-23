@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Edit Post</title>
+</head>
+<body>
+
+<div style="max-width:600px;margin:40px auto;">
+  <h2>Edit Post</h2>
+  <input id="title" style="width:100%;margin-bottom:10px;">
+  <textarea id="content" style="width:100%;height:150px;"></textarea>
+  <br><br>
+  <button onclick="savePost()">Save</button>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+const params = new URLSearchParams(window.location.search);
+const postId = params.get("id");
+
+fetch(`/api/posts/${postId}`)
+  .then(res => res.json())
+  .then(post => {
+    title.value = post.title;
+    content.value = post.content;
+  });
+
+async function savePost() {
+
+  await fetch(`/api/posts/${postId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type":"application/json",
+      "Authorization":"Bearer " + token
+    },
+    body: JSON.stringify({
+      title: title.value,
+      content: content.value
+    })
+  });
+
+  window.location.href = "/profile.html";
+}
+</script>
+
+</body>
+</html>

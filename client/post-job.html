@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Post Job - EduNexa</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f5f7fb;
+    }
+
+    .page {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+    }
+
+    h2 {
+      margin-bottom: 30px;
+      font-size: 26px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .full-width {
+      grid-column: span 2;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    textarea { min-height: 120px; }
+
+    /* Salary */
+    .salary-range { display:flex; flex-direction:column; gap:10px; }
+    .salary-values { font-weight:600; color:#4f46e5; }
+
+    /* Skills */
+    .skill-wrapper { position:relative; }
+    .suggestions {
+      position:absolute; top:42px; left:0; right:0;
+      background:white; border:1px solid #ddd;
+      border-radius:8px; max-height:180px;
+      overflow-y:auto; display:none; z-index:1000;
+    }
+    .suggestions div { padding:8px 12px; cursor:pointer; }
+    .suggestions div:hover { background:#f3f4f6; }
+
+    #tagsContainer { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .tag {
+      background:#eef2ff;
+      padding:6px 10px;
+      border-radius:20px;
+      font-size:12px;
+    }
+    .tag span { margin-left:6px; cursor:pointer; color:red; }
+
+    .checkbox-row { margin-top:20px; }
+
+    .actions-row {
+      margin-top:30px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .btn-primary {
+      padding:10px 18px;
+      border:none;
+      border-radius:8px;
+      background:#4f46e5;
+      color:white;
+      font-weight:600;
+      cursor:pointer;
+    }
+
+    .btn-secondary {
+      padding:10px 18px;
+      border-radius:8px;
+      border:2px solid #4f46e5;
+      background:white;
+      color:#4f46e5;
+      font-weight:600;
+      cursor:pointer;
+    }
+
+    .preview-modal {
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.6);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:9999;
+    }
+
+    .preview-modal.hidden { display:none; }
+
+    .preview-card {
+      background:white;
+      width:800px;
+      max-width:95%;
+      border-radius:14px;
+      padding:30px;
+    }
+
+    .preview-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:20px;
+    }
+
+    .preview-footer {
+      margin-top:30px;
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+    }
+
+    .job-preview-title {
+      font-size:22px;
+      font-weight:700;
+      margin-bottom:8px;
+    }
+
+    .job-preview-meta {
+      color:#6b7280;
+      font-size:14px;
+      margin-bottom:15px;
+    }
+
+.suggestions div.active {
+  background: #4f46e5;
+  color: white;
+}
+
+.suggestions div.active {
+  background: #4f46e5;
+  color: white;
+}
+
+#tagsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tag {
+  background: #eef2ff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+.tag span {
+  margin-left: 6px;
+  cursor: pointer;
+  color: #ef4444;
+}
+  </style>
+</head>
+
+<body>
+
+<div class="page">
+<div class="card">
+
+<h2>📢 Post a Job</h2>
+
+<div class="form-grid">
+
+<input id="title" name="title" placeholder="Job Title" class="full-width">
+<input id="location" name="location" placeholder="Location">
+
+<select name="job_type">
+<option>Full-time</option>
+<option>Part-time</option>
+<option>Internship</option>
+<option>Contract</option>
+</select>
+
+<select name="experience_level">
+<option>Fresher</option>
+<option>1-3 years</option>
+<option>3-5 years</option>
+<option>5+ years</option>
+</select>
+
+<input name="company_name" placeholder="Company Name">
+
+<div class="salary-range full-width">
+<label>Salary Range</label>
+<input type="range" id="salaryMin" min="10000" max="200000" step="5000" value="20000">
+<input type="range" id="salaryMax" min="10000" max="200000" step="5000" value="80000">
+<div class="salary-values">
+₹<span id="minVal"></span> - ₹<span id="maxVal"></span>
+</div>
+</div>
+
+<div class="full-width">
+<label>Skills</label>
+<div class="skill-wrapper">
+  <input id="skillInput" placeholder="Type skill and press Enter">
+  <div id="suggestions" class="suggestions"></div>
+</div>
+<div id="tagsContainer" class="tags-container"></div>
+<input type="hidden" id="skillsHidden" name="skills">
+</div>
+
+<textarea id="description" name="description" placeholder="Job Description" class="full-width"></textarea>
+
+</div>
+
+<div class="checkbox-row">
+<input type="checkbox" id="remote" name="remote">
+<label for="remote">Remote Allowed</label>
+</div>
+
+<div class="actions-row">
+<a href="/recruiter-dashboard.html">⬅ Back</a>
+<div>
+<button type="button" id="previewBtn" class="btn-secondary">Preview</button>
+<button type="button" id="postJobBtn" class="btn-primary">Post Job</button>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- PREVIEW MODAL -->
+<div id="previewModal" class="preview-modal hidden">
+  <div class="preview-card">
+    <div class="preview-header">
+      <h2>Job Preview</h2>
+      <button id="closePreview">✕</button>
+    </div>
+    <div id="previewContent"></div>
+    <div class="preview-footer">
+      <button id="editBackBtn" class="btn-secondary">Edit</button>
+      <button id="confirmPostBtn" class="btn-primary">Confirm & Post</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+/* SALARY */
+const minSlider = document.getElementById("salaryMin");
+const maxSlider = document.getElementById("salaryMax");
+const minVal = document.getElementById("minVal");
+const maxVal = document.getElementById("maxVal");
+
+function updateSalary(){
+  if(parseInt(minSlider.value) > parseInt(maxSlider.value)){
+    minSlider.value = maxSlider.value;
+  }
+  minVal.textContent = minSlider.value;
+  maxVal.textContent = maxSlider.value;
+}
+minSlider.oninput = updateSalary;
+maxSlider.oninput = updateSalary;
+updateSalary();
+
+/* ================= SKILL TAG SYSTEM (FULL FIXED VERSION) ================= */
+
+const skillInput = document.getElementById("skillInput");
+const suggestionsBox = document.getElementById("suggestions");
+const tagsContainer = document.getElementById("tagsContainer");
+const skillsHidden = document.getElementById("skillsHidden");
+
+const skillList = [
+  "JavaScript","React","Node.js","Express","MongoDB",
+  "SQL","PostgreSQL","HTML","CSS","Tailwind",
+  "Python","Django","Flask","Java","Spring Boot",
+  "C++","AWS","Docker","Git","TypeScript",
+  "Next.js","Angular","Vue","Firebase",
+  "Machine Learning","Data Science"
+];
+
+let skills = [];
+let activeIndex = -1;
+
+/* ---------- ADD SKILL ---------- */
+
+function addSkill(skill) {
+  skill = skill.trim();
+  if (!skill) return;
+
+  if (!skills.includes(skill)) {
+    skills.push(skill);
+    renderTags();
+  }
+
+  skillInput.value = "";
+  suggestionsBox.style.display = "none";
+  activeIndex = -1;
+}
+
+/* ---------- RENDER TAGS ---------- */
+
+function renderTags() {
+  tagsContainer.innerHTML = "";
+
+  skills.forEach(skill => {
+    const tag = document.createElement("div");
+    tag.className = "tag";
+    tag.innerHTML = `
+      ${skill}
+      <span data-skill="${skill}">×</span>
+    `;
+    tagsContainer.appendChild(tag);
+  });
+
+  skillsHidden.value = skills.join(",");
+}
+
+/* ---------- REMOVE TAG ---------- */
+
+tagsContainer.addEventListener("click", function(e) {
+  if (e.target.tagName === "SPAN") {
+    const skill = e.target.getAttribute("data-skill");
+    skills = skills.filter(s => s !== skill);
+    renderTags();
+  }
+});
+
+/* ---------- SUGGESTIONS ---------- */
+
+skillInput.addEventListener("input", function() {
+
+  const value = this.value.toLowerCase().trim();
+  activeIndex = -1;
+
+  if (!value) {
+    suggestionsBox.style.display = "none";
+    return;
+  }
+
+  const filtered = skillList.filter(skill =>
+    skill.toLowerCase().includes(value) &&
+    !skills.includes(skill)
+  );
+
+  renderSuggestions(filtered);
+});
+
+function renderSuggestions(list) {
+
+  suggestionsBox.innerHTML = "";
+
+  if (!list.length) {
+    suggestionsBox.style.display = "none";
+    return;
+  }
+
+  list.forEach(skill => {
+    const div = document.createElement("div");
+    div.textContent = skill;
+
+    div.addEventListener("click", function() {
+      addSkill(skill);
+    });
+
+    suggestionsBox.appendChild(div);
+  });
+
+  suggestionsBox.style.display = "block";
+}
+
+/* ---------- KEYBOARD SUPPORT ---------- */
+
+skillInput.addEventListener("keydown", function(e) {
+
+  const items = suggestionsBox.querySelectorAll("div");
+
+  // Arrow Down
+  if (e.key === "ArrowDown") {
+    if (!items.length) return;
+    e.preventDefault();
+    activeIndex++;
+    if (activeIndex >= items.length) activeIndex = 0;
+    highlightItem(items);
+  }
+
+  // Arrow Up
+  if (e.key === "ArrowUp") {
+    if (!items.length) return;
+    e.preventDefault();
+    activeIndex--;
+    if (activeIndex < 0) activeIndex = items.length - 1;
+    highlightItem(items);
+  }
+
+  // Enter
+  if (e.key === "Enter") {
+    e.preventDefault();
+
+    // If suggestion selected
+    if (activeIndex >= 0 && items[activeIndex]) {
+      addSkill(items[activeIndex].textContent);
+      return;
+    }
+
+    // Otherwise add raw value
+    addSkill(skillInput.value);
+  }
+
+  // Escape
+  if (e.key === "Escape") {
+    suggestionsBox.style.display = "none";
+    activeIndex = -1;
+  }
+});
+
+function highlightItem(items) {
+  items.forEach(item => item.classList.remove("active"));
+
+  if (items[activeIndex]) {
+    items[activeIndex].classList.add("active");
+  }
+}
+
+/* ---------- CLOSE WHEN CLICK OUTSIDE ---------- */
+
+document.addEventListener("click", function(e) {
+  if (!e.target.closest(".skill-wrapper")) {
+    suggestionsBox.style.display = "none";
+    activeIndex = -1;
+  }
+});
+
+/* ================= PREVIEW ================= */
+
+const previewBtn = document.getElementById("previewBtn");
+const previewModal = document.getElementById("previewModal");
+const closePreview = document.getElementById("closePreview");
+const editBackBtn = document.getElementById("editBackBtn");
+const previewContent = document.getElementById("previewContent");
+
+previewBtn.addEventListener("click", function () {
+
+  const title = document.getElementById("title").value;
+  const location = document.getElementById("location").value;
+  const company = document.querySelector('[name="company_name"]').value;
+  const jobType = document.querySelector('[name="job_type"]').value;
+  const exp = document.querySelector('[name="experience_level"]').value;
+  const description = document.getElementById("description").value;
+
+  const salaryMin = document.getElementById("salaryMin").value;
+  const salaryMax = document.getElementById("salaryMax").value;
+
+  const skillsValue = document.getElementById("skillsHidden").value;
+
+  previewContent.innerHTML = `
+    <div class="job-preview-title">${title}</div>
+
+    <div class="job-preview-meta">
+      ${company} • ${location} • ${jobType} • ${exp}
+    </div>
+
+    <div class="job-preview-section">
+      <h4>Salary</h4>
+      ₹${salaryMin} - ₹${salaryMax}
+    </div>
+
+    <div class="job-preview-section">
+      <h4>Skills</h4>
+      ${skillsValue || "Not specified"}
+    </div>
+
+    <div class="job-preview-section">
+      <h4>Description</h4>
+      ${description || "No description provided"}
+    </div>
+  `;
+
+  previewModal.classList.remove("hidden");
+});
+
+closePreview.onclick = () => previewModal.classList.add("hidden");
+editBackBtn.onclick = () => previewModal.classList.add("hidden");
+
+/* ================= POST JOB ================= */
+
+const token = localStorage.getItem("token");
+
+document
+  .getElementById("confirmPostBtn")
+  .addEventListener("click", postJob);
+
+async function postJob() {
+
+  try {
+
+    const jobData = {
+
+      title:
+        document.getElementById("title").value,
+
+      company_name:
+        document.querySelector('[name="company_name"]').value,
+
+      location:
+        document.getElementById("location").value,
+
+      job_type:
+        document.querySelector('[name="job_type"]').value,
+
+      experience_level:
+        document.querySelector('[name="experience_level"]').value,
+
+      salary_min:
+        document.getElementById("salaryMin").value,
+
+      salary_max:
+        document.getElementById("salaryMax").value,
+
+      remote:
+        document.getElementById("remote").checked,
+
+      description:
+        document.getElementById("description").value,
+
+      skills:
+        document.getElementById("skillsHidden")
+          .value
+          .split(",")
+          .map(s => s.trim())
+          .filter(Boolean)
+    };
+
+    /* ✅ REQUIRED FIELD CHECK */
+    if (
+      !jobData.title ||
+      !jobData.company_name ||
+      !jobData.location
+    ) {
+      alert("Please fill required fields");
+      return;
+    }
+
+    const res = await fetch(
+      "/api/recruiter/jobs",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(jobData)
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "Job creation failed");
+      return;
+    }
+
+    alert("✅ Job Posted Successfully");
+
+    window.location.href =
+      "/recruiter-dashboard.html";
+
+  } catch (err) {
+    console.error(err);
+    alert("Server error");
+  }
+}
+
+document
+ .getElementById("postJobBtn")
+ .addEventListener("click", () => {
+   previewBtn.click();
+ });
+
+</script>
+
+</body>
+</html>

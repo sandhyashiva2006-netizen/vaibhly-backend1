@@ -1,0 +1,51 @@
+.verify-container {
+  max-width: 600px;
+}
+
+.verify-box {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.verify-box input {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5f5;
+}
+
+.verify-box button {
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.verify-box button:hover {
+  background: #1d4ed8;
+}
+
+.result-card {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+
+.result-success {
+  border-left: 6px solid #22c55e;
+}
+
+.result-error {
+  border-left: 6px solid #dc2626;
+}
+
+.result-title {
+  font-weight: 600;
+  margin-bottom: 10px;
+}

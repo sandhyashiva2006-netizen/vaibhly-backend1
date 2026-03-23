@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Course Management | Admin</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<h2>Course Management</h2>
+
+<!-- Add Course -->
+<div class="box">
+  <h3>Add Course</h3>
+  <input type="text" id="title" placeholder="Course Title">
+  <textarea id="description" placeholder="Course Description"></textarea>
+  <button onclick="addCourse()">Add Course</button>
+</div>
+
+<!-- Course List -->
+<div class="box">
+  <h3>All Courses</h3>
+  <table border="1" width="100%">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="courseTable"></tbody>
+  </table>
+</div>
+
+<a href="dashboard.html">⬅ Back to Dashboard</a>
+
+<script src="js/admin-courses.js"></script>
+</body>
+</html>

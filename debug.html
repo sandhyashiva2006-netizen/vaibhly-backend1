@@ -1,0 +1,217 @@
+<!DOCTYPE html><html><head>
+  <title>Resume Builder | EduNexa</title>
+  <link rel="stylesheet" href="/css/resume.css">
+</head>
+
+<body>
+
+<div class="resume-app">
+
+  <!-- LEFT FORM -->
+  <div class="builder" style="display: none;">
+
+    <h2>📝 Resume Builder</h2>
+
+<h3>Select Template</h3>
+<select id="templateSelect"></select>
+
+
+
+    <!-- Personal -->
+    <section>
+      <h3>Personal Info</h3>
+      <input id="name" placeholder="Full Name">
+      <input id="title" placeholder="Professional Title">
+      <input id="email" placeholder="Email">
+      <input id="phone" placeholder="Phone">
+    </section>
+
+<hr>
+
+<section>
+  <h3>🎯 Job Description Targeting</h3>
+
+  <textarea id="jobDescriptionInput" rows="5" placeholder="Paste job description here..."></textarea>
+
+  <button onclick="optimizeForJob()">
+    🎯 Optimize Resume for Job
+  </button>
+</section>
+
+<hr>
+
+    <!-- Summary -->
+    <section>
+      <h3>Career Summary</h3>
+      <textarea id="summary" rows="4"></textarea>
+<button onclick="aiImprove('summary')">✨ Improve Summary</button>
+    </section>
+
+    <!-- Skills -->
+    <section>
+      <h3>Skills (comma separated)</h3>
+      <textarea id="skills" rows="3"></textarea>
+<button onclick="aiImprove('skills')">✨ Improve Skills</button>
+    </section>
+
+    <!-- Projects -->
+    <section>
+      <h3>Projects</h3>
+      <textarea id="projects" rows="4"></textarea>
+<button onclick="aiImprove('projects')">✨ Improve Projects</button>
+    </section>
+
+<hr style="margin:20px 0;">
+
+<button onclick="aiImprove('all')">🚀 Improve Entire Resume</button>
+
+
+    <!-- Education -->
+    <section>
+      <h3>Education</h3>
+<p>${resume.education || ""}</p>
+
+<h3>Certificates</h3>
+<ul>
+  ${
+    certificates.map(c =&gt; `
+      <li>
+        ${c.course_name}
+        (${new Date(c.issued_at).toLocaleDateString()})
+      </li>
+    `).join("")
+  }
+</ul>
+
+    </section>
+
+    <!-- Links -->
+    <section>
+      <h3>Links</h3>
+      <input id="linkedin" placeholder="LinkedIn URL">
+      <input id="github" placeholder="GitHub URL">
+    </section>
+
+    <div class="actions">
+  <button onclick="aiImprove('all')">✨ Improve with AI</button>
+  <button onclick="downloadPDF()">⬇️ Download PDF</button>
+  <button onclick="saveDraft()">💾 Save Draft</button>
+</div>
+
+<hr>
+
+<section id="scoreSection">
+  <h3>📊 Resume Score</h3>
+
+  <div id="scoreBox" style="
+    background:#f8fafc;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:16px;
+    max-width:480px;
+  ">
+    <div style="font-size:28px;font-weight:700;">
+      Score: <span id="resumeScore">0</span> / 100
+    </div>
+
+    <div style="margin-top:12px;">
+      <strong>Strengths</strong>
+      <ul id="scoreStrengths"></ul>
+    </div>
+
+    <div style="margin-top:12px;">
+      <strong>Improvements</strong>
+      <ul id="scoreImprovements"></ul>
+    </div>
+
+    <button onclick="calculateResumeScore()" style="margin-top:12px;">
+      🔍 Analyze Resume
+    </button>
+  </div>
+</section>
+
+  </div>
+
+  <!-- RIGHT PREVIEW -->
+  <div class="preview" id="resumePreview" style="width: 100%;">
+    <div class="resume-sheet template-modern">
+      <h1>Sandhya</h1>
+      <h3>Certified Professional</h3>
+      <p>sandhyashiva2006@gmail.com | 9985792939</p>
+
+      <hr>
+
+      <h3>Summary</h3>
+      <p>Completed professional training on EduNexa.</p>
+
+      <h3>Skills</h3>
+      <p>HTML, CSS, JavaScript</p>
+
+      <h3>Projects</h3>
+      <p>Capstone Project</p>
+
+      <h3>Education</h3>
+      <p></p>
+
+      <h3>Certificates</h3>
+      <ul>
+        
+      </ul>
+
+      <h3>Links</h3>
+      <p><br></p>
+    </div>
+  </div>
+
+</div>
+
+<script src="/js/resume.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script><div class="razorpay-container" style="z-index: 2147483647; position: fixed; top: 0px; display: none; left: 0px; height: 100%; width: 100%; max-height: 100dvh; backface-visibility: hidden; overflow-y: visible;"><style>@keyframes rzp-rot{to{transform: rotate(360deg);}}@-webkit-keyframes rzp-rot{to{-webkit-transform: rotate(360deg);}} .razorpay-container > iframe {min-height: 100%!important;}</style><div class="razorpay-backdrop" style="min-height: 100%; transition: 0.3s ease-out; position: fixed; top: 0px; left: 0px; width: 100%; height: 100%;"><span style="text-decoration: none; background: rgb(214, 68, 68); border: 1px dashed white; padding: 3px; opacity: 0; transform: rotate(45deg); transition: opacity 0.3s ease-in; font-family: lato, ubuntu, helvetica, sans-serif; color: white; position: absolute; width: 200px; text-align: center; right: -50px; top: 50px;">Test Mode</span></div><iframe allowtransparency="true" frameborder="0" width="100%" height="100%" src="https://api.razorpay.com/v1/checkout/public?traffic_env=production&amp;build=0bc10b93fbf711f1d8176baca730d1ba02866647&amp;build_v1=0474dadf8b040ee8ffbb695d41d925e50d30fc46&amp;checkout_v2=1&amp;new_session=1&amp;unified_session_id=SJdl8T3kHmvlWD" class="razorpay-checkout-frame" allow="otp-credentials; payment; clipboard-write; publickey-credentials-get https://api.razorpay.com; publickey-credentials-create 'self' https://api.razorpay.com; web-share; camera *" style="opacity: 1; height: 100%; position: relative; background: none; display: block; border: 0px none transparent; margin: 0px; padding: 0px; z-index: 2;"></iframe></div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const exportMode = params.get("export");
+const userId = params.get("userId");
+const token = params.get("token");
+
+if (exportMode === "true") {
+  const builder = document.querySelector(".builder");
+  if (builder) builder.style.display = "none";
+
+  const preview = document.querySelector(".preview");
+  if (preview) preview.style.width = "100%";
+}
+
+if (userId && token) {
+  fetch(`/api/recruiter/candidate/${userId}/resume`, {
+    headers: {
+      Authorization: "Bearer " + token
+    }
+  })
+  .then(res => res.json())
+  .then(data => {
+
+    const r = data.resume_data || {};
+
+    const fields = [
+      "name","title","email","phone",
+      "summary","skills","projects",
+      "education","linkedin","github"
+    ];
+
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && r[id]) el.value = r[id];
+    });
+
+    selectedTemplate = r.template || "modern";
+    localStorage.setItem("resumeTemplate", selectedTemplate);
+
+    updatePreview();
+  });
+}
+</script>
+
+
+
+</body></html>

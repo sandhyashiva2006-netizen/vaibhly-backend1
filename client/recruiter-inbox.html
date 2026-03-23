@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Recruiter Inbox | EduNexa</title>
+  <style>
+    body {
+      font-family: system-ui;
+      background: #f4f6fb;
+      padding: 20px;
+    }
+    .msg {
+      background: white;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    }
+
+.inbox-item {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.inbox-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.inbox-email {
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.inbox-message {
+  margin-top: 6px;
+  color: #334155;
+}
+
+  </style>
+</head>
+
+<body>
+  <div class="card">
+  <h3>📩 Recruiter Inbox</h3>
+  <div id="inboxList">Loading messages...</div>
+</div>
+
+
+  <script>
+
+async function loadInbox() {
+  try {
+    const res = await fetch("/api/resume/messages", {
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token")
+      }
+    });
+
+    const messages = await res.json();
+
+    const box = document.getElementById("inboxList");
+
+    if (!messages.length) {
+      box.innerHTML = "<p>No recruiter messages yet.</p>";
+      return;
+    }
+
+    box.innerHTML = messages.map(m => `
+      <div class="inbox-item">
+        <div class="inbox-header">
+          ${getTypeIcon(m.type)} <strong>${m.type.toUpperCase()}</strong>
+          <span>${timeAgo(m.created_at)}</span>
+        </div>
+        <div class="inbox-email">
+          ${m.recruiter_email || "Anonymous recruiter"}
+        </div>
+        <div class="inbox-message">
+          ${m.message || "No message provided"}
+        </div>
+      </div>
+    `).join("");
+
+  } catch (err) {
+    console.error("Inbox load failed", err);
+  }
+}
+
+function getTypeIcon(type) {
+  if (type === "email") return "📧";
+  if (type === "whatsapp") return "💬";
+  if (type === "message") return "📩";
+  return "🔔";
+}
+
+function timeAgo(date) {
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+
+  const intervals = {
+    year: 31536000,
+    month: 2592000,
+    day: 86400,
+    hour: 3600,
+    minute: 60
+  };
+
+  for (let key in intervals) {
+    const interval = Math.floor(seconds / intervals[key]);
+    if (interval >= 1) {
+      return interval + " " + key + (interval > 1 ? "s" : "") + " ago";
+    }
+  }
+
+  return "Just now";
+}
+
+loadInbox();
+
+</script>
+
+</body>
+</html>

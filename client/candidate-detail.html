@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Candidate Details</title>
+</head>
+<body>
+
+<h2>Candidate Profile</h2>
+<div id="profile"></div>
+
+<script>
+const token = localStorage.getItem("token");
+const userId = new URLSearchParams(window.location.search).get("id");
+
+async function loadProfile() {
+
+  const res = await fetch(`/api/recruiter/candidate/${userId}/resume`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const data = await res.json();
+
+  document.getElementById("profile").innerHTML = `
+    <h3>${data.name || "Candidate"}</h3>
+    <pre>${JSON.stringify(data, null, 2)}</pre>
+  `;
+}
+
+loadProfile();
+</script>
+
+</body>
+</html>

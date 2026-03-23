@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Recruiter Profile</title>
+</head>
+<body>
+
+<h2>Company Profile</h2>
+
+<input id="company_name" placeholder="Company Name"><br><br>
+<textarea id="about_company" placeholder="About Company"></textarea><br><br>
+<input id="website" placeholder="Website"><br><br>
+
+<button onclick="saveProfile()">Save</button>
+
+<script>
+const token = localStorage.getItem("token");
+
+async function loadProfile() {
+  const res = await fetch("/api/recruiter/profile", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+
+  document.getElementById("company_name").value = data.company_name || "";
+  document.getElementById("about_company").value = data.about_company || "";
+  document.getElementById("website").value = data.website || "";
+}
+
+async function saveProfile() {
+  await fetch("/api/recruiter/profile", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      company_name: company_name.value,
+      about_company: about_company.value,
+      website: website.value
+    })
+  });
+
+  alert("Profile Updated");
+}
+
+loadProfile();
+</script>
+
+</body>
+</html>

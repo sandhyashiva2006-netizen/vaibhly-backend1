@@ -1,0 +1,150 @@
+/* ===== COMMON PAGE STYLING ===== */
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #f8fafc;
+}
+
+/* headings */
+h1 {
+  font-weight: 700;
+}
+
+h5 {
+  margin-top: 20px;
+  font-weight: 600;
+}
+
+/* paragraphs */
+p {
+  color: #555;
+  line-height: 1.7;
+}
+
+/* FAQ styling */
+.faq h5 {
+  margin-top: 20px;
+}
+
+.faq p {
+  margin-bottom: 10px;
+}
+
+.legal-hero {
+  text-align: center;
+  padding: 70px 20px;
+  background: linear-gradient(135deg,#1e3a8a,#4f46e5);
+  color: white;
+}
+
+.legal-container {
+  max-width: 900px;
+  margin: auto;
+  padding: 50px 20px;
+}
+
+.legal-card {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+}
+
+.legal-card h5 {
+  margin-bottom: 10px;
+}
+
+.faq-item {
+  border-bottom: 1px solid #ddd;
+  padding: 15px 0;
+  cursor: pointer;
+}
+
+.faq-q {
+  font-weight: 600;
+}
+
+.faq-a {
+  display: none;
+  color: #555;
+}
+
+.terms-section {
+  border-left: 3px solid #2563eb;
+  padding-left: 20px;
+  margin-bottom: 20px;
+}
+
+.privacy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+  gap: 20px;
+}
+
+.refund-box {
+  background: #fff7ed;
+  padding: 20px;
+  border-radius: 10px;
+  border-left: 4px solid #f59e0b;
+}
+
+/* HERO */
+.legal-hero {
+  text-align: center;
+  padding: 80px 20px;
+  background: linear-gradient(135deg,#1e3a8a,#4f46e5);
+  color: white;
+}
+
+.legal-hero h1 {
+  font-size: 36px;
+  font-weight: 700;
+}
+
+/* CONTAINER */
+.faq-container {
+  max-width: 800px;
+  margin: auto;
+  padding: 50px 20px;
+}
+
+/* CARD */
+.faq-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+/* ITEM */
+.faq-item {
+  border-bottom: 1px solid #eee;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.faq-item:hover {
+  background: #f9fafb;
+}
+
+/* QUESTION */
+.faq-q {
+  font-weight: 600;
+  position: relative;
+}
+
+/* ANSWER */
+.faq-a {
+  max-height: 0;
+  overflow: hidden;
+  color: #555;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+/* ACTIVE */
+.faq-item.active .faq-a {
+  max-height: 200px;
+}

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Course Enquiry | EduNexa</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f1f5f9;
+      padding: 40px;
+    }
+    .card {
+      max-width: 400px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin: auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>📞 Course Enquiry</h2>
+
+  <input id="name" placeholder="Your Name" />
+<input id="phone" placeholder="Phone Number" />
+<input id="email" placeholder="Email (optional)" />
+<input id="course" placeholder="Course Interested" />
+
+
+  <button onclick="submitLead()">Submit</button>
+
+  <p id="msg"></p>
+</div>
+
+<script>
+async function submitLead() {
+  try {
+    const body = {
+      name: document.getElementById("name").value.trim(),
+      phone: document.getElementById("phone").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      course_interest: document.getElementById("course").value.trim()
+    };
+
+    console.log("Submitting lead:", body);
+
+    if (!body.name || !body.phone) {
+      msg.innerText = "❌ Please enter Name and Phone";
+      msg.style.color = "red";
+      return;
+    }
+
+    const res = await fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    console.log("Lead API response:", data);
+
+    if (res.ok && data.success) {
+      msg.innerText = "✅ Thank you! We will contact you shortly.";
+      msg.style.color = "green";
+
+      // clear form
+      document.getElementById("name").value = "";
+      document.getElementById("phone").value = "";
+      document.getElementById("email").value = "";
+      document.getElementById("course").value = "";
+    } else {
+      msg.innerText = "❌ " + (data.error || "Submission failed");
+      msg.style.color = "red";
+    }
+
+  } catch (err) {
+    console.error("Submission error:", err);
+    msg.innerText = "❌ Network error";
+    msg.style.color = "red";
+  }
+}
+</script>
+
+
+
+</body>
+</html>

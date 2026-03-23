@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Edit Job</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f5f7fb;
+      padding: 40px;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+    }
+
+    button {
+      padding: 10px 16px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #4338ca;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>Edit Job</h2>
+
+  <input id="title" placeholder="Job Title" />
+  <input id="location" placeholder="Location" />
+  <textarea id="description" placeholder="Job Description"></textarea>
+  <input id="salary_min" placeholder="Min Salary" />
+  <input id="salary_max" placeholder="Max Salary" />
+
+  <button onclick="updateJob()">Update Job</button>
+</div>
+
+<script>
+
+const token = localStorage.getItem("token");
+const jobId = new URLSearchParams(window.location.search).get("id");
+
+async function loadJob() {
+  const res = await fetch(`/api/recruiter/jobs`);
+  const jobs = await res.json();
+
+  const job = jobs.find(j => j.id == jobId);
+
+  if (!job) return;
+
+  document.getElementById("title").value = job.title;
+  document.getElementById("location").value = job.location;
+  document.getElementById("description").value = job.description;
+  document.getElementById("salary_min").value = job.salary_min;
+  document.getElementById("salary_max").value = job.salary_max;
+}
+
+async function updateJob() {
+
+  await fetch(`/api/recruiter/jobs/${jobId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      title: document.getElementById("title").value,
+      location: document.getElementById("location").value,
+      description: document.getElementById("description").value,
+      salary_min: document.getElementById("salary_min").value,
+      salary_max: document.getElementById("salary_max").value
+    })
+  });
+
+  alert("Job updated successfully");
+  window.location.href = "recruiter-dashboard.html";
+}
+
+loadJob();
+
+</script>
+
+</body>
+</html>

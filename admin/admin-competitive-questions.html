@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>Admin - Competitive Questions</title>
+
+<link rel="stylesheet" href="/admin/admin.css">
+
+<script src="/js/auth-global.js"></script>
+
+<style>
+
+.card{
+background:white;
+padding:20px;
+border-radius:12px;
+margin-bottom:20px;
+box-shadow:0 4px 10px rgba(0,0,0,0.08);
+}
+
+.card input,
+.card select{
+display:block;
+margin-bottom:10px;
+padding:8px;
+width:100%;
+max-width:400px;
+}
+
+.card button{
+padding:10px 20px;
+background:#2563eb;
+border:none;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+.admin-table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
+
+.admin-table th,
+.admin-table td{
+padding:10px;
+border-bottom:1px solid #ddd;
+text-align:left;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<div class="admin-wrapper">
+
+<aside class="admin-sidebar">
+
+<h2>EduNexa</h2>
+
+<ul>
+<li><a href="/admin/admin.html">Dashboard</a></li>
+<li><a href="/admin/admin-competitive-exams.html">Competitive Exams</a></li>
+<li><a href="/admin/admin-competitive-questions.html" class="active">Competitive Questions</a></li>
+</ul>
+
+<button onclick="adminLogout()">Logout</button>
+
+</aside>
+
+
+<main class="main">
+
+<h1>🏆 Competitive Exam Questions</h1>
+
+
+<div class="card">
+
+<h3>Add Question</h3>
+
+<select id="examSelect"></select>
+
+<input id="question" placeholder="Question">
+
+<input id="optionA" placeholder="Option A">
+
+<input id="optionB" placeholder="Option B">
+
+<input id="optionC" placeholder="Option C">
+
+<input id="optionD" placeholder="Option D">
+
+<select id="correctOption">
+<option value="A">Correct Option A</option>
+<option value="B">Correct Option B</option>
+<option value="C">Correct Option C</option>
+<option value="D">Correct Option D</option>
+</select>
+
+<button onclick="addQuestion()">Add Question</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>Questions</h3>
+
+<table class="admin-table">
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Question</th>
+<th>Answer</th>
+</tr>
+</thead>
+
+<tbody id="questionsTable">
+<tr>
+<td colspan="3">Select exam</td>
+</tr>
+</tbody>
+
+</table>
+
+</div>
+
+</main>
+
+</div>
+
+
+
+<script>
+
+const token = localStorage.getItem("token");
+
+
+/* ================= LOAD EXAMS ================= */
+
+async function loadExams(){
+
+const res = await fetch("/api/admin/competitive-exams",{
+headers:{
+Authorization:"Bearer "+token
+}
+});
+
+const exams = await res.json();
+
+const select = document.getElementById("examSelect");
+
+select.innerHTML = "<option value=''>Select Exam</option>";
+
+exams.forEach(exam=>{
+
+const opt=document.createElement("option");
+
+opt.value=exam.id;
+opt.textContent=exam.title;
+
+select.appendChild(opt);
+
+});
+
+}
+
+
+/* ================= LOAD QUESTIONS ================= */
+
+async function loadQuestions(){
+
+const examId = document.getElementById("examSelect").value;
+
+if(!examId) return;
+
+const res = await fetch("/api/admin/competitive-questions/"+examId,{
+headers:{
+Authorization:"Bearer "+token
+}
+});
+
+const questions = await res.json();
+
+const table = document.getElementById("questionsTable");
+
+table.innerHTML="";
+
+questions.forEach(q=>{
+
+table.innerHTML+=`
+<tr>
+<td>${q.id}</td>
+<td>${q.question}</td>
+<td>${q.correct_option}</td>
+</tr>
+`;
+
+});
+
+}
+
+
+document.getElementById("examSelect")
+.addEventListener("change",loadQuestions);
+
+
+
+/* ================= ADD QUESTION ================= */
+
+async function addQuestion(){
+
+const exam_id = document.getElementById("examSelect").value;
+
+const question = document.getElementById("question").value;
+
+const option_a = document.getElementById("optionA").value;
+const option_b = document.getElementById("optionB").value;
+const option_c = document.getElementById("optionC").value;
+const option_d = document.getElementById("optionD").value;
+
+const correct_option = document.getElementById("correctOption").value;
+
+const res = await fetch("/api/admin/competitive-questions",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+
+body:JSON.stringify({
+exam_id,
+question,
+option_a,
+option_b,
+option_c,
+option_d,
+correct_option
+})
+
+});
+
+if(res.ok){
+
+alert("Question added");
+
+loadQuestions();
+
+}
+
+}
+
+
+/* ================= INIT ================= */
+
+loadExams();
+
+</script>
+
+</body>
+</html>

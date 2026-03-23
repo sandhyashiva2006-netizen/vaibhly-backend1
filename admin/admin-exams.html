@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>EduNexa Admin — Exams</title>
+
+  <!-- ✅ Main Admin Theme -->
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+
+<!-- 🔐 AUTH -->
+<script src="/js/auth-global.js"></script>
+
+<div class="admin-wrapper">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <h2>EduNexa</h2>
+    <ul>
+      <li><a href="/admin/admin.html">Dashboard</a></li>
+      <li><a href="/admin/admin-courses.html">Courses</a></li>
+      <li><a href="/admin/admin-modules.html">Modules</a></li>
+      <li><a href="/admin/admin-lessons.html">Lessons</a></li>
+      <li><a href="/admin/admin-exams.html" class="active">Exams</a></li>
+      <li><a href="/admin/admin-questions.html">Questions</a></li>
+      <li><a href="/admin/admin-results.html">Results</a></li>
+    </ul>
+
+    <button id="adminLogout" class="admin-logout">Logout</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <h1>📝 Exams Management</h1>
+
+    <!-- COURSE SELECT -->
+    <div class="card">
+      <label>Select Course</label>
+      <select id="courseSelect"></select>
+    </div>
+
+    <!-- CREATE EXAM -->
+    <div class="card">
+      <h3>Create Exam</h3>
+      <div class="form-row">
+        <input type="text" id="examTitle" placeholder="Exam title">
+        <button id="createExamBtn" class="primary-btn">➕ Add Exam</button>
+      </div>
+    </div>
+
+    <!-- EXAMS TABLE -->
+    <div class="card">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Exam Title</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="examTableBody">
+          <tr>
+            <td colspan="3">Select a course</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+<script src="/js/auth-global.js"></script>
+<script src="/admin/admin-exams.js"></script>
+</body>
+</html>

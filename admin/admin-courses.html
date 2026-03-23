@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin – Courses</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+
+<div class="admin-container">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <h2>EduNexa</h2>
+    <ul>
+  <li><a href="/admin/admin.html">Dashboard</a></li>
+  <li><a href="/admin/admin-courses.html">Courses</a></li>
+  <li><a href="/admin/admin-modules.html">Modules</a></li>
+<li><a href="/admin/admin-lessons.html">Lessons</a></li>
+  <li><a href="/admin/admin-exams.html">Exams</a></li>
+  <li><a href="/admin/admin-questions.html">Questions</a></li>
+  <li><a href="/admin/admin-results.html">Results</a></li>
+</ul>
+
+
+    <button id="adminLogout" class="admin-logout">Logout</button>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+
+    <!-- Header -->
+    <div class="exams-header">
+      <h2>Course Management</h2>
+      <button id="createCourseBtn">➕ Create Course</button>
+    </div>
+
+    <!-- Create Course Form -->
+    <div id="createCourseForm" style="display:none;">
+      <input type="text" id="courseTitle" placeholder="Course title" />
+      <input type="text" id="courseDescription" placeholder="Description (optional)" />
+      <button id="saveCourseBtn">Save</button>
+    </div>
+
+    <!-- Courses Table -->
+    <table class="admin-table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Title</th>
+      <th>Description</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+
+  <tbody id="coursesTableBody">
+    <tr>
+      <td colspan="4">Loading courses...</td>
+    </tr>
+  </tbody>
+</table>
+
+
+  </main>
+
+</div>
+<script>
+  const logoutBtn = document.getElementById("adminLogout");
+  if (logoutBtn) {
+    logoutBtn.onclick = () => {
+      localStorage.clear();
+      window.location.href = "/admin/admin-login.html";
+    };
+  }
+</script>
+<script src="/admin/js/admin-auth.js"></script>
+
+<script src="/admin/admin-courses.js"></script>
+
+</body>
+</html>

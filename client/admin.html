@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EduNexa | Admin Panel</title>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 40px;
+      background: #f4f6f8;
+    }
+    input {
+      padding: 8px;
+      width: 260px;
+      margin-bottom: 15px;
+      display: block;
+    }
+    button {
+      padding: 10px 18px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Admin – Reset Exam</h2>
+
+  <label>Student ID</label>
+  <input id="userId" type="text" placeholder="e.g. 2">
+
+  <label>Exam ID</label>
+  <input id="examId" type="text" placeholder="e.g. 1">
+
+  <button id="resetBtn">Reset Exam</button>
+
+  <p id="resultMsg"></p>
+
+  <br><br>
+  <button onclick="logout()">Logout</button>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

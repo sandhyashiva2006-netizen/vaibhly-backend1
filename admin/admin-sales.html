@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Sales Dashboard</title>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+
+<div class="admin-container">
+
+  <div class="admin-title">📊 Admin Sales Dashboard</div>
+
+  <!-- Stats -->
+  <div class="admin-stats">
+    <div class="admin-card">
+      <h4>Total Revenue</h4>
+      <span id="totalRevenue">₹0</span>
+    </div>
+
+    <div class="admin-card">
+      <h4>Total Orders</h4>
+      <span id="totalOrders">0</span>
+    </div>
+
+    <div class="admin-card">
+      <h4>Today Revenue</h4>
+      <span id="todayRevenue">₹0</span>
+    </div>
+
+    <div class="admin-card">
+      <h4>Today Orders</h4>
+      <span id="todayOrders">0</span>
+    </div>
+  </div>
+
+  <!-- Orders -->
+  <div class="admin-table">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Student</th>
+          <th>Course</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Invoice</th>
+        </tr>
+      </thead>
+      <tbody id="ordersBody">
+        <tr><td colspan="7">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <button id="adminLogout" class="admin-logout">Logout</button>
+</div>
+
+<script src="/js/auth-global.js"></script>
+<script>
+if (!requireAdmin()) {
+  console.warn("Unauthorized admin access blocked");
+  throw new Error("Unauthorized");
+}
+
+
+/* ===== Load Summary ===== */
+async function loadSummary() {
+  try {
+    const res = await authFetch("/api/sales/summary");
+    const data = await res.json();
+
+    document.getElementById("totalRevenue").innerText = "₹" + (data.totalRevenue || 0);
+document.getElementById("totalOrders").innerText  = data.totalOrders || 0;
+document.getElementById("todayRevenue").innerText = "₹" + (data.todayRevenue || 0);
+document.getElementById("todayOrders").innerText  = data.todayOrders || 0;
+
+  } catch (err) {
+    console.error("Sales summary failed", err);
+  }
+}
+
+/* ===== Load Orders ===== */
+async function loadOrders() {
+  try {
+    const res = await authFetch("/api/sales/orders");
+    const orders = await res.json();
+    const body = document.getElementById("ordersBody");
+    body.innerHTML = "";
+
+    if (!orders.length) {
+      body.innerHTML = "<tr><td colspan='7'>No orders</td></tr>";
+      return;
+    }
+
+    orders.forEach((o, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${o.student_name}</td>
+        <td>${o.course_name}</td>
+        <td>₹${o.total_amount}</td>
+        <td>${o.status}</td>
+        <td>${new Date(o.created_at).toLocaleDateString()}</td>
+        <td>
+          ${o.invoice_file 
+  ? `<a href="/invoices/${o.invoice_file}" target="_blank">Download</a>` 
+  : `<span style="opacity:0.6">Legacy</span>`
+}
+
+        </td>
+      `;
+      body.appendChild(tr);
+    });
+  } catch (err) {
+    console.error("Orders load failed", err);
+  }
+}
+
+bindLogout("#adminLogout");
+loadSummary();
+loadOrders();
+</script>
+</body>
+</html>

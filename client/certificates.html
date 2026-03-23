@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html>
+
+<style>
+/* ================= PAGE ================= */
+body {
+  background: #f1f5f9;   /* soft cool gray */
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+/* ================= PIN STORAGE ================= */
+
+function getPinned() {
+  return JSON.parse(localStorage.getItem("pinnedCerts") || "[]");
+}
+
+function isPinned(id) {
+  return getPinned().includes(id);
+}
+
+function togglePin(id) {
+  let pins = getPinned();
+
+  if (pins.includes(id)) {
+    pins = pins.filter(p => p !== id);
+  } else {
+    pins.unshift(id); // move to top
+  }
+
+  localStorage.setItem("pinnedCerts", JSON.stringify(pins));
+  renderCertificatesBatch(); // re-render UI
+}
+
+/* ================= GRID ================= */
+.cert-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  padding-bottom: 40px;
+}
+
+/* ================= CARD ================= */
+.certificate-card {
+  position: relative;
+  border-radius: 16px;
+  padding: 20px;
+  background: #f8fafc;   /* slightly tinted surface */
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Hover */
+.certificate-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.14);
+}
+
+/* Dark mode */
+[data-theme="dark"] .certificate-card {
+  background: #020617;
+  border-color: #1e293b;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+}
+
+/* ================= Strip ================= */
+.cert-strip {
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #22c55e);
+}
+
+/* ================= TEXT ================= */
+.certificate-card h4 {
+  font-size: 19px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: #020617;
+}
+
+.certificate-card .exam {
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.certificate-card .meta {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.certificate-card .cert-id {
+  font-family: monospace;
+  font-size: 12.5px;
+  background: #eef2ff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-top: 6px;
+}
+
+/* ================= ACTIONS ================= */
+.cert-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.cert-actions button {
+  flex: 1;
+  padding: 9px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+/* View Button */
+.cert-actions .btn-view {
+  background: #4f46e5;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.cert-actions .btn-view:hover {
+  background: #4338ca;
+}
+
+/* Share Button */
+.cert-actions .btn-share {
+  background: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #e5e7eb;
+}
+
+.cert-actions .btn-share:hover {
+  background: #e5e7eb;
+}
+
+/* ================= BADGE ================= */
+.cert-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+  color: white;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(34,197,94,0.4);
+}
+
+
+/* ================= MOBILE ================= */
+@media (max-width: 600px) {
+  .certificate-card {
+    padding: 18px;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+}
+
+/* ================= CERTIFICATE SKELETON ================= */
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.skeleton-card {
+  height: 180px;
+  border-radius: 16px;
+  background: linear-gradient(
+    90deg,
+    #e5e7eb 30%,
+    #f1f5f9 45%,
+    #e5e7eb 60%
+  );
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.2s linear infinite;
+}
+
+@keyframes skeletonPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 🎬 Card Fade In */
+.certificate-card {
+  animation: cardFadeIn 0.4s ease;
+}
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Prevent layout jump */
+.skeleton-grid {
+  min-height: 400px;
+}
+
+/* ================= EMPTY STATE ================= */
+
+.empty-state button {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* ================= CERTIFICATE MODAL ================= */
+
+.cert-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.cert-modal.hidden {
+  display: none;
+}
+
+.cert-modal-content {
+  background: var(--card);
+  width: min(900px, 95%);
+  height: 90%;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.cert-modal iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.cert-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ================= CERT TOOLBAR ================= */
+
+.cert-toolbar {
+  margin: 12px 0 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cert-toolbar input {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  min-width: 240px;
+}
+
+.cert-toolbar input::placeholder {
+  color: var(--muted);
+}
+
+/* ================= CERT PAGE OVERRIDE ================= */
+.cert-page {
+  background: #ffffff !important;
+}
+
+
+.cert-page .certificate-card {
+  background: linear-gradient(
+    135deg,
+    #f0f4ff 0%,
+    #eef2ff 50%,
+    #ecfeff 100%
+  ) !important;
+
+  border: 1px solid #dbeafe !important;
+
+  box-shadow:
+  0 6px 14px rgba(0,0,0,0.12),
+  inset 0 1px 0 rgba(255,255,255,0.8) !important;
+
+
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Hover pop */
+.cert-page .certificate-card:hover {
+  transform: translateY(-2px) scale(1.005);
+  box-shadow:
+    0 10px 22px rgba(0,0,0,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.9) !important;
+}
+
+
+/* 🌈 Bright Accent Border Effect */
+.cert-page .certificate-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    #6366f1,
+    #22c55e,
+    #06b6d4
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* Hover glow boost */
+.cert-page .certificate-card:hover::before {
+  opacity: 1;
+}
+
+/* ✨ Certificates Page Title — Shimmer */
+.cert-title {
+  margin: 24px 20px 12px;
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -0.6px;
+
+  background: linear-gradient(
+    120deg,
+    #4f46e5 20%,
+    #22c55e 40%,
+    #a5f3fc 50%,
+    #4f46e5 60%
+  );
+  background-size: 300% 100%;
+
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  animation: shimmerMove 3s ease-in-out infinite;
+  position: relative;
+}
+
+/* Subtle glowing underline */
+.cert-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 90px;
+  height: 4px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #4f46e5, #22c55e);
+  box-shadow: 0 4px 12px rgba(79,70,229,0.45);
+}
+
+/* Shimmer animation */
+@keyframes shimmerMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 🔎 Search Highlight */
+.highlight {
+  background: linear-gradient(90deg, #fde68a, #fef3c7);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 700;
+  animation: highlightPulse 0.6s ease;
+}
+
+@keyframes highlightPulse {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+
+/* 🎴 Card Micro Interaction */
+.certificate-card {
+  transform-style: preserve-3d;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.certificate-card:hover {
+  transform: translateY(-3px) scale(1.01);
+}
+
+/* ✨ Hover Glow Overlay */
+.certificate-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: radial-gradient(
+    circle at top left,
+    rgba(99,102,241,0.25),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.certificate-card:hover::after {
+  opacity: 1;
+}
+
+/* 🌤️ Empty State Animation */
+.empty-state {
+  animation: emptyFadeUp 0.6s ease forwards;
+}
+
+@keyframes emptyFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 📱 Touch Feedback */
+@media (hover: none) {
+  .certificate-card:active {
+    transform: scale(0.97);
+    transition: transform 0.08s ease;
+  }
+
+  .cert-actions button:active {
+    transform: scale(0.95);
+    transition: transform 0.08s ease;
+  }
+}
+
+/* 🌈 Animated Border Glow */
+.cert-page .certificate-card::before {
+  background-size: 300% 300%;
+  animation: borderFlow 6s linear infinite;
+}
+
+@keyframes borderFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 🎨 Per Card Accent Variables */
+.certificate-card {
+  --accent1: #6366f1;
+  --accent2: #22c55e;
+  --accent3: #06b6d4;
+}
+
+/* Override animated border to use per-card colors */
+.cert-page .certificate-card::before {
+  background: linear-gradient(
+    135deg,
+    var(--accent1),
+    var(--accent2),
+    var(--accent3)
+  );
+}
+
+/* ⬇️ Download Button */
+.cert-actions .btn-download {
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+  color: #052e16;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(34,197,94,0.35);
+}
+
+.cert-actions .btn-download:hover {
+  filter: brightness(1.05);
+}
+
+/* ⭐ Pin Button */
+.cert-actions .btn-pin {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  color: #334155;
+  font-weight: 700;
+}
+
+.cert-actions .btn-pin:hover {
+  background: #eef2ff;
+}
+
+/* Pinned state */
+.certificate-card.pinned {
+  outline: 2px solid #facc15;
+  outline-offset: 2px;
+}
+
+.certificate-card.pinned .cert-badge {
+  background: linear-gradient(135deg, #facc15, #fde047);
+  color: #713f12;
+}
+
+/* ================= PIN BUTTON ================= */
+
+.btn-pin {
+  background: linear-gradient(135deg, #facc15, #f59e0b);
+  color: #111827;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 8px 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(250,204,21,0.4);
+  transition: all 0.2s ease;
+}
+
+.btn-pin:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(250,204,21,0.6);
+}
+
+.certificate-card.pinned {
+  border: 2px solid #facc15;
+  box-shadow: 0 0 0 3px rgba(250,204,21,0.25);
+}
+
+</style>
+
+<head>
+  <title>My Certificates | EduNexa</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <meta charset="UTF-8">
+</head>
+<body class="cert-page">
+
+<h2 class="cert-title">🎓 My Certificates</h2>
+
+
+<div class="cert-toolbar">
+  <input
+    id="certSearch"
+    type="text"
+    placeholder="🔍 Search certificates..."
+    oninput="filterCertificates()"
+  />
+</div>
+
+<div id="certList" style="padding:20px;"></div>
+
+<script>
+let allCertificates = [];
+
+const token = localStorage.getItem("token");
+
+/* ================= SAFE DATE FORMAT ================= */
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
+  return d.toLocaleDateString();
+}
+
+function openCertModal(certId) {
+  const modal = document.getElementById("certModal");
+  const frame = document.getElementById("certFrame");
+  frame.src = "/certificate.html?id=" + certId;
+  modal.classList.remove("hidden");
+}
+
+function closeCertModal() {
+  const modal = document.getElementById("certModal");
+  const frame = document.getElementById("certFrame");
+  frame.src = "";
+  modal.classList.add("hidden");
+}
+
+/* ================= LOAD CERTIFICATES ================= */
+
+async function loadCertificates() {
+  try {
+    const res = await fetch("/api/certificates/my", {
+      headers: { Authorization: "Bearer " + token }
+    });
+
+    const data = await res.json();
+    console.log("🎓 Certificates API:", data);
+
+    const box = document.getElementById("certList");
+box.className = "skeleton-grid";
+box.innerHTML = `
+  <div class="skeleton-card"></div>
+  <div class="skeleton-card"></div>
+  <div class="skeleton-card"></div>
+`;
+
+box.className = "cert-grid";
+box.innerHTML = "";
+
+
+    if (!data.certificates || !data.certificates.length) {
+      box.className = "empty-state";
+box.innerHTML = `
+  <div style="text-align:center;padding:40px;">
+    <div style="font-size:48px;">🎓</div>
+    <h3>No Certificates Yet</h3>
+    <p style="color:var(--muted);margin:8px 0 16px;">
+      Complete a course and pass the exam to earn your first certificate.
+    </p>
+    <button onclick="location.href='/dashboard.html'">
+      🚀 Start Learning
+    </button>
+  </div>
+`;
+return;
+
+    }
+
+allCertificates = data.certificates || [];
+
+    data.certificates.forEach((cert, index) => {
+      const card = document.createElement("div");
+card.className = "certificate-card";
+
+
+      const publicLink =
+        location.origin + "/verify.html?id=" + cert.certificate_id;
+
+      card.innerHTML = `
+  <span class="cert-badge">Certified</span>
+
+
+
+  <h4>${cert.course_name}</h4>
+  <div class="exam">📘 Exam: ${cert.exam_name}</div>
+
+  <div class="meta">
+    <div>Issued: ${formatDate(cert.issued_at)}</div>
+    <div class="cert-id">ID: ${cert.certificate_id}</div>
+  </div>
+
+  <div class="cert-actions">
+    <button class="btn-view" onclick="openCert('${cert.certificate_id}')">
+      📄 View
+    </button>
+
+    <button class="btn-share" onclick="shareCert('${publicLink}')">
+      🔗 Share
+    </button>
+  </div>
+`;
+
+
+      box.appendChild(card);
+    });
+
+  } catch (err) {
+    console.error("❌ Load certificates error", err);
+    document.getElementById("certList").innerHTML =
+      "<p style='color:red;'>Failed to load certificates.</p>";
+  }
+}
+
+function highlightText(text, query) {
+  if (!query) return text;
+  const regex = new RegExp(`(${query})`, "gi");
+  return text.replace(regex, `<span class="highlight">$1</span>`);
+}
+
+function filterCertificates() {
+  const q = document.getElementById("certSearch").value.toLowerCase().trim();
+  const box = document.getElementById("certList");
+
+  const filtered = allCertificates.filter(cert => {
+    return (
+      String(cert.course_name || "").toLowerCase().includes(q) ||
+      String(cert.exam_name || "").toLowerCase().includes(q) ||
+      String(cert.certificate_id || "").toLowerCase().includes(q)
+    );
+  });
+
+  box.className = "cert-grid";
+  box.innerHTML = "";
+
+  if (!filtered.length) {
+    box.innerHTML = `<p style="color:var(--muted);padding:20px;">No matching certificates.</p>`;
+    return;
+  }
+
+  filtered.forEach(cert => {
+    const card = document.createElement("div");
+    card.className = "certificate-card";
+
+    const course = highlightText(cert.course_name || "Course", q);
+    const exam = highlightText(cert.exam_name || "Exam", q);
+    const id = highlightText(cert.certificate_id || "-", q);
+
+    card.innerHTML = `
+      <span class="cert-badge">Certified</span>
+      <h4>${course}</h4>
+      <div class="exam">📘 Exam: ${exam}</div>
+      <div class="meta">
+        <div>Issued: ${formatDate(cert.issued_at)}</div>
+        <div class="cert-id">ID: ${id}</div>
+      </div>
+      <div class="cert-actions">
+        <button class="btn-view" onclick="openCert('${cert.certificate_id}')">📄 View</button>
+        <button class="btn-share" onclick="shareCert('${location.origin}/verify.html?id=${cert.certificate_id}')">🔗 Share</button>
+      </div>
+    `;
+
+    box.appendChild(card);
+  });
+}
+
+function renderCertificatesBatch() {
+  const box = document.getElementById("certList");
+  const slice = allCertificates.slice(0, visibleCount);
+
+  const fragment = document.createDocumentFragment();
+  box.className = "cert-grid";
+
+  if (visibleCount === BATCH_SIZE) {
+    box.innerHTML = "";
+  }
+
+  slice.forEach((cert, index) => {
+    const card = document.createElement("div");
+    card.className = "certificate-card";
+
+    if (isPinned(cert.certificate_id)) {
+      card.classList.add("pinned");
+    }
+
+    // 🎨 Accent colors
+    const colorSets = [
+      ["#6366f1", "#22c55e", "#06b6d4"],
+      ["#ec4899", "#f97316", "#facc15"],
+      ["#22c55e", "#14b8a6", "#0ea5e9"],
+      ["#8b5cf6", "#6366f1", "#3b82f6"]
+    ];
+    const palette = colorSets[index % colorSets.length];
+    card.style.setProperty("--accent1", palette[0]);
+    card.style.setProperty("--accent2", palette[1]);
+    card.style.setProperty("--accent3", palette[2]);
+
+    card.innerHTML = `
+      <div class="cert-icon">${detectIcon(cert.course_name)}</div>
+
+      <span class="cert-badge">Certified</span>
+
+      <h4>${cert.course_name}</h4>
+      <div class="exam">📘 Exam: ${cert.exam_name}</div>
+
+      <div class="meta">
+        <div>Issued: ${formatDate(cert.issued_at)}</div>
+        <div class="cert-id">ID: ${cert.certificate_id}</div>
+      </div>
+
+      <div class="cert-actions">
+        <button class="btn-view" onclick="openCert('${cert.certificate_id}')">📄 View</button>
+
+        <button class="btn-pin"
+          onclick="togglePin('${cert.certificate_id}')">
+          ${isPinned(cert.certificate_id) ? "⭐ Pinned" : "☆ Pin"}
+        </button>
+
+        <button class="btn-share"
+          onclick="openQR('${location.origin}/verify.html?id=${cert.certificate_id}')">
+          📱 QR Share
+        </button>
+      </div>
+    `;
+
+    fragment.appendChild(card);
+  });
+
+  box.appendChild(fragment);
+}
+
+function downloadCert(certId) {
+  const link = document.createElement("a");
+  link.href = "/certificate.html?id=" + certId;
+  link.download = "EduNexa-Certificate-" + certId + ".html";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+let currentQRLink = "";
+
+function openQR(link) {
+  currentQRLink = link;
+  const qrImg = document.getElementById("qrImage");
+  qrImg.src =
+    "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" +
+    encodeURIComponent(link);
+
+  document.getElementById("qrModal").classList.remove("hidden");
+}
+
+function closeQR() {
+  document.getElementById("qrModal").classList.add("hidden");
+}
+
+function copyQRLink() {
+  navigator.clipboard.writeText(currentQRLink);
+  alert("🔗 Link copied!");
+}
+
+/* ================= ACTIONS ================= */
+function openCert(id) {
+  window.location.href = "/certificate.html?id=" + id;
+}
+
+function shareCert(link) {
+  if (navigator.share) {
+    navigator.share({
+      title: "My Certificate - EduNexa",
+      url: link
+    });
+  } else {
+    navigator.clipboard.writeText(link);
+    alert("🔗 Link copied to clipboard");
+  }
+}
+
+let pinnedCerts = JSON.parse(localStorage.getItem("pinnedCerts")) || [];
+
+function isPinned(id) {
+  return pinnedCerts.includes(id);
+}
+
+function togglePin(id) {
+  if (isPinned(id)) {
+    pinnedCerts = pinnedCerts.filter(x => x !== id);
+  } else {
+    pinnedCerts.push(id);
+  }
+
+  localStorage.setItem("pinnedCerts", JSON.stringify(pinnedCerts));
+
+  sortCertificates();
+  renderCertificatesBatch();
+}
+
+function sortCertificates() {
+  allCertificates.sort((a, b) => {
+    const aPinned = isPinned(a.certificate_id);
+    const bPinned = isPinned(b.certificate_id);
+
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+    return 0;
+  });
+}
+
+/* ================= INIT ================= */
+loadCertificates();
+</script>
+
+<!-- ================= CERTIFICATE MODAL ================= -->
+<div id="certModal" class="cert-modal hidden">
+  <div class="cert-modal-content">
+    <button class="cert-close" onclick="closeCertModal()">✖</button>
+    <iframe id="certFrame"></iframe>
+  </div>
+</div>
+
+<!-- 📱 QR SHARE MODAL -->
+<div id="qrModal" class="cert-modal hidden">
+  <div class="cert-modal-content" style="max-width:420px;height:auto;padding:20px;">
+    <button class="cert-close" onclick="closeQR()">✖</button>
+    <h3 style="margin-bottom:12px;">📱 Scan to Verify Certificate</h3>
+    <img id="qrImage" style="width:100%;max-width:260px;display:block;margin:20px auto;">
+    <button onclick="copyQRLink()" class="btn-view" style="width:100%;margin-top:10px;">
+      📋 Copy Link
+    </button>
+  </div>
+</div>
+
+</body>
+</html>

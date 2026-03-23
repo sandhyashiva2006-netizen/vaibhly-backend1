@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Public Profile | EduNexa</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="/css/resume.css">
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI;
+      background: #f1f5f9;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 30px 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    .profile-header {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .avatar {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      font-weight: 700;
+      color: #6366f1;
+      overflow: hidden;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .headline {
+      color: #475569;
+      margin-top: 4px;
+    }
+
+    .bio {
+      margin-top: 12px;
+      color: #334155;
+      line-height: 1.6;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #22c55e;
+      color: white;
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 999px;
+      margin-left: 8px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .empty {
+      color: #64748b;
+      font-style: italic;
+    }
+
+    .share-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .share-row button {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      background: #6366f1;
+      color: white;
+      font-weight: 600;
+    }
+
+
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Profile -->
+  <div class="card">
+    <div class="profile-header">
+      <div class="avatar" id="avatar">U</div>
+
+      <div>
+        <h1 id="name">Loading...</h1>
+        <div class="headline" id="headline"></div>
+        <div class="badge">✔ Verified</div>
+      </div>
+    </div>
+
+    <div class="bio" id="bio"></div>
+  </div>
+
+  <!-- Certificates -->
+  <div class="card">
+    <div class="section-title">🎓 Certificates</div>
+    <div id="certList" class="empty">Loading...</div>
+  </div>
+
+<!-- Completed Courses -->
+<div class="card">
+  <div class="section-title">📘 Completed Courses</div>
+  <div id="completedCourses" class="empty">Loading...</div>
+</div>
+
+  <!-- Share -->
+  <div class="card">
+    <div class="section-title">🔗 Share Profile</div>
+    <div class="share-row">
+      <button onclick="copyLink()">📋 Copy Link</button>
+<div class="resume-actions">
+  <button onclick="downloadPublicResume()">📄 Download Resume</button>
+</div>
+    </div>
+  </div>
+
+
+</div>
+
+
+<script>
+let publicCertificates = [];
+
+const username = window.location.pathname
+  .replace(/\/$/, "")
+  .split("/")
+  .pop();
+
+async function loadProfile() {
+
+  try {
+
+    const res = await fetch("/api/profile/public/u/" + username);
+    if (!res.ok) throw new Error();
+
+    const data = await res.json();
+
+    // ===== BASIC INFO =====
+    document.getElementById("name").textContent = data.name || "User";
+    document.getElementById("headline").textContent = data.headline || "";
+    document.getElementById("bio").textContent = data.bio || "";
+
+    // ===== AVATAR =====
+    const avatar = document.getElementById("avatar");
+
+    if (data.avatar) {
+      avatar.innerHTML = `<img src="${data.avatar}" />`;
+    } else {
+      avatar.textContent = (data.name || "U").charAt(0);
+    }
+
+    // ===== RESUME SECTION (NEW) =====
+    await loadCertificates();
+await loadCompletedCourses();
+renderResume(data.resume, data.template);
+loadResumeCertificates(data.user_id);
+
+
+  } catch {
+    document.body.innerHTML =
+      "<h2 style='padding:40px'>Profile not found</h2>";
+  }
+}
+
+function downloadPublicResume() {
+
+  const resume = document.querySelector(".resume-sheet");
+
+  if (!resume) {
+    alert("Resume not found");
+    return;
+  }
+
+  const options = {
+    margin: 10,
+    filename: 'resume.pdf',
+    image: { type: 'jpeg', quality: 1 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(options).from(resume).save();
+}
+
+/* ===== NEW RESUME RENDER ===== */
+
+function renderResume(resume, template = "modern") {
+console.log("Certificates:", publicCertificates);
+
+  if (!resume) return;
+
+  const certHTML = publicCertificates.length
+    ? `
+      <h3>Certificates</h3>
+      <ul>
+        ${publicCertificates.map(c => `
+          <li>
+            ${c.course_name} (${new Date(c.issued_at).toLocaleDateString()})
+          </li>
+        `).join("")}
+      </ul>
+    `
+    : "";
+
+  const container = document.createElement("div");
+  container.className = "card";
+
+  container.innerHTML = `
+    <div class="resume-sheet template-${template}">
+      <h2>${resume.name || ""}</h2>
+      <p>${resume.email || ""} | ${resume.phone || ""}</p>
+
+      <hr>
+
+      <h3>Summary</h3>
+      <p>${resume.summary || ""}</p>
+
+      <h3>Skills</h3>
+      <p>${resume.skills || ""}</p>
+
+      <h3>Projects</h3>
+      <p>${resume.projects || ""}</p>
+
+      <h3>Education</h3>
+      <p>${resume.education || ""}</p>
+
+      ${certHTML}
+
+    </div>
+  `;
+
+  document.querySelector(".container").appendChild(container);
+}
+
+async function loadResumeCertificates(userId) {
+  try {
+    const res = await fetch("/api/public/certificates/by-user/" + userId);
+    if (!res.ok) return;
+
+    const certs = await res.json();
+    if (!Array.isArray(certs) || certs.length === 0) return;
+
+    const resumeSheet = document.querySelector(".resume-sheet");
+    if (!resumeSheet) return;
+
+    const section = document.createElement("div");
+    section.innerHTML = `
+      <h3>Certificates</h3>
+      <ul>
+        ${certs.map(c => `
+          <li>
+            ${c.course_name}
+            (${new Date(c.issued_at).toLocaleDateString()})
+          </li>
+        `).join("")}
+      </ul>
+    `;
+
+    resumeSheet.appendChild(section);
+
+  } catch (e) {
+    console.warn("Certificates not loaded for resume");
+  }
+}
+
+/* ===== CERTIFICATES ===== */
+
+async function loadCertificates() {
+
+  try {
+
+    const res = await fetch("/api/public/certificates/" + username);
+    const data = await res.json();
+
+    publicCertificates = Array.isArray(data) ? data : [];
+
+    const box = document.getElementById("certList");
+
+    if (!publicCertificates.length) {
+      box.innerHTML = "<div class='empty'>No certificates yet</div>";
+      return publicCertificates;
+    }
+
+    box.innerHTML = publicCertificates.map(c => `
+      <div style="padding:8px 0;">
+        🏅 <b>${c.course_name}</b>
+        <div style="font-size:13px;color:#64748b;">
+          Issued ${new Date(c.issued_at).toLocaleDateString()}
+        </div>
+      </div>
+    `).join("");
+
+    return publicCertificates;
+
+  } catch {
+    document.getElementById("certList").textContent =
+      "Failed to load certificates";
+    return [];
+  }
+}
+
+
+async function loadCompletedCourses() {
+  try {
+    const res = await fetch("/api/public/completed-courses/" + username);
+    const data = await res.json();
+
+    const box = document.getElementById("completedCourses");
+
+    if (!Array.isArray(data) || !data.length) {
+      box.innerHTML = "<div class='empty'>No completed courses yet</div>";
+      return;
+    }
+
+    box.innerHTML = data.map(c => `
+      <div style="padding:8px 0;">
+        📘 <b>${c.course_name}</b>
+        <div style="font-size:13px;color:#64748b;">
+          Enrolled on ${new Date(c.purchased_at).toLocaleDateString()}
+
+        </div>
+      </div>
+    `).join("");
+
+  } catch {
+    document.getElementById("completedCourses").innerText =
+      "Failed to load completed courses";
+  }
+}
+
+/* ===== SHARE ===== */
+
+function copyLink() {
+
+  navigator.clipboard.writeText(window.location.href);
+  alert("Profile link copied!");
+}
+
+
+loadProfile();
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+
+</body>
+</html>

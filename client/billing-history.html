@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Billing History</title>
+</head>
+<body>
+
+<h2>Payment History</h2>
+<div id="payments"></div>
+
+<h2>GST Invoices</h2>
+<div id="invoices"></div>
+
+<script>
+const token = localStorage.getItem("token");
+
+async function loadBilling() {
+
+  /* PAYMENTS */
+  const payRes = await fetch("/api/recruiter/payments", {
+    headers:{ Authorization:`Bearer ${token}` }
+  });
+
+  const payments = await payRes.json();
+
+  document.getElementById("payments").innerHTML =
+    payments.map(p => `
+      <div>
+        ₹${p.amount} |
+        ${p.status} |
+        ${new Date(p.created_at).toLocaleDateString()}
+      </div>
+    `).join("");
+
+  /* INVOICES */
+  const invRes = await fetch("/api/recruiter/invoices", {
+    headers:{ Authorization:`Bearer ${token}` }
+  });
+
+  const invoices = await invRes.json();
+
+  document.getElementById("invoices").innerHTML =
+    invoices.map(i => `
+      <div>
+        Invoice: ${i.invoice_no}
+        - ₹${i.total_amount}
+        <a href="/api/recruiter/invoice/${i.id}?token=${token}" target="_blank">
+          Download
+        </a>
+      </div>
+    `).join("");
+}
+
+loadBilling();
+</script>
+
+</body>
+</html>

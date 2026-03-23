@@ -1,0 +1,694 @@
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background: #f1f5f9;
+}
+
+.resume-app {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  height: 100vh;
+}
+
+.builder {
+  background: white;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.builder section {
+  margin-bottom: 18px;
+}
+
+.builder h3 {
+  margin-bottom: 6px;
+}
+
+.builder input,
+.builder textarea {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 6px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.actions button {
+  padding: 10px 14px;
+  border: none;
+  cursor: pointer;
+  background: #4f46e5;
+  color: white;
+  border-radius: 6px;
+}
+
+.preview {
+  background: #e5e7eb;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+/* Resume sheet */
+.resume-sheet {
+  background: white;
+  padding: 30px;
+  max-width: 800px;
+  margin: auto;
+}
+
+/* ================= PRINT MODE ================= */
+@media print {
+
+  body {
+    background: white;
+  }
+
+  /* Hide builder panel */
+  .builder {
+    display: none !important;
+  }
+
+  /* Make preview full width */
+  .resume-app {
+    display: block;
+  }
+
+  .preview {
+    padding: 0;
+    background: white;
+  }
+
+  /* Remove scrollbars */
+  .preview {
+    overflow: visible !important;
+  }
+
+  /* Ensure resume fills page */
+  .resume-sheet {
+    box-shadow: none;
+    margin: 0;
+    max-width: 100%;
+  }
+
+}
+
+/* ================= TEMPLATES ================= */
+
+/* ===== MODERN TECH ===== */
+.template-modern {
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.template-modern h1 {
+  color: #4f46e5;
+  font-size: 32px;
+}
+
+.template-modern h3 {
+  border-left: 4px solid #4f46e5;
+  padding-left: 8px;
+  margin-top: 18px;
+}
+
+/* ===== CLEAN PROFESSIONAL ===== */
+.template-classic {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.template-classic h1 {
+  text-align: center;
+  font-size: 30px;
+  letter-spacing: 1px;
+}
+
+.template-classic h3 {
+  border-bottom: 1px solid #111827;
+  padding-bottom: 4px;
+  margin-top: 20px;
+}
+
+/* ===== CREATIVE ===== */
+.template-creative {
+  font-family: "Trebuchet MS", sans-serif;
+  background: linear-gradient(135deg,#fff1f2,#ffffff);
+  padding: 30px;
+  border-radius: 10px;
+}
+
+.template-creative h1 {
+  color: #db2777;
+  font-size: 34px;
+}
+
+.template-creative h3 {
+  color: #be185d;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ================= FORCE COLOR PRINT ================= */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* ================= PRINT SAFE FALLBACK ================= */
+@media print {
+
+  .template-creative {
+    background: white !important;
+    border: 3px solid #db2777;
+  }
+
+  .template-modern h3 {
+    border-left: 4px solid #4f46e5 !important;
+  }
+
+  .template-classic h3 {
+    border-bottom: 2px solid #111827 !important;
+  }
+
+}
+
+.resume-toolbar {
+  position: sticky;
+  top: 0;
+  background: white;
+  padding: 12px 16px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 10;
+}
+
+.resume-toolbar button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  background: #4f46e5;
+  color: white;
+}
+
+.resume-toolbar button:hover {
+  filter: brightness(1.1);
+}
+
+.resume-watermark {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.qr-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.qr-modal.hidden {
+  display: none;
+}
+
+.qr-box {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  width: 300px;
+  text-align: center;
+}
+
+.qr-box h3 {
+  margin-bottom: 12px;
+}
+
+.qr-link {
+  font-size: 12px;
+  color: #475569;
+  word-break: break-all;
+  margin-top: 10px;
+}
+
+.qr-box button {
+  margin-top: 14px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #4f46e5;
+  color: white;
+  cursor: pointer;
+}
+
+.contact-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10001;
+  background: #ffffff;
+  border-top: 1px solid #eee;
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.contact-actions button {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.btn-contact {
+  background: #2563eb;
+  color: #fff;
+}
+
+.btn-contact:hover {
+  background: #1d4ed8;
+}
+
+.btn-whatsapp {
+  background: #22c55e;
+  color: #fff;
+}
+
+.btn-whatsapp:hover {
+  background: #16a34a;
+}
+
+.preview {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 40px;
+  background: #ffffff;
+  min-height: 600px;
+}
+
+.resume-sheet {
+  display: block;
+  visibility: visible;
+  opacity: 1;
+}
+
+.preview {
+  min-height: 600px;
+  padding: 40px;
+  background: #fff;
+}
+
+.resume-sheet {
+  position: relative;
+  z-index: 1;
+}
+
+doc
+  .fillColor("#7c3aed")
+  .fontSize(20)
+  .text(resume.name || "");
+
+doc
+  .fillColor("black")
+  .fontSize(12)
+  .text(resume.title || "");
+
+/* ================= PRINT MODE ================= */
+@media print {
+
+  /* ❌ Hide website UI */
+  .top-bar,
+  .resume-actions,
+  .share-buttons,
+  .qr-section,
+  .contact-box,
+  button,
+  nav,
+  footer {
+    display: none !important;
+  }
+
+  /* ✅ Show only resume */
+  body {
+    background: white !important;
+  }
+
+  .resume-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .resume-sheet {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+}
+
+/* ================= PRINT MODE ================= */
+@media print {
+
+  /* Hide everything */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Show resume only */
+  #resume-print-root,
+  #resume-print-root * {
+    visibility: visible !important;
+  }
+
+  /* Reset page */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  #resume-print-root {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    background: white !important;
+  }
+
+  /* 🔑 FORCE TEXT VISIBILITY */
+  #resume-print-root * {
+    color: #000 !important;          /* TEXT */
+    background: transparent !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Resume container */
+  .resume-sheet {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 24px !important;
+  }
+
+  /* Section headings */
+  h1, h2, h3 {
+    color: #111 !important;
+  }
+}
+
+/* ================= FIX CLICK ISSUES ================= */
+
+/* Ensure toolbar & contact buttons are clickable */
+.resume-toolbar,
+.contact-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10001;
+  background: #ffffff;
+  border-top: 1px solid #eee;
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.contact-actions button {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+
+/* Prevent resume preview from blocking clicks */
+.preview,
+.resume-sheet {
+  pointer-events: auto;
+}
+
+.preview {
+  padding-bottom: 120px; /* space for contact buttons */
+}
+
+/* Watermark should NOT block clicks */
+.resume-watermark {
+  pointer-events: none;
+}
+
+.qr-modal.hidden {
+  display: none;
+}
+
+.qr-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.qr-box {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.resume-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10000;
+  background: #fff;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.preview {
+  position: relative;
+  z-index: 1;
+  padding: 24px;
+  padding-bottom: 140px; /* space for contact bar */
+}
+
+.qr-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-box {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  align-items: center;
+  justify-content: center;
+}
+.modal.active {
+  display: flex;
+}
+
+.template-minimal {
+  font-family: Georgia, serif;
+}
+
+.template-minimal h1 {
+  font-size: 32px;
+  letter-spacing: 2px;
+}
+
+.template-minimal h3 {
+  border-bottom: 1px solid #ddd;
+  margin-top: 20px;
+}
+
+.template-professional {
+  border-left: 6px solid #2563eb;
+  padding-left: 20px;
+}
+
+.template-professional h1 {
+  color: #2563eb;
+}
+
+/* DEFAULT */
+.resume-sheet {
+  max-width: 800px;
+  margin: auto;
+  padding: 40px;
+  background: white;
+transition: all 0.3s ease;
+}
+
+/* ================= MODERN ================= */
+.template-modern {
+  font-family: Arial, sans-serif;
+}
+
+.template-modern h1 {
+  color: #111;
+}
+
+/* ================= CREATIVE ================= */
+.template-creative {
+  font-family: "Segoe UI", sans-serif;
+  background: #fff4f8;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.template-creative h1 {
+  color: #e91e63;
+  font-size: 32px;
+}
+
+.template-creative h3 {
+  color: #e91e63;
+  border-bottom: 2px solid #e91e63;
+  padding-bottom: 4px;
+}
+
+.template-classic h1 {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.template-classic h3 {
+  border-bottom: 2px solid black;
+}
+
+
+.template-executive {
+  background: #f8fafc;
+}
+
+.template-corporate {
+  border-left: 6px solid #1e40af;
+  padding-left: 20px;
+}
+
+.template-elegant {
+  font-family: Georgia, serif;
+  color: #444;
+}
+
+.premium-banner {
+  background: #111;
+  color: white;
+  padding: 12px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.premium-banner button {
+  margin-left: 10px;
+  padding: 6px 12px;
+  background: #facc15;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+/* ================= LUXURY ================= */
+.template-luxury {
+  background: #111;
+  color: #f5d76e;
+  font-family: "Times New Roman", serif;
+  border: 2px solid #f5d76e;
+}
+
+.template-luxury h1 {
+  color: #f5d76e;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.template-luxury h3 {
+  border-bottom: 1px solid #f5d76e;
+}
+
+
+/* ================= DARK ================= */
+.template-dark {
+  background: #1e293b;
+  color: #f1f5f9;
+  font-family: system-ui;
+}
+
+.template-dark h1 {
+  color: #38bdf8;
+}
+
+.template-dark h3 {
+  border-bottom: 1px solid #38bdf8;
+}
+
+
+/* ================= STARTUP ================= */
+.template-startup {
+  font-family: system-ui;
+  border-left: 8px solid #10b981;
+  padding-left: 24px;
+}
+
+.template-startup h1 {
+  color: #10b981;
+}
+
+
+/* ================= NEON ================= */
+.template-neon {
+  background: #0f172a;
+  color: #22d3ee;
+  font-family: "Courier New", monospace;
+}
+
+.template-neon h1 {
+  color: #22d3ee;
+  text-shadow: 0 0 10px #22d3ee;
+}
+
+.template-neon h3 {
+  border-bottom: 1px solid #22d3ee;
+}
+
+
+/* ================= ATS ================= */
+.template-ats {
+  font-family: Arial, sans-serif;
+  color: #000;
+}
+
+.template-ats h1 {
+  font-size: 26px;
+  font-weight: bold;
+}
+
+.template-ats h3 {
+  text-transform: uppercase;
+  font-size: 14px;
+  margin-top: 16px;
+}

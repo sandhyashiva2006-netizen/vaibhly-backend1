@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Login | EduNexa</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#2563eb">
+
+<link rel="stylesheet" href="/css/login.css">
+</head>
+
+<body>
+
+<div class="auth-bg"></div>
+
+<div class="auth-container">
+<div class="auth-card">
+
+<img src="/assets/logo.png" class="logo">
+
+<h2 id="authTitle">Welcome Back</h2>
+<p class="subtitle">Login to continue learning</p>
+
+<div id="successBox" class="hidden success-box">
+  <div class="checkmark">✔</div>
+  <h3>Success!</h3>
+  <p id="successText">Action completed</p>
+</div>
+
+<!-- TOGGLE -->
+<div class="auth-toggle">
+<button class="toggle-btn active" onclick="showLogin()">Login</button>
+<button class="toggle-btn" onclick="showRegister()">Register</button>
+</div>
+
+<!-- ================= LOGIN ================= -->
+<form id="loginForm">
+
+<div class="input-box">
+<input type="email" id="email" required>
+<label>Email</label>
+</div>
+
+<div class="input-box password-box">
+<input type="password" id="password" required>
+<label>Password</label>
+<span class="toggle-pass" onclick="togglePassword('password')">👁️</span>
+</div>
+
+<button type="button" class="auth-btn" id="loginBtn">Login</button>
+
+<p class="forgot" onclick="showForgot()">Forgot Password?</p>
+
+<div class="divider">OR</div>
+
+<button type="button" class="google-btn" onclick="googleLogin()">
+<img src="https://www.svgrepo.com/show/475656/google-color.svg">
+Continue with Google
+</button>
+
+</form>
+
+<!-- ================= REGISTER ================= -->
+<form id="registerForm" class="hidden">
+
+<div class="input-box">
+<input type="text" id="regName" required>
+<label>Full Name</label>
+</div>
+
+<div class="input-box">
+<input type="email" id="regEmail" required>
+<label>Email</label>
+</div>
+
+<div class="input-box password-box">
+<input type="password" id="regPassword" required>
+<label>Password</label>
+<span class="toggle-pass" onclick="togglePassword('regPassword')">👁️</span>
+</div>
+
+<div id="strength"></div>
+
+<div class="input-box">
+<input type="text" id="referral">
+<label>Referral Code (optional)</label>
+</div>
+
+<button type="submit" class="auth-btn">Create Account</button>
+
+<div class="divider">OR</div>
+
+<button type="button" class="google-btn" onclick="googleLogin()">
+<img src="https://www.svgrepo.com/show/475656/google-color.svg">
+Continue with Google
+</button>
+
+</form>
+
+<!-- ================= FORGOT ================= -->
+<div id="forgotSection" class="hidden">
+
+<div class="input-box">
+<input type="email" id="forgotEmail">
+<label>Email</label>
+</div>
+
+<button class="auth-btn" onclick="sendResetOtp()">Send OTP</button>
+
+<p class="back-link" onclick="showLogin()">← Back to Login</p>
+
+</div>
+
+<!-- ================= RESET ================= -->
+<div id="resetSection" class="hidden">
+
+<div class="otp-container">
+  <input type="text" maxlength="1" class="otp-box">
+  <input type="text" maxlength="1" class="otp-box">
+  <input type="text" maxlength="1" class="otp-box">
+  <input type="text" maxlength="1" class="otp-box">
+  <input type="text" maxlength="1" class="otp-box">
+  <input type="text" maxlength="1" class="otp-box">
+</div>
+
+<div class="input-box">
+<input type="password" id="newPassword">
+<label>New Password</label>
+</div>
+
+<button class="auth-btn" onclick="resetPassword()">Reset Password</button>
+
+<p class="back-link" onclick="showLogin()">← Back to Login</p>
+
+</div>
+
+</div>
+</div>
+
+<script src="/js/login.js"></script>
+
+
+</body>
+</html>

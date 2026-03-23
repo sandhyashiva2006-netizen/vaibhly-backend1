@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Register</title>
+</head>
+<body>
+
+<h2>Create Student Account</h2>
+
+<form id="registerForm">
+  <input type="text" id="name" placeholder="Full Name" required />
+  <br><br>
+  <input type="email" id="email" placeholder="Email" required />
+  <br><br>
+  <input type="password" id="password" placeholder="Password" required />
+  <br><br>
+<input type="text" id="referral" placeholder="Referral Code (optional)" />
+<br><br>
+
+  <button type="submit">Register</button>
+</form>
+
+<p id="message"></p>
+
+<script>
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const name = document.getElementById("name").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const referral = document.getElementById("referral").value;
+
+console.log({ name, email, password, referral });
+
+const res = await fetch("http://localhost:5000/api/auth/register", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ name, email, password, referral })
+});
+
+
+  let data;
+try {
+  data = await res.json();
+} catch (err) {
+  data = { error: "Server returned non-JSON response" };
+}
+
+
+  document.getElementById("message").innerText =
+    data.success ? "Registration successful!" : data.error;
+});
+</script>
+
+</body>
+</html>

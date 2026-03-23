@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EduNexa | Subscription Plans</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+  <script src="/js/auth-global.js"></script>
+</head>
+
+<body>
+
+<div class="admin-wrapper">
+
+  <aside class="admin-sidebar">
+    <h2>EduNexa</h2>
+    <ul>
+      <li><a href="/admin/admin.html">Dashboard</a></li>
+      <li><a href="/admin/admin-analytics.html">Analytics</a></li>
+      <li><a href="/admin/admin-subscriptions.html" class="active">Subscriptions</a></li>
+      <li><a href="/admin/admin-orders.html">Orders</a></li>
+      <li><a href="/admin/admin-coupons.html">Coupons</a></li>
+    </ul>
+    <button id="adminLogout" class="admin-logout">Logout</button>
+  </aside>
+
+  <main class="main">
+
+    <h1>💳 Subscription Plans</h1>
+
+    <!-- Create Plan -->
+    <div class="card">
+      <h3>Create Plan</h3>
+
+      <div class="form-grid">
+        <input id="planName" placeholder="Plan name">
+        <input id="planPrice" type="text" inputmode="numeric" placeholder="Price">
+<input id="planDuration" type="text" inputmode="numeric" placeholder="Duration (days)">
+        <input id="planDesc" placeholder="Description">
+        <button class="btn-primary" onclick="createPlan()">Create</button>
+      </div>
+    </div>
+
+    <!-- Plans Table -->
+    <div class="card">
+      <h3>All Plans</h3>
+
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Days</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="plansTable"></tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<script>
+if (!requireAdmin()) throw new Error("Unauthorized");
+
+async function loadPlans() {
+  const res = await authFetch("/api/subscriptions/plans");
+  const plans = await res.json();
+
+  const tbody = document.getElementById("plansTable");
+  tbody.innerHTML = "";
+
+  plans.forEach(plan => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${plan.name}</td>
+      <td>₹${plan.price}</td>
+      <td>${plan.duration_days}</td>
+      <td>
+        <span class="badge ${plan.is_active ? 'active' : 'inactive'}">
+          ${plan.is_active ? 'Active' : 'Inactive'}
+        </span>
+      </td>
+      <td>
+        <button class="btn-sm" onclick="togglePlan(${plan.id}, ${!plan.is_active})">
+          ${plan.is_active ? 'Disable' : 'Enable'}
+        </button>
+        <button class="btn-sm danger" onclick="deletePlan(${plan.id})">Delete</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+async function createPlan() {
+  await authFetch("/api/subscriptions/plans", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: planName.value,
+      price: planPrice.value,
+      duration_days: planDuration.value,
+      description: planDesc.value
+    })
+  });
+
+  planName.value = "";
+  planPrice.value = "";
+  planDuration.value = "";
+  planDesc.value = "";
+
+  loadPlans();
+}
+
+async function togglePlan(id, status) {
+  const res = await authFetch("/api/subscriptions/plans");
+  const plans = await res.json();
+  const plan = plans.find(p => p.id === id);
+
+  await authFetch("/api/subscriptions/plans", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...plan,
+      is_active: status
+    })
+  });
+
+  loadPlans();
+}
+
+async function deletePlan(id) {
+  if (!confirm("Delete this plan?")) return;
+  await authFetch("/api/subscriptions/plans/" + id, { method: "DELETE" });
+  loadPlans();
+}
+
+bindLogout("#adminLogout");
+loadPlans();
+</script>
+
+</body>
+</html>

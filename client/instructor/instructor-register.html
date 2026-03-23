@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Instructor Register - EduNexa</title>
+
+<style>
+body{
+ font-family:Arial;
+ background:#f4f6f9;
+ display:flex;
+ justify-content:center;
+ align-items:center;
+ height:100vh;
+}
+
+.box{
+ background:white;
+ padding:30px;
+ width:350px;
+ border-radius:10px;
+ box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+input,button{
+ width:100%;
+ padding:10px;
+ margin-top:10px;
+}
+
+button{
+ background:#16a34a;
+ color:white;
+ border:none;
+ cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h2>Instructor Registration</h2>
+
+<input id="name" placeholder="Full Name">
+<input id="username" placeholder="Username">
+<input id="email" placeholder="Email">
+<input id="password" type="password"
+placeholder="Password">
+
+<button onclick="registerInstructor()">
+Register
+</button>
+
+<p>
+Already Instructor?
+<a href="instructor-login.html">
+Login
+</a>
+</p>
+
+</div>
+
+<script src="instructor-register.js"></script>
+
+</body>
+</html>

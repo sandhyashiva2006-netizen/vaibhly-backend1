@@ -1,0 +1,44 @@
+.subtitle {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.history-card {
+  background: white;
+  padding: 18px;
+  border-radius: 14px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.history-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.history-icon {
+  font-size: 28px;
+}
+
+.history-title {
+  font-weight: 600;
+}
+
+.history-date {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.status-done {
+  color: #16a34a;
+  font-weight: 600;
+}

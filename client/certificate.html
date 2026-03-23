@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Certificate</title>
+  <link rel="stylesheet" href="/css/certificate.css" />
+</head>
+
+<body>
+
+
+  <div class="certificate">
+
+    <!-- LOGO -->
+    <img src="/assets/logo.png" class="logo" />
+
+    <!-- TITLES -->
+    <h1 class="title">CERTIFICATE</h1>
+    <h2 class="subtitle">OF COMPLETION</h2>
+
+    <!-- PRESENTED TEXT -->
+    <p class="presented">THIS CERTIFICATE IS PROUDLY PRESENTED TO</p>
+
+    <!-- STUDENT NAME -->
+    <h3 class="student-name" id="studentName"></h3>
+
+<div class="content-center">
+
+  <div class="description">
+    <p id="certificateText"></p>
+    <h3 id="certificateTitle"></h3>
+  </div>
+
+  <p class="certificate-id">
+    Certificate ID: <strong id="certId"></strong>
+  </p>
+
+<p class="date">
+  Issued on <span id="issueDate"></span>
+</p>
+
+<p class="score" id="scoreText"></p>
+
+</div>
+
+
+
+<div class="qr-container">
+  <div id="qr"></div>
+</div>
+
+    <!-- SIGNATURE AREA -->
+    <div class="signature-area">
+      <img src="/assets/signature.png" class="signature-img" />
+      <p class="sign-name">Sandhya Peddapati</p>
+      <p class="sign-title">Founder</p>
+    </div>
+
+   
+    <button class="print-btn" onclick="downloadCert()">
+  Download Certificate
+</button>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<script src="/js/auth-global.js"></script>
+
+<script src="/js/certificate.js"></script>
+
+  </div>
+</body>
+</html>

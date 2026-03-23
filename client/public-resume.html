@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+<meta property="og:title" content="Sandhya's Professional Resume" />
+<meta property="og:description" content="View certified resume built with EduNexa." />
+<meta property="og:image" content="/assets/resume-preview.png" />
+
+  <title>Resume | EduNexa</title>
+  <link rel="stylesheet" href="/css/resume.css" />
+
+<style>
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal:not(.active) {
+  display: none;
+}
+
+.modal.active {
+  display: flex;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<!-- ================= TOOLBAR ================= -->
+<div class="resume-toolbar">
+  <button id="downloadBtn">⬇ Download PDF</button>
+<button id="qrBtn">📱 QR</button>
+<button id="shareBtn">🔗 Share</button>
+
+ 
+</div>
+
+<!-- ================= RESUME PREVIEW ================= -->
+<div class="preview" id="resumePreview">
+  ⏳ Loading resume...
+</div>
+
+<div class="resume-watermark">Powered by EduNexa</div>
+
+<!-- ================= CONTACT ================= -->
+<div class="contact-actions">
+  <button id="emailBtn" disabled>📧 Contact</button>
+  <button id="waBtn" disabled>💬 WhatsApp</button>
+</div>
+
+<!-- ================= QR MODAL ================= -->
+<div id="qrModal" class="qr-modal hidden">
+  <div class="qr-box">
+    <h3>📱 Scan Resume QR</h3>
+    <div id="qrCode"></div>
+    <p id="qrLink"></p>
+    <button onclick="closeQR()">Close</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<script>
+/* ================= GLOBALS ================= */
+let resume = null;
+let resumeId = null;
+
+/* ================= LOAD RESUME ================= */
+async function loadPublicResume() {
+
+  const preview = document.getElementById("resumePreview");
+  preview.innerHTML = "⏳ Loading resume...";
+
+  try {
+
+    // 🔥 Extract slug from URL
+    const pathParts = window.location.pathname.split("/");
+    const slug = pathParts[pathParts.length - 1];
+
+    const response = await fetch(`/api/resume/slug/${slug}`);
+    const data = await response.json();
+
+    if (!data || !data.resume_data) {
+      preview.innerHTML = "❌ Resume not found";
+      return;
+    }
+
+    resume = data.resume_data;
+    resumeId = data.id;
+
+    preview.innerHTML = `
+      <div class="resume-sheet template-${data.template || "modern"}">
+        <h1>${resume.name || ""}</h1>
+        <h3>${resume.title || ""}</h3>
+        <p>${resume.email || ""} ${resume.phone || ""}</p>
+        <hr>
+        <h3>Summary</h3>
+        <p>${resume.summary || ""}</p>
+        <h3>Skills</h3>
+        <p>${resume.skills || ""}</p>
+        <h3>Projects</h3>
+        <p>${resume.projects || ""}</p>
+        <h3>Education</h3>
+        <p>${resume.education || ""}</p>
+      </div>
+    `;
+
+if (data.username) {
+  loadResumeCertificates(data.username);
+}
+
+    bindContactButtons();
+
+  } catch (err) {
+    console.error(err);
+    preview.innerHTML = "❌ Failed to load resume";
+  }
+}
+
+async function loadResumeCertificates(username) {
+  try {
+    const res = await fetch("/api/public/certificates/" + username);
+    const certs = await res.json();
+
+    if (!Array.isArray(certs) || certs.length === 0) return;
+
+    const resumeSheet = document.querySelector(".resume-sheet");
+    if (!resumeSheet) return;
+
+    const section = document.createElement("div");
+    section.innerHTML = `
+      <h3>CERTIFICATES</h3>
+      <ul>
+        ${certs.map(c => `
+          <li>
+            ${c.course_name}
+            (${new Date(c.issued_at).toLocaleDateString()})
+          </li>
+        `).join("")}
+      </ul>
+    `;
+
+    resumeSheet.appendChild(section);
+
+  } catch (e) {
+    console.warn("Certificates not loaded in resume");
+  }
+}
+
+/* ================= CONTACT ================= */
+function bindContactButtons() {
+
+  const emailBtn = document.getElementById("emailBtn");
+  const waBtn = document.getElementById("waBtn");
+
+  if (resume.email) {
+  emailBtn.disabled = false;
+  emailBtn.onclick = () => openRecruiterModal("email");
+}
+
+
+  if (resume.phone) {
+    waBtn.disabled = false;
+    waBtn.onclick = async () => {
+      await trackContact("whatsapp");
+      window.open(`https://wa.me/91${resume.phone}`, "_blank");
+    };
+  }
+}
+
+/* ================= DOWNLOAD ================= */
+function downloadPDF() {
+
+  if (!resumeId) return alert("Resume not ready");
+
+  window.location.href = `/api/resume/download/${resumeId}`;
+}
+
+/* ================= SHARE ================= */
+function shareResume() {
+
+  const link = window.location.href;
+
+  if (navigator.share) {
+    navigator.share({
+      title: "My Resume | EduNexa",
+      url: link
+    });
+  } else {
+    navigator.clipboard.writeText(link);
+    alert("🔗 Resume link copied!");
+  }
+}
+
+/* ================= QR ================= */
+function openQR() {
+
+  const modal = document.getElementById("qrModal");
+  const box = document.getElementById("qrCode");
+  const link = document.getElementById("qrLink");
+
+  box.innerHTML = "";
+
+  new QRCode(box, {
+    text: window.location.href,
+    width: 180,
+    height: 180
+  });
+
+  link.innerText = window.location.href;
+  modal.classList.remove("hidden");
+}
+
+function closeQR() {
+  document.getElementById("qrModal").classList.add("hidden");
+}
+
+/* ================= TRACK CONTACT ================= */
+async function trackContact(type) {
+
+  if (!resumeId) return;
+
+  await fetch("/api/resume/contact", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      resume_id: resumeId,
+      type,
+      message: "Recruiter clicked " + type
+    })
+  });
+}
+
+/* ================= TOOLBAR BIND ================= */
+document.getElementById("downloadBtn").onclick = downloadPDF;
+document.getElementById("qrBtn").onclick = openQR;
+document.getElementById("shareBtn").onclick = shareResume;
+
+
+
+/* ================= RECRUITER MESSAGE ================= */
+async function sendRecruiterMessage(type) {
+  if (!resumeId) return alert("Resume not ready");
+
+  const msg = prompt("Message to candidate:");
+  if (!msg) return;
+
+  const email = prompt("Your email (optional)");
+
+  await fetch("/api/resume/contact", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+  resume_id: resumeId,
+  type,
+  message: msg,
+  recruiter_email: email
+})
+
+  });
+
+  alert("✅ Message sent");
+}
+
+let contactType = "email";
+
+window.openRecruiterModal = function(type) {
+  contactType = type;
+  document.getElementById("recruiterModal").classList.add("active");
+};
+
+window.closeRecruiterModal = function() {
+  document.getElementById("recruiterModal").classList.remove("active");
+};
+
+window.submitRecruiterMessage = async function() {
+
+  const email = document.getElementById("recEmail").value;
+  const message = document.getElementById("recMsg").value;
+
+  await fetch("/api/resume/contact", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      resume_id: resumeId,
+      type: "message",
+      recruiter_email: email,
+      message
+    })
+  });
+
+  alert("Message sent!");
+  closeRecruiterModal();
+};
+
+/* ================= INIT (ONLY ONCE) ================= */
+
+document.addEventListener("DOMContentLoaded", loadPublicResume);
+</script>
+
+<div id="recruiterModal" class="modal">
+  <div style="background:white; padding:20px; border-radius:12px; width:320px;">
+    <h3>Contact Candidate</h3>
+    <input id="recEmail" placeholder="Your email" style="width:100%; margin-bottom:10px;" />
+    <textarea id="recMsg" placeholder="Message" style="width:100%; margin-bottom:10px;"></textarea>
+    <button onclick="submitRecruiterMessage()">Send</button>
+    <button onclick="closeRecruiterModal()">Cancel</button>
+  </div>
+</div>
+<div class="resume-branding">
+  <p>🚀 Built using <strong>EduNexa</strong></p>
+  <a href="/" class="cta-btn">Get Certified Now</a>
+</div>
+
+</body>
+</html>
+
+

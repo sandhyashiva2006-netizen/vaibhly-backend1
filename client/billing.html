@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Billing</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      padding: 40px;
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 40px;
+    }
+
+    .plans {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .plan-card {
+      background: white;
+      width: 250px;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+      transition: 0.3s;
+    }
+
+    .plan-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .plan-card h3 {
+      margin-bottom: 10px;
+    }
+
+    .price {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 15px 0;
+    }
+
+    .current {
+      color: green;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      border: none;
+      background: #4f46e5;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #4338ca;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Subscription Plans</h2>
+
+<div class="plans" id="plans"></div>
+
+<button onclick="downgrade()">Downgrade to Free</button>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+const token = localStorage.getItem("token");
+
+async function loadPlans() {
+  const res = await fetch("/api/recruiter/plans", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const data = await res.json();
+
+  const container = document.getElementById("plans");
+  container.innerHTML = "";
+
+  data.plans.forEach(plan => {
+
+    const div = document.createElement("div");
+    div.className = "plan-card";
+
+    div.innerHTML = `
+      <h3>${plan.name}</h3>
+      <div class="price">₹${plan.price}</div>
+      <p>${plan.description}</p>
+      ${
+        plan.is_current
+          ? `<div class="current">Current Plan</div>`
+          : `<button onclick="upgrade('${plan.id}')">Choose Plan</button>`
+      }
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+async function upgrade(planId){
+
+ /* TRY WALLET FIRST */
+
+ const walletPay = await fetch(
+   "/api/recruiter/wallet/buy-plan",
+   {
+     method:"POST",
+     headers:{
+       "Content-Type":"application/json",
+       Authorization:`Bearer ${token}`
+     },
+     body:JSON.stringify({planId})
+   }
+ );
+
+if(!walletPay.ok){
+  const text = await walletPay.text();
+  console.error(text);
+  alert("Wallet route not found");
+  return;
+}
+
+const result = await walletPay.json();
+
+ /* ✅ WALLET SUCCESS */
+ if(result.wallet){
+   alert("Plan activated using Wallet ✅");
+   location.reload();
+   return;
+ }
+
+ /* ❌ FALLBACK → RAZORPAY */
+
+ const orderRes = await fetch(
+   "/api/recruiter/create-order",
+   {
+     method:"POST",
+     headers:{
+       "Content-Type":"application/json",
+       Authorization:`Bearer ${token}`
+     },
+     body:JSON.stringify({planId})
+   }
+ );
+
+ const order = await orderRes.json();
+
+ const rzp = new Razorpay({
+   key:"rzp_test_S2fSlOkEGbvqRy",
+   amount:order.amount,
+   currency:"INR",
+   order_id:order.id,
+
+   handler: async function(response){
+
+     await fetch(
+       "/api/recruiter/verify-payment",
+       {
+         method:"POST",
+         headers:{
+           "Content-Type":"application/json",
+           Authorization:`Bearer ${token}`
+         },
+         body:JSON.stringify({
+           ...response,
+           planId
+         })
+       }
+     );
+
+     alert("Plan activated!");
+     location.reload();
+   }
+ });
+
+ rzp.open();
+}
+
+async function downgrade() {
+
+  await fetch("/api/recruiter/downgrade-plan", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  alert("Downgraded to Free Plan");
+  location.reload();
+}
+
+loadPlans();
+</script>
+
+</body>
+</html>

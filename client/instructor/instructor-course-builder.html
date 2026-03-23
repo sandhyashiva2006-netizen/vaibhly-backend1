@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EduNexa | Course Builder</title>
+
+<link rel="stylesheet" href="/admin/admin.css">
+<script src="/js/auth-global.js"></script>
+
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+
+<style>
+
+body{
+background:#f4f6f9;
+font-family:Arial,Helvetica,sans-serif;
+margin:0;
+}
+
+.main{
+max-width:1100px;
+margin:auto;
+padding:30px;
+}
+
+.card{
+background:white;
+padding:24px;
+border-radius:14px;
+box-shadow:0 10px 30px rgba(0,0,0,0.08);
+margin-bottom:25px;
+transition:0.25s;
+}
+
+.card:hover{
+transform:translateY(-3px);
+box-shadow:0 15px 40px rgba(0,0,0,0.12);
+}
+
+input,textarea,select{
+width:100%;
+padding:10px;
+margin-top:10px;
+margin-bottom:12px;
+border-radius:8px;
+border:1px solid #ddd;
+font-size:14px;
+}
+
+button{
+background:#2563eb;
+color:white;
+border:none;
+padding:10px 16px;
+border-radius:8px;
+cursor:pointer;
+font-weight:600;
+margin-top:8px;
+}
+
+button:hover{
+background:#1d4ed8;
+}
+
+.btn-secondary{
+background:#6b7280;
+}
+
+#modulesList li,
+#lessonsList li{
+list-style:none;
+padding:10px 14px;
+background:#f9fafb;
+margin-bottom:8px;
+border-radius:8px;
+cursor:pointer;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+#modulesList li.active,
+#lessonsList li.active{
+background:#2563eb;
+color:white;
+}
+
+video{
+border-radius:10px;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+
+iframe{
+border-radius:10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="admin-wrapper">
+
+<main class="main">
+
+<button onclick="goDashboard()">⬅ Back to Dashboard</button>
+
+<h1 id="builderTitle">🎓 Course Builder</h1>
+
+<div style="margin-bottom:20px">
+
+<button id="publishBtn" onclick="togglePublish()">
+🚀 Publish Course
+</button>
+
+<button onclick="previewCourse()" class="btn-secondary">
+👁 Preview Course
+</button>
+
+<p id="publishStatus"></p>
+
+</div>
+
+<!-- MODULES -->
+
+<div class="card">
+
+<h3>📦 Modules</h3>
+
+<input id="moduleTitle" placeholder="Module title">
+
+<button onclick="createModule()">Add Module</button>
+
+<ul id="modulesList"></ul>
+
+</div>
+
+
+<!-- LESSONS -->
+
+<div class="card">
+
+<h3>📚 Lessons</h3>
+
+<input id="lessonTitle" placeholder="Lesson title">
+
+<div id="lessonEditor" style="height:180px;background:white"></div>
+
+<button onclick="createLesson()">Add Lesson</button>
+
+<hr>
+
+<h4>🎥 Upload / Replace Video</h4>
+
+<input type="file" id="videoFile" accept="video/*">
+
+<button onclick="uploadLessonVideo()">Upload Video</button>
+
+<p id="uploadStatus"></p>
+
+<button onclick="deleteLessonVideo()">🗑 Delete Video</button>
+
+<video id="videoPreview" controls style="width:100%;margin-top:10px;display:none"></video>
+
+<hr>
+
+<h4>📄 Upload PDF</h4>
+
+<input type="file" id="pdfFile">
+
+<button onclick="uploadLessonPdf()">Upload PDF</button>
+
+<button onclick="deleteLessonPdf()">🗑 Delete PDF</button>
+
+<p id="pdfUploadStatus"></p>
+
+<iframe id="pdfPreview" width="100%" height="500" style="display:none;border:none"></iframe>
+
+<ul id="lessonsList"></ul>
+
+</div>
+
+
+<!-- FINAL EXAM -->
+
+<div class="card">
+
+<h3>📝 Final Course Exam</h3>
+
+<input type="text" id="exam-question" placeholder="Enter Question">
+
+<input type="text" id="option-a" placeholder="Option A">
+<input type="text" id="option-b" placeholder="Option B">
+<input type="text" id="option-c" placeholder="Option C">
+<input type="text" id="option-d" placeholder="Option D">
+
+<select id="correct-answer">
+<option value="">Select Correct Answer</option>
+<option value="A">Option A</option>
+<option value="B">Option B</option>
+<option value="C">Option C</option>
+<option value="D">Option D</option>
+</select>
+
+<button onclick="addExamQuestion()">Add Question</button>
+
+<div id="question-list"></div>
+
+</div>
+
+</main>
+
+</div>
+
+<script src="courses.js"></script>
+
+<script>
+
+/* COURSE */
+
+const selectedCourse = localStorage.getItem("builderCourseId");
+
+if(!selectedCourse){
+alert("No course selected");
+window.location.href="/instructor/instructor-dashboard.html";
+}
+
+let selectedModule=null;
+let selectedLesson=null;
+
+/* COURSE TITLE */
+
+async function loadCourseTitle(){
+
+const courseId = localStorage.getItem("builderCourseId");
+
+if(!courseId) return;
+
+try{
+
+const res = await authFetch(`/api/instructor/course/${courseId}`);
+
+const course = await res.json();
+
+const title = document.getElementById("builderTitle");
+
+if(title && course.title){
+title.innerText="🎓 Course Builder — "+course.title;
+}
+
+}catch(err){
+console.error("Failed to load course title",err);
+}
+
+}
+
+/* PUBLISH */
+
+async function togglePublish(){
+
+const courseId = localStorage.getItem("builderCourseId");
+
+try{
+
+const res = await authFetch(`/api/instructor/course/${courseId}/publish`,{
+method:"POST"
+});
+
+const data = await res.json();
+
+if(!res.ok){
+alert(data.message || "Cannot publish course");
+return;
+}
+
+alert("Course published successfully");
+
+}catch(err){
+
+console.error(err);
+alert("Publish failed");
+
+}
+
+}
+
+/* ================= MODULES ================= */
+
+async function loadModules(){
+
+ try{
+
+ const res =
+ await authFetch(
+ `/api/instructor/modules?course_id=${selectedCourse}`
+ );
+
+ const modules = await res.json();
+
+ const list = document.getElementById("modulesList");
+
+ if(!list) return;
+
+ list.innerHTML = "";
+
+ modules.forEach(m=>{
+
+ const li = document.createElement("li");
+
+ li.innerHTML = `
+ ${m.title}
+ <button onclick="deleteModule(${m.id})">🗑</button>
+ `;
+
+ li.onclick = (e)=>{
+
+ e.stopPropagation();
+
+ selectedModule = m.id;
+
+ document
+ .querySelectorAll("#modulesList li")
+ .forEach(x=>x.classList.remove("active"));
+
+ li.classList.add("active");
+
+ loadLessons();
+
+ };
+
+ list.appendChild(li);
+
+ });
+
+ }catch(err){
+
+ console.error("Load modules failed:",err);
+
+ }
+
+}
+
+
+
+async function createModule(){
+
+ if(!selectedCourse)
+ return alert("Course missing");
+
+ const title =
+ document.getElementById("moduleTitle").value;
+
+ if(!title)
+ return alert("Enter module title");
+
+ try{
+
+ await authFetch(
+ "/api/instructor/modules",
+ {
+ method:"POST",
+ headers:{
+ "Content-Type":"application/json"
+ },
+ body:JSON.stringify({
+ course_id:selectedCourse,
+ title
+ })
+ }
+ );
+
+ document.getElementById("moduleTitle").value="";
+
+ loadModules();
+
+ }catch(err){
+
+ console.error("Create module failed:",err);
+ alert("Failed to create module");
+
+ }
+
+}
+
+
+
+async function deleteModule(id){
+
+ if(!confirm("Delete module?")) return;
+
+ try{
+
+ await authFetch(
+ `/api/instructor/modules/${id}`,
+ {method:"DELETE"}
+ );
+
+ loadModules();
+
+ }catch(err){
+
+ console.error("Delete module failed:",err);
+
+ }
+
+}
+
+/* ================= LESSONS ================= */
+
+async function loadLessons(){
+
+ if(!selectedModule){
+  document.getElementById("lessonsList").innerHTML="";
+  return;
+ }
+
+ try{
+
+ const res =
+ await authFetch(
+ `/api/instructor/lessons?module_id=${selectedModule}`
+ );
+
+ const lessons = await res.json();
+
+ const list =
+ document.getElementById("lessonsList");
+
+ if(!list) return;
+
+ list.innerHTML="";
+
+ lessons.forEach(l=>{
+
+ const li=document.createElement("li");
+
+ li.innerHTML=`
+ ${l.title}
+ <button onclick="deleteLesson(${l.id})">🗑</button>
+ `;
+
+ li.onclick=()=>{
+
+ selectedLesson=l;
+
+ document
+ .querySelectorAll("#lessonsList li")
+ .forEach(x=>x.classList.remove("active"));
+
+ li.classList.add("active");
+
+ if(l.video_url){
+  showVideoPreview(l.video_url);
+ }
+
+ if(l.pdf_url){
+  showPdfPreview(l.pdf_url);
+ }
+
+ };
+
+ list.appendChild(li);
+
+ });
+
+ }catch(err){
+
+ console.error("Lessons load failed:",err);
+
+ }
+
+}
+
+async function createLesson(){
+
+ if(!selectedModule)
+ return alert("Select a module first");
+
+ const title =
+ document.getElementById("lessonTitle").value;
+
+ if(!title)
+ return alert("Enter lesson title");
+
+ try{
+
+ await authFetch(
+ "/api/instructor/lessons",
+ {
+ method:"POST",
+ headers:{
+ "Content-Type":"application/json"
+ },
+ body:JSON.stringify({
+ module_id:selectedModule,
+ title:title,
+ content:quill.root.innerHTML
+ })
+ }
+ );
+
+ document.getElementById("lessonTitle").value="";
+ quill.root.innerHTML="";
+
+ loadLessons();
+
+ }catch(err){
+
+ console.error("Create lesson failed:",err);
+ alert("Failed to create lesson");
+
+ }
+
+}
+
+async function deleteLesson(id){
+
+ if(!confirm("Delete lesson?")) return;
+
+ try{
+
+ await authFetch(
+ `/api/instructor/lessons/${id}`,
+ {method:"DELETE"}
+ );
+
+ loadLessons();
+
+ }catch(err){
+
+ console.error("Delete lesson failed:",err);
+
+ }
+
+}
+
+async function uploadLessonVideo(){
+
+ if(!selectedLesson)
+  return alert("Select lesson first");
+
+ const file =
+ document.getElementById("videoFile").files[0];
+
+ if(!file)
+  return alert("Select a video");
+
+ const formData = new FormData();
+ formData.append("video", file);
+
+ try{
+
+ const res = await authFetch(
+ `/api/instructor/lessons/${selectedLesson.id}/video`,
+ {
+ method:"POST",
+ body:formData
+ }
+ );
+
+ const data = await res.json();
+
+ document.getElementById("uploadStatus").innerText =
+ "✅ Video uploaded";
+
+ showVideoPreview(data.video_url);
+
+ loadLessons();
+
+ }catch(err){
+
+ console.error("Video upload failed:",err);
+ alert("Video upload failed");
+
+ }
+
+}
+
+async function uploadLessonPdf(){
+
+ if(!selectedLesson)
+  return alert("Select lesson first");
+
+ const file =
+ document.getElementById("pdfFile").files[0];
+
+ if(!file)
+  return alert("Select a PDF");
+
+ const formData = new FormData();
+ formData.append("pdf", file);
+
+ try{
+
+ const res = await authFetch(
+ `/api/instructor/lessons/${selectedLesson.id}/pdf`,
+ {
+ method:"POST",
+ body:formData
+ }
+ );
+
+ const data = await res.json();
+
+ document.getElementById("pdfUploadStatus").innerText =
+ "✅ PDF uploaded";
+
+ showPdfPreview(data.pdf_url);
+
+ loadLessons();
+
+ }catch(err){
+
+ console.error("PDF upload failed:",err);
+ alert("PDF upload failed");
+
+ }
+
+}
+
+/* CHECK EXAM */
+
+async function checkExamExists(){
+
+const res = await fetch(`/api/exam/course/${selectedCourse}`);
+const questions = await res.json();
+
+const status = document.getElementById("publishStatus");
+
+if(!Array.isArray(questions)) return;
+
+if(questions.length===0){
+status.innerText="⚠ Add at least one exam question before publishing";
+status.style.color="red";
+}else{
+status.innerText="✅ Exam questions added — ready to publish";
+status.style.color="green";
+}
+
+}
+
+/* ================= EXAM QUESTIONS ================= */
+
+async function addExamQuestion(){
+
+const question = document.getElementById("exam-question").value;
+const optionA = document.getElementById("option-a").value;
+const optionB = document.getElementById("option-b").value;
+const optionC = document.getElementById("option-c").value;
+const optionD = document.getElementById("option-d").value;
+const correct = document.getElementById("correct-answer").value;
+
+if(!question || !optionA || !optionB || !optionC || !optionD || !correct){
+ alert("Please fill all fields");
+ return;
+}
+
+const courseId = selectedCourse;
+
+const res = await authFetch("/api/exam/add-question",{
+ method:"POST",
+ headers:{
+   "Content-Type":"application/json"
+ },
+ body:JSON.stringify({
+  course_id:courseId,
+  question,
+  option_a:optionA,
+  option_b:optionB,
+  option_c:optionC,
+  option_d:optionD,
+  correct_answer:correct
+ })
+});
+
+const data = await res.json();
+
+alert("Question added successfully");
+
+/* CLEAR INPUT FIELDS */
+document.getElementById("exam-question").value="";
+document.getElementById("option-a").value="";
+document.getElementById("option-b").value="";
+document.getElementById("option-c").value="";
+document.getElementById("option-d").value="";
+document.getElementById("correct-answer").value="";
+
+loadExamQuestions();
+checkExamExists();
+
+}
+
+
+/* ================= LOAD QUESTIONS ================= */
+
+async function loadExamQuestions(){
+
+const container = document.getElementById("question-list");
+
+if(!container) return; // prevents crash if DOM not ready
+
+const courseId = selectedCourse;
+
+try{
+
+const res = await fetch(`/api/exam/course/${courseId}`);
+const questions = await res.json();
+
+container.innerHTML = "";
+
+if(!Array.isArray(questions)) return;
+
+questions.forEach(q => {
+
+const div = document.createElement("div");
+
+div.innerHTML = `
+<p><b>${q.question}</b></p>
+<p>A) ${q.option_a}</p>
+<p>B) ${q.option_b}</p>
+<p>C) ${q.option_c}</p>
+<p>D) ${q.option_d}</p>
+
+<button onclick="deleteExamQuestion(${q.id})"
+style="background:#ef4444;margin-top:6px;">
+🗑 Delete Question
+</button>
+
+<hr>
+`;
+
+container.appendChild(div);
+
+});
+
+}catch(err){
+
+console.error("Failed loading questions:",err);
+
+}
+
+}
+
+
+/* ================= DELETE QUESTION ================= */
+
+async function deleteExamQuestion(id){
+
+if(!confirm("Delete this question?")) return;
+
+try{
+
+await authFetch(`/api/exam/question/${id}`,{
+ method:"DELETE"
+});
+
+alert("Question deleted");
+
+loadExamQuestions();
+checkExamExists();
+
+}catch(err){
+
+console.error("Delete question error:",err);
+alert("Failed to delete question");
+
+}
+
+}
+
+/* NAV */
+
+function goDashboard(){
+window.location.href="/instructor/instructor-dashboard.html";
+}
+
+function showVideoPreview(url){
+
+ const video =
+ document.getElementById("videoPreview");
+
+ video.src =
+ url.startsWith("http")
+ ? url
+ : window.location.origin + url;
+
+ video.style.display="block";
+
+}
+
+function showPdfPreview(url){
+
+ const pdf =
+ document.getElementById("pdfPreview");
+
+ pdf.src =
+ window.location.origin + url;
+
+ pdf.style.display="block";
+
+}
+
+function previewCourse(){
+
+ const courseId =
+ localStorage.getItem("builderCourseId");
+
+ window.open(
+ `/player.html?preview=1&course_id=${courseId}`,
+ "_blank"
+ );
+
+}
+
+/* EDITOR */
+
+const quill = new Quill("#lessonEditor",{theme:"snow"});
+
+/* INIT */
+
+window.onload=()=>{
+loadCourseTitle();
+loadModules();
+loadExamQuestions();
+checkExamExists();
+};
+
+</script>
+
+</body>
+</html>

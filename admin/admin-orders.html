@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Orders</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="admin-wrapper">
+
+  
+  <main class="main">
+
+    <h1>🧾 Orders Management</h1>
+
+    <!-- Filters -->
+    <div class="card filters">
+      <input id="searchInput" placeholder="Search student or course" />
+      <select id="statusFilter">
+        <option value="">All Status</option>
+        <option value="PAID">Paid</option>
+        <option value="PENDING">Pending</option>
+      </select>
+      <input type="date" id="fromDate" />
+      <input type="date" id="toDate" />
+      <button class="btn-primary" onclick="applyFilters()">Apply</button>
+      <button onclick="exportCSV()">Export CSV</button>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Student</th>
+            <th>Course</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Invoice</th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button onclick="prevPage()">⬅ Prev</button>
+      <span id="pageInfo"></span>
+      <button onclick="nextPage()">Next ➡</button>
+    </div>
+
+  </main>
+
+</div>
+
+
+
+<script src="/js/auth-global.js"></script>
+<script>
+if (!requireAdmin()) {
+  throw new Error("Unauthorized");
+}
+
+let page = 1;
+const limit = 10;
+let total = 0;
+
+async function loadOrders() {
+  const params = new URLSearchParams({
+    page,
+    limit,
+    search: searchInput.value,
+    status: statusFilter.value,
+    from: fromDate.value,
+    to: toDate.value
+  });
+
+  const res = await authFetch("/api/sales/orders?" + params.toString());
+  const data = await res.json();
+
+  total = data.total;
+  renderOrders(data.orders);
+  updatePagination();
+}
+
+function renderOrders(orders) {
+  const body = document.getElementById("ordersBody");
+  body.innerHTML = "";
+
+  orders.forEach((o, i) => {
+    body.innerHTML += `
+      <tr>
+        <td>${(page - 1) * limit + i + 1}</td>
+        <td>${o.student_name}</td>
+        <td>${o.course_name || "N/A"}</td>
+        <td>₹${o.total_amount}</td>
+        <td>${o.status}</td>
+        <td>${new Date(o.created_at).toLocaleDateString()}</td>
+        <td>
+          ${o.invoice_file 
+            ? `<a href="/invoices/${o.invoice_file}" target="_blank">Download</a>` 
+            : "—"}
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function updatePagination() {
+  const totalPages = Math.ceil(total / limit);
+  pageInfo.innerText = `Page ${page} of ${totalPages || 1}`;
+}
+
+function nextPage() {
+  if (page * limit < total) {
+    page++;
+    loadOrders();
+  }
+}
+
+function prevPage() {
+  if (page > 1) {
+    page--;
+    loadOrders();
+  }
+}
+
+function applyFilters() {
+  page = 1;
+  loadOrders();
+}
+
+async function exportCSV() {
+  try {
+    const params = new URLSearchParams({
+      page: 1,
+      limit: 10000,   // export max rows
+      search: searchInput.value,
+      status: statusFilter.value,
+      from: fromDate.value,
+      to: toDate.value,
+      export: "csv"
+    });
+
+    const res = await authFetch("/api/sales/orders?" + params.toString());
+
+    if (!res.ok) {
+      const err = await res.text();
+      alert("Export failed: " + err);
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `orders_${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error("CSV export failed", err);
+    alert("CSV export failed – check console");
+  }
+}
+
+
+bindLogout("#adminLogout");
+loadOrders();
+
+</script>
+</body>
+</html>

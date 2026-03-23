@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Orders - EduNexa</title>
+  <style>
+    body {
+      font-family: Poppins, Arial, sans-serif;
+      background: #f5f7fb;
+      margin: 0;
+    }
+
+    .header {
+      background: linear-gradient(90deg,#0b5ed7,#4f46e5);
+      color: white;
+      padding: 15px 30px;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .container {
+      padding: 30px;
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,.08);
+    }
+
+    th, td {
+      padding: 14px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+    }
+
+    .status {
+      color: green;
+      font-weight: bold;
+    }
+
+    .empty {
+      background: white;
+      padding: 40px;
+      text-align: center;
+      border-radius: 10px;
+      color: #777;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="header">🧾 My Orders</div>
+
+<div class="container">
+  <div id="ordersContainer"></div>
+</div>
+<script src="/js/auth-global.js"></script>
+
+<script src="orders.js"></script>
+</body>
+</html>

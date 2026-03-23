@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>EduNexa Admin — Enrollments</title>
+
+  <!-- Admin Theme -->
+  <link rel="stylesheet" href="/admin/admin.css">
+
+  <!-- Auth -->
+  <script src="/js/auth-global.js"></script>
+</head>
+<body>
+
+<div class="admin-wrapper">
+
+  <aside class="admin-sidebar">
+    <h2>EduNexa</h2>
+    <ul>
+      <li><a href="/admin/admin.html">Dashboard</a></li>
+      <li><a href="/admin/admin-orders.html">Orders</a></li>
+      <li><a href="/admin/admin-coupons.html">Coupons</a></li>
+      <li><a class="active" href="/admin/admin-enrollments.html">Enrollments</a></li>
+    </ul>
+    <button id="adminLogout" class="admin-logout">Logout</button>
+  </aside>
+
+  <main class="main">
+
+    <h1>🎓 Enrollments Management</h1>
+
+    <!-- Filters -->
+    <div class="card filters">
+      <input id="searchInput" placeholder="Search student, email, course" />
+      <select id="activeFilter">
+        <option value="">All</option>
+        <option value="true">Active</option>
+        <option value="false">Revoked</option>
+      </select>
+      <button class="btn-primary" onclick="applyFilters()">Apply</button>
+      <button onclick="exportCSV()">Export CSV</button>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Student</th>
+            <th>Email</th>
+            <th>Course</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="enrollmentsBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button onclick="prevPage()">⬅ Prev</button>
+      <span id="pageInfo"></span>
+      <button onclick="nextPage()">Next ➡</button>
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+if (!requireAdmin()) {
+  throw new Error("Unauthorized");
+}
+
+let page = 1;
+const limit = 10;
+let total = 0;
+
+async function loadEnrollments() {
+  const params = new URLSearchParams({
+    page,
+    limit,
+    search: searchInput.value,
+    active: activeFilter.value
+  });
+
+  const res = await authFetch("/api/enrollments?" + params.toString());
+  const data = await res.json();
+
+  total = data.total;
+  renderEnrollments(data.enrollments);
+  updatePagination();
+}
+
+function renderEnrollments(list) {
+  const body = document.getElementById("enrollmentsBody");
+  body.innerHTML = "";
+
+  list.forEach((e, i) => {
+    body.innerHTML += `
+      <tr>
+        <td>${(page - 1) * limit + i + 1}</td>
+        <td>${e.student_name}</td>
+        <td>${e.email}</td>
+        <td>${e.course_name}</td>
+        <td>${e.payment_id || "—"}</td>
+        <td>
+          ${e.is_active
+            ? '<span class="badge active">Active</span>'
+            : '<span class="badge inactive">Revoked</span>'
+          }
+        </td>
+        <td>${new Date(e.purchased_at).toLocaleDateString()}</td>
+        <td>
+          <button class="btn-sm" onclick="toggleEnrollment(${e.id}, ${e.is_active})">
+            ${e.is_active ? "Revoke" : "Grant"}
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function updatePagination() {
+  const totalPages = Math.ceil(total / limit);
+  pageInfo.innerText = `Page ${page} of ${totalPages || 1}`;
+}
+
+function nextPage() {
+  if (page * limit < total) {
+    page++;
+    loadEnrollments();
+  }
+}
+
+function prevPage() {
+  if (page > 1) {
+    page--;
+    loadEnrollments();
+  }
+}
+
+function applyFilters() {
+  page = 1;
+  loadEnrollments();
+}
+
+async function toggleEnrollment(id, active) {
+  const url = active ? "/api/enrollments/revoke" : "/api/enrollments/grant";
+
+  await authFetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enrollment_id: id })
+  });
+
+  loadEnrollments();
+}
+
+async function exportCSV() {
+  const params = new URLSearchParams({
+    export: "csv",
+    search: searchInput.value,
+    active: activeFilter.value
+  });
+
+  const res = await authFetch("/api/enrollments?" + params.toString());
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "enrollments.csv";
+  a.click();
+
+  window.URL.revokeObjectURL(url);
+}
+
+bindLogout("#adminLogout");
+loadEnrollments();
+
+</script>
+
+</body>
+</html>

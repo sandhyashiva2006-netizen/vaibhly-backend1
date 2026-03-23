@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Exam Management | Admin</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<h2>Exam Management</h2>
+
+<!-- ADD EXAM -->
+<div class="box">
+  <h3>Create Exam</h3>
+  <input type="text" id="examTitle" placeholder="Exam Title">
+  <input type="number" id="courseId" placeholder="Course ID">
+  <button onclick="addExam()">Create Exam</button>
+</div>
+
+<!-- EXAM LIST -->
+<div class="box">
+  <h3>All Exams</h3>
+  <select id="examSelect" onchange="loadQuestions()">
+    <option value="">Select Exam</option>
+  </select>
+</div>
+
+<!-- ADD QUESTION -->
+<div class="box">
+  <h3>Add Question</h3>
+  <input id="question" placeholder="Question">
+  <input id="a" placeholder="Option A">
+  <input id="b" placeholder="Option B">
+  <input id="c" placeholder="Option C">
+  <input id="d" placeholder="Option D">
+  <select id="correct">
+    <option value="A">A</option>
+    <option value="B">B</option>
+    <option value="C">C</option>
+    <option value="D">D</option>
+  </select>
+  <button onclick="addQuestion()">Add Question</button>
+</div>
+
+<!-- QUESTIONS LIST -->
+<div class="box">
+  <h3>Questions</h3>
+  <ul id="questionList"></ul>
+</div>
+
+<a href="dashboard.html">⬅ Back to Dashboard</a>
+
+<script src="js/admin-exams.js"></script>
+</body>
+</html>

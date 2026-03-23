@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Instructor Analytics</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f6f9;
+margin:0;
+padding:30px;
+}
+
+.title{
+font-size:24px;
+font-weight:bold;
+margin-bottom:30px;
+}
+
+.cards{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:12px;
+width:220px;
+box-shadow:0 2px 10px rgba(0,0,0,0.08);
+}
+
+.card h4{
+color:#666;
+margin:0;
+}
+
+.card h2{
+margin-top:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="title">👨‍🏫 Instructor Analytics</div>
+
+<div class="cards">
+
+<div class="card">
+<h4>Total Instructors</h4>
+<h2 id="totalInstructors">0</h2>
+</div>
+
+<div class="card">
+<h4>Total Courses</h4>
+<h2 id="totalCourses">0</h2>
+</div>
+
+<div class="card">
+<h4>Total Revenue</h4>
+<h2 id="totalRevenue">₹0</h2>
+</div>
+
+</div>
+
+<script src="/js/auth-global.js"></script>
+<script src="instructor-analytics.js"></script>
+
+</body>
+</html>

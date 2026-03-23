@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin – Results</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+
+<div class="admin-container">
+
+  <aside class="admin-sidebar">
+    <h2>EduNexa</h2>
+    <ul>
+  <ul>
+  <li><a href="/admin/admin.html">Dashboard</a></li>
+  <li><a href="/admin/admin-courses.html">Courses</a></li>
+  <li><a href="/admin/admin-modules.html">Modules</a></li>
+<li><a href="/admin/admin-lessons.html">Lessons</a></li>
+  <li><a href="/admin/admin-exams.html">Exams</a></li>
+  <li><a href="/admin/admin-questions.html">Questions</a></li>
+  <li><a href="/admin/admin-results.html">Results</a></li>
+</ul>
+
+
+
+
+    <button id="adminLogout" class="admin-logout">Logout</button>
+  </aside>
+
+  <main class="admin-main">
+    <h1>Results & Analytics</h1>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <h3>Total Students</h3>
+        <p id="totalStudents">0</p>
+      </div>
+      <div class="stat-box">
+        <h3>Total Exams</h3>
+        <p id="totalExams">0</p>
+      </div>
+      <div class="stat-box">
+        <h3>Total Attempts</h3>
+        <p id="totalAttempts">0</p>
+      </div>
+      <div class="stat-box">
+        <h3>Average Score</h3>
+        <p id="avgScore">0%</p>
+      </div>
+    </div>
+
+    <h2 style="margin-top:30px;">Exam-wise Performance</h2>
+
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Exam</th>
+          <th>Attempts</th>
+          <th>Avg Score</th>
+          <th>Passed</th>
+          <th>Failed</th>
+        </tr>
+      </thead>
+      <tbody id="examResultsBody"></tbody>
+    </table>
+
+  </main>
+</div>
+<script src="/admin/js/admin-auth.js"></script>
+<script src="/admin/auth.js"></script>
+
+<script src="/js/auth-global.js"></script>
+<script src="/admin/admin-results.js"></script>
+<script>
+  bindLogout("#adminLogout", "/admin/admin-login.html");
+</script>
+</body>
+</html>

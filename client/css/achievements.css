@@ -1,0 +1,42 @@
+.subtitle {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  gap: 20px;
+}
+
+.badge-card {
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  transition: 0.3s ease;
+}
+
+.badge-card:hover {
+  transform: translateY(-4px);
+}
+
+.badge-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.badge-title {
+  font-weight: 600;
+}
+
+.badge-desc {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.badge-locked {
+  opacity: 0.4;
+  filter: grayscale(1);
+}

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vaibhly Admin Analytics</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+  <script src="/js/auth-global.js"></script>
+</head>
+
+<body>
+
+<div class="admin-wrapper">
+
+  <aside class="admin-sidebar">
+    <h2>Vaibhly</h2>
+    <ul>
+      <li><a href="/admin/admin.html">Dashboard</a></li>
+      <li><a class="active" href="/admin/admin-analytics.html">Analytics</a></li>
+      <li><a href="/admin/admin-orders.html">Orders</a></li>
+      <li><a href="/admin/admin-coupons.html">Coupons</a></li>
+      <li><a href="/admin/admin-enrollments.html">Enrollments</a></li>
+<li><a href="/admin/admin-notifications.html">🔔 Notifications</a></li>
+
+    </ul>
+    <button id="adminLogout" class="admin-logout">Logout</button>
+  </aside>
+
+  <main class="main">
+
+    <h1>📊 Business Analytics</h1>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="card">
+        <h3>Total Revenue</h3>
+        <h2 id="kpiRevenue">₹0</h2>
+      </div>
+      <div class="card">
+        <h3>Total Orders</h3>
+        <h2 id="kpiOrders">0</h2>
+      </div>
+      <div class="card">
+        <h3>Total Enrollments</h3>
+        <h2 id="kpiEnrollments">0</h2>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="card">
+        <h3>Revenue Trend</h3>
+        <canvas id="revenueChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Orders Trend</h3>
+        <canvas id="ordersChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Top Courses</h3>
+        <canvas id="coursesChart"></canvas>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="/js/chart.js"></script>
+
+
+<script>
+if (!requireAdmin()) {
+  throw new Error("Unauthorized");
+}
+
+let revenueChart, ordersChart, coursesChart;
+
+async function loadDashboard() {
+  try {
+    const res = await authFetch("/api/sales/dashboard");
+    const data = await res.json();
+
+    console.log("📊 Dashboard data:", data);
+
+    if (!data.totals) {
+      console.warn("⚠️ No totals returned");
+      return;
+    }
+
+    // KPI Cards
+    document.getElementById("kpiRevenue").innerText =
+      "₹" + Number(data.totals.totalRevenue).toFixed(2)
+
+    document.getElementById("kpiOrders").innerText =
+      data.totals.totalOrders;
+
+    document.getElementById("kpiEnrollments").innerText =
+      data.totals.totalEnrollments;
+
+    renderCharts(data);
+
+  } catch (err) {
+    console.error("❌ Dashboard load failed", err);
+  }
+}
+
+function renderCharts(data) {
+
+  // Destroy old charts if reloading
+  if (revenueChart) revenueChart.destroy();
+  if (ordersChart) ordersChart.destroy();
+  if (coursesChart) coursesChart.destroy();
+
+  const revenueLabels = data.revenueTrend.map(r => r.date);
+  const revenueValues = data.revenueTrend.map(r => Number(r.revenue));
+
+  revenueChart = new Chart(
+    document.getElementById("revenueChart"),
+    {
+      type: "line",
+      data: {
+        labels: revenueLabels,
+        datasets: [{
+          label: "Revenue",
+          data: revenueValues
+        }]
+      }
+    }
+  );
+
+  const orderLabels = data.orderTrend.map(r => r.date);
+  const orderValues = data.orderTrend.map(r => r.orders);
+
+  ordersChart = new Chart(
+    document.getElementById("ordersChart"),
+    {
+      type: "bar",
+      data: {
+        labels: orderLabels,
+        datasets: [{
+          label: "Orders",
+          data: orderValues
+        }]
+      }
+    }
+  );
+
+  const courseLabels = data.topCourses.map(c => c.title);
+  const courseValues = data.topCourses.map(c => c.enrollments);
+
+  coursesChart = new Chart(
+    document.getElementById("coursesChart"),
+    {
+      type: "doughnut",
+      data: {
+        labels: courseLabels,
+        datasets: [{
+          label: "Enrollments",
+          data: courseValues
+        }]
+      }
+    }
+  );
+}
+
+bindLogout("#adminLogout");
+loadDashboard();
+</script>
+
+
+</body>
+</html>

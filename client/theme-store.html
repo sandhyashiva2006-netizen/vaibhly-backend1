@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Theme Store | EduNexa</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui;
+      background: #f8fafc;
+      margin: 0;
+      padding: 40px;
+    }
+
+    .store-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .store-header h1 {
+      margin-bottom: 10px;
+    }
+
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+    }
+
+    .theme-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.06);
+      transition: 0.3s;
+      position: relative;
+    }
+
+    .theme-card:hover {
+      transform: translateY(-6px);
+    }
+
+    .theme-preview {
+      height: 180px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      padding: 15px;
+      background: #f1f5f9;
+      overflow: hidden;
+    }
+
+    .theme-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+    }
+
+    .premium-badge {
+      background: #facc15;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .apply-btn {
+      background: #10b981;
+      color: white;
+    }
+
+    .buy-btn {
+      background: #2563eb;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="store-header">
+  <h1>🎨 Resume Theme Store</h1>
+  <p>Upgrade your resume with premium professional designs</p>
+</div>
+
+<div id="themeGrid" class="theme-grid">
+  Loading themes...
+</div>
+
+<script>
+
+async function loadThemeStore() {
+
+  const res = await fetch("/api/resume/themes", {
+    headers: {
+      Authorization: "Bearer " + localStorage.getItem("token")
+    }
+  });
+
+  const themes = await res.json();
+  const grid = document.getElementById("themeGrid");
+  grid.innerHTML = "";
+
+  themes.forEach(theme => {
+
+    const card = document.createElement("div");
+    card.className = "theme-card";
+
+    card.innerHTML = `
+      <div class="theme-preview template-${theme.code}">
+        <h3>John Doe</h3>
+        <p>Full Stack Developer</p>
+        <hr>
+        <p style="font-size:12px;">Professional summary preview...</p>
+      </div>
+
+      <h3>${theme.name}</h3>
+
+      <div class="theme-actions">
+        ${
+          theme.is_premium
+            ? `<span class="premium-badge">₹${theme.price}</span>`
+            : `<span>Free</span>`
+        }
+
+        <button onclick="handleTheme('${theme.code}')">
+  Preview / Apply
+</button>
+
+      </div>
+    `;
+
+    grid.appendChild(card);
+  });
+}
+
+function applyTheme(code) {
+  localStorage.setItem("resumeTemplate", code);
+  alert("Theme applied! Open Resume Builder to see changes.");
+}
+
+async function buyTheme(theme) {
+
+  const orderRes = await fetch("/api/payments/create-theme-order", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + localStorage.getItem("token")
+    },
+    body: JSON.stringify({
+      theme_code: theme.code
+    })
+  });
+
+  const order = await orderRes.json();
+
+  const options = {
+    key: "YOUR_RAZORPAY_KEY",
+    amount: order.amount,
+    currency: "INR",
+    name: "EduNexa",
+    description: theme.name,
+    order_id: order.id,
+
+    handler: async function (response) {
+
+      await fetch("/api/payments/verify-theme", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + localStorage.getItem("token")
+        },
+        body: JSON.stringify({
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_signature: response.razorpay_signature,
+          theme_code: theme.code
+        })
+      });
+
+      alert("🎉 Theme purchased!");
+      loadThemeStore();
+    }
+  };
+
+  const rzp = new Razorpay(options);
+  rzp.open();
+}
+
+
+function handleTheme(code) {
+  localStorage.setItem("resumeTemplate", code);
+  window.location.href = "/resume-builder.html?theme=" + code;
+
+}
+
+
+function startPayment(code, price) {
+
+  document.body.style.overflow = "hidden";
+
+  const options = {
+    key: "rzp_test_S2fSlOkEGbvqRy", // 🔥 USE YOUR REAL KEY
+    amount: price * 100,
+    currency: "INR",
+    name: "EduNexa Themes",
+    description: code + " Theme",
+
+    handler: async function (response) {
+
+      try {
+
+        const verifyRes = await fetch("/api/payments/verify-payment", {
+
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + localStorage.getItem("token")
+          },
+          body: JSON.stringify({
+            ...response,
+            theme_code: code
+          })
+        });
+
+        if (!verifyRes.ok) throw new Error();
+
+        alert("✅ Theme purchased successfully!");
+
+        localStorage.setItem("resumeTemplate", code);
+        window.location.href = "/resume-builder.html";
+
+      } catch (err) {
+
+        alert("⚠️ Payment verification failed.");
+        document.body.style.overflow = "auto";
+
+        const overlay = document.querySelector(".razorpay-container");
+        if (overlay) overlay.remove();
+      }
+    },
+
+    modal: {
+      ondismiss: function () {
+        document.body.style.overflow = "auto";
+      }
+    }
+  };
+
+  const rzp = new Razorpay(options);
+  rzp.open();
+}
+
+loadThemeStore();
+
+</script>
+
+</body>
+</html>
+
+

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Recruiter Analytics</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f6fb;
+      padding: 40px;
+    }
+
+    h2 {
+      margin-bottom: 30px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    }
+
+    .label {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h2>💼 Recruiter Analytics</h2>
+
+<div class="grid">
+  <div class="card">
+    <div class="label">Total Recruiters</div>
+    <div class="value" id="totalRecruiters">0</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Active Premium</div>
+    <div class="value" id="activePremium">0</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Total Jobs Posted</div>
+    <div class="value" id="totalJobs">0</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Total Applications</div>
+    <div class="value" id="totalApplications">0</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Total Revenue</div>
+    <div class="value" id="revenue">₹0</div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async function () {
+
+  const token = localStorage.getItem("token");
+
+  const res = await fetch("/api/admin/recruiter-analytics", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const data = await res.json();
+
+  document.getElementById("totalRecruiters").innerText = data.totalRecruiters || 0;
+  document.getElementById("activePremium").innerText = data.activePremium || 0;
+  document.getElementById("totalJobs").innerText = data.totalJobs || 0;
+  document.getElementById("totalApplications").innerText = data.totalApplications ||0;
+  document.getElementById("revenue").innerText =
+    "₹" + (data.revenue / 100).toLocaleString();
+
+});
+</script>
+
+</body>
+</html>

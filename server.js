@@ -1,5 +1,6 @@
 require("dotenv").config();
 console.log("JWT_SECRET LOADED =", process.env.JWT_SECRET);
+const pool = require("./config/db"); // or wherever your db is
 
 const express = require("express");
 const app = express();

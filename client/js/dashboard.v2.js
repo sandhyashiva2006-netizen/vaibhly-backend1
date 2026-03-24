@@ -206,7 +206,7 @@ async function loadCertificate() {
   if (shareBtn) shareBtn.style.display = "none";
 
   try {
-    const res = await fetch("http://localhost:5000/api/certificates/latest", {
+    const res = await fetch("http://vaibhly-backend1.onrender.com/api/certificates/latest", {
       headers: { Authorization: "Bearer " + token }
     });
 
@@ -318,7 +318,7 @@ async function loadExams(courseCompleted = false) {
       return;
     }
 
-    const res = await fetch("http://localhost:5000/api/exams/list", {
+    const res = await fetch("http://vaibhly-backend1.onrender.com/api/exams/list", {
       headers: {
         Authorization: "Bearer " + token
       }

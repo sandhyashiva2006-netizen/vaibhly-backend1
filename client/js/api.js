@@ -1,5 +1,5 @@
-const API_URL = "http://localhost:5000/api";
-const API_BASE = 'http://localhost:5000/api';
+const API_URL = "http://vaibhly-backend1.onrender.com/api";
+const API_BASE = 'http://vaibhly-backend1.onrender.com/api';
 
 async function apiRequest(endpoint, method = 'GET', body = null, token = null) {
   const headers = { 'Content-Type': 'application/json' };

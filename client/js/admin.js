@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const res = await fetch(
-        "http://localhost:5000/api/exams/admin/reset-exam",
+        "http://vaibhly-backend1.onrender.com/api/exams/admin/reset-exam",
         {
           method: "POST",
           headers: {

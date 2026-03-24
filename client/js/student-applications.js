@@ -2,7 +2,7 @@ async function loadApplications(){
 
 const token = localStorage.getItem("token");
 
-const res = await fetch("http://localhost:5000/api/student/applications", {
+const res = await fetch("http://vaibhly-backend1.onrender.com/api/student/applications", {
 headers: {
 "Authorization": `Bearer ${token}`
 }

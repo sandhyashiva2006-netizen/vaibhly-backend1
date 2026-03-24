@@ -116,7 +116,7 @@ alert("Server error");
 /* ================= GOOGLE LOGIN ================= */
 
 function googleLogin(){
-window.location.href = "http://localhost:5000/api/auth/google";
+window.location.href = "http://vaibhly-backend1.onrender.com/api/auth/google";
 }
 
 

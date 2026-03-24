@@ -40,7 +40,7 @@ let selectedAnswers = {};
 /* ================= LOAD EXAM ================= */
 async function loadExam() {
   try {
-    const res = await fetch(`http://localhost:5000/api/exams/${examId}/questions`, {
+    const res = await fetch(`http://vaibhly-backend1.onrender.com/api/exams/${examId}/questions`, {
   headers: {
     Authorization: "Bearer " + localStorage.getItem("token")
   }

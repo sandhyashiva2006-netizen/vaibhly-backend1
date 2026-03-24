@@ -1,3 +1,4 @@
+
 console.log("exam.js loaded");
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -15,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     const response = await fetch(
-      `http://localhost:5000/api/exams/${examId}/questions`,
+      `http://vaibhly-backend1.onrender.com/api/exams/${examId}/questions`,
       {
         headers: {
           Authorization: "Bearer " + token

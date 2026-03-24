@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api";
+const API_URL = "http://vaibhly-backend1.onrender.com/api";
 const token = localStorage.getItem("token");
 
 let appliedJobs = [];
@@ -9,7 +9,7 @@ const token = localStorage.getItem("token");
 
 if(!token) return;
 
-const res = await fetch("http://localhost:5000/api/student/applied", {
+const res = await fetch("http://vaibhly-backend1.onrender.com/api/student/applied", {
 headers: {
 "Authorization": `Bearer ${token}`
 }

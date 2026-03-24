@@ -159,7 +159,7 @@ app.use("/", publicRoutes);
 
 /* ================= HEALTH CHECK ================= */
 app.get("/health", (req, res) => {
-  res.json({ status: "EduNexa Backend OK 🚀" });
+  res.json({ status: "Vaibhly Backend OK 🚀" });
 });
 
 /* ================= START ================= */

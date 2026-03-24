@@ -25,11 +25,11 @@ console.log("Sending:", { name, email, password });
 
     // 🧾 Insert user
     const result = await pool.query(
-      `INSERT INTO users (name, email, password, role, username)
-       VALUES ($1, $2, $3, 'student', $4)
-       RETURNING id, name, email, role, username`,
-      [name, email, hashedPassword, username]
-    );
+  `INSERT INTO users (name, email, password, role)
+   VALUES ($1, $2, $3, $4)
+   RETURNING *`,
+  [name, email, hashedPassword, "student"] // 👈 ADD DEFAULT ROLE
+);
 
     const newUser = result.rows[0]; // ✅ DEFINE ONLY ONCE
 

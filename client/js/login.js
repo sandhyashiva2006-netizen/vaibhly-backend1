@@ -14,7 +14,7 @@ return;
 
 try {
 
-const res = await fetch("/api/auth/login", {
+const res = await fetch("https://vaibhly-backend1.onrender.com/api/auth/login", {
 method: "POST",
 headers: { "Content-Type": "application/json" },
 body: JSON.stringify({ email, password })
@@ -73,7 +73,7 @@ const referral = document.getElementById("referral").value;
 
 try {
 
-const res = await fetch("/api/auth/register", {
+const res = await fetch("https://vaibhly-backend1.onrender.com/api/auth/register", {
 method: "POST",
 headers: { "Content-Type": "application/json" },
 body: JSON.stringify({ name, email, password, referral })
@@ -84,7 +84,7 @@ const data = await res.json();
 if (data.success) {
 
 // 🔥 AUTO LOGIN AFTER REGISTER
-const loginRes = await fetch("/api/auth/login", {
+const loginRes = await fetch("https://vaibhly-backend1.onrender.com/api/auth/login", {
 method: "POST",
 headers: { "Content-Type": "application/json" },
 body: JSON.stringify({ email, password })
@@ -169,7 +169,7 @@ async function sendResetOtp(){
 
 const email = document.getElementById("forgotEmail").value;
 
-await fetch("/api/auth/forgot-password", {
+await fetch("https://vaibhly-backend1.onrender.com/api/auth/forgot-password", {
 method: "POST",
 headers: { "Content-Type": "application/json" },
 body: JSON.stringify({ email })
@@ -192,7 +192,7 @@ const otp = [...document.querySelectorAll(".otp-box")]
 
 const newPassword = document.getElementById("newPassword").value;
 
-const res = await fetch("/api/auth/reset-password", {
+const res = await fetch("https://vaibhly-backend1.onrender.com/api/auth/reset-password", {
 method: "POST",
 headers: { "Content-Type": "application/json" },
 body: JSON.stringify({ email, otp, newPassword })

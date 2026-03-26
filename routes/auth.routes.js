@@ -10,12 +10,24 @@ const router = express.Router();
 
 /* ================= STUDENT REGISTER =================*/
 router.post("/register", async (req, res) => {
-  console.log("🔥 NEW REGISTER ROUTE ACTIVE 🔥");
-console.log("Sending:", { name, email, password });
   try {
+    console.log("🔥 REGISTER API HIT");
+
     const { name, email, password, referral } = req.body;
 
-    console.log("Referral received:", referral);
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: "All fields required" });
+    }
+
+    // 🔍 Check existing user
+    const existingUser = await pool.query(
+      "SELECT id FROM users WHERE email=$1",
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: "Email already exists" });
+    }
 
     // 🔐 Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -25,77 +37,62 @@ console.log("Sending:", { name, email, password });
 
     // 🧾 Insert user
     const result = await pool.query(
-  `INSERT INTO users (name, email, password, role)
-   VALUES ($1, $2, $3, $4)
-   RETURNING *`,
-  [name, email, password, "student"] // 👈 ADD DEFAULT ROLE
-);
+      `INSERT INTO users (name, email, password, role, username)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [name, email, hashedPassword, "student", username]
+    );
 
-    const newUser = result.rows[0]; // ✅ DEFINE ONLY ONCE
+    const newUser = result.rows[0];
 
-    // 💰 Create wallet based on role
-    if (newUser.role === "student") {
-      await pool.query(
-        "INSERT INTO user_wallets (user_id, coins) VALUES ($1, 0)",
-        [newUser.id]
-      );
-    }
+    // 💰 Wallet
+    await pool.query(
+      "INSERT INTO user_wallets (user_id, coins) VALUES ($1, 0)",
+      [newUser.id]
+    );
 
-    if (newUser.role === "recruiter") {
-      await pool.query(
-        "INSERT INTO recruiter_wallets (recruiter_id) VALUES ($1)",
-        [newUser.id]
-      );
-    }
-
-    if (newUser.role === "instructor") {
-      await pool.query(
-        "INSERT INTO instructor_wallets (instructor_id, balance) VALUES ($1, 0)",
-        [newUser.id]
-      );
-    }
-
-    // 🎁 Generate referral code
+    // 🎁 Referral code
     const random = Math.floor(1000 + Math.random() * 9000);
     const referralCode =
       name.substring(0, 4).toUpperCase() + random + newUser.id;
 
     await pool.query(
-      `UPDATE users SET referral_code = $1 WHERE id = $2`,
+      "UPDATE users SET referral_code = $1 WHERE id = $2",
       [referralCode, newUser.id]
     );
 
-    // 🔗 Handle referral
+    // 🔗 Referral link
     if (referral) {
       const refUser = await pool.query(
-        "SELECT id FROM users WHERE UPPER(referral_code) = UPPER($1)",
+        "SELECT id FROM users WHERE UPPER(referral_code)=UPPER($1)",
         [referral]
       );
 
       if (refUser.rows.length) {
         await pool.query(
-          "UPDATE users SET referred_by = $1 WHERE id = $2",
+          "UPDATE users SET referred_by=$1 WHERE id=$2",
           [refUser.rows[0].id, newUser.id]
         );
       }
     }
 
-    // ✅ RESPONSE
+    // ✅ FINAL RESPONSE (ONLY ONCE)
     res.status(201).json({
       success: true,
       user: {
-        ...newUser,
-        referral_code: referralCode,
-      },
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        referral_code: referralCode
+      }
     });
-
-res.json({ success: true, user: result.rows[0] });
 
   } catch (err) {
     console.error("REGISTER ERROR:", err);
     res.status(500).json({
       success: false,
-      error: err.message,
+      error: err.message
     });
   }
 });

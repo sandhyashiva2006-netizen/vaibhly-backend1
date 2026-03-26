@@ -166,7 +166,7 @@ app.get("/health", (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 // const { startScheduler } = require("./services/followup.scheduler");
-startScheduler();
+
 
 const { runLeadAutomation } = require("./services/leadAutomation.service");
 

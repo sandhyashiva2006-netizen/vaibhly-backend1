@@ -264,7 +264,7 @@ setInterval(async () => {
   `);
 }, 60 * 60 * 1000);
 
-app.get("*", (req, res) => {
+app.get("/*", (req, res) => {
   res.sendFile(path.join(__dirname, "client", "index.html"));
 });
 

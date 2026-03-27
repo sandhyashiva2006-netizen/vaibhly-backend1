@@ -123,7 +123,7 @@ await client.query(
 router.get("/my-orders", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
-
+console.log("TOKEN USER ID:", userId);
     const result = await pool.query(`
       SELECT 
         o.id,

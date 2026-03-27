@@ -26,11 +26,79 @@ u.role,
   [req.user.id]
 );
 
-    res.json(result.rows[0]);
+    res.json(result.rows);
 
   } catch (err) {
     console.error("Profile SQL error:", err.message);
     res.status(500).json({ error: "Profile failed" });
+  }
+});
+
+// ================= GET JOBS =================
+router.get("/jobs", verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, title, company FROM jobs ORDER BY id DESC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load jobs" });
+  }
+});
+
+
+// ================= APPLIED JOBS =================
+router.get("/applied", verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT job_id FROM job_applications
+      WHERE user_id = $1
+    `, [req.user.id]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load applied jobs" });
+  }
+});
+
+
+// ================= APPLY JOB =================
+router.post("/apply/:jobId", verifyToken, async (req, res) => {
+  try {
+    const jobId = req.params.jobId;
+
+    await pool.query(`
+      INSERT INTO job_applications (user_id, job_id)
+      VALUES ($1, $2)
+    `, [req.user.id, jobId]);
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Apply failed" });
+  }
+});
+
+
+// ================= MY APPLICATIONS =================
+router.get("/my-applications", verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT j.title, a.stage, a.ai_score
+      FROM job_applications a
+      JOIN jobs j ON j.id = a.job_id
+      WHERE a.user_id = $1
+    `, [req.user.id]);
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load applications" });
   }
 });
 

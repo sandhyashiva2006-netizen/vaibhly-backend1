@@ -43,14 +43,23 @@ const leaderboardRoutes = require("./routes/leaderboard.routes");
 const instructorEarningsRoutes = require("./routes/instructorEarnings.routes");
 
 /* ================= MIDDLEWARE ================= */
-app.use(cors());
-app.use((req, res, next) => {
-  if (req.originalUrl === "/api/recruiter/webhook") {
-    next();
-  } else {
-    express.json()(req, res, next);
-  }
-});
+app.use(cors({
+  origin: [
+    "https://vaibhly-frontend.pages.dev/",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+
+app.options("*", cors());
+
+// ✅ EXCEPTION for webhook (must be BEFORE json if needed)
+app.use("/api/recruiter/webhook", express.raw({ type: "*/*" }));
+
+// ✅ JSON for all routes
+app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static("uploads"));
@@ -66,7 +75,6 @@ const INVOICE_ROOT = path.join(__dirname, "invoices");   // ✅ server/invoices
 
 /* ================= STATIC FILE SERVING ================= */
 
-app.use(express.static(path.join(__dirname, "..", "client")));
 
 
 // ✅ Admin panel
@@ -157,6 +165,10 @@ app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/instructor-earnings", instructorEarningsRoutes);
 app.use("/", publicRoutes);
 
+
+app.use(express.static(path.join(__dirname, "..", "client")));
+
+
 /* ================= HEALTH CHECK ================= */
 app.get("/health", (req, res) => {
   res.json({ status: "Vaibhly Backend OK 🚀" });
@@ -171,7 +183,14 @@ const PORT = process.env.PORT || 5000;
 const { runLeadAutomation } = require("./services/leadAutomation.service");
 
 // Run every 1 minute
-setInterval(runLeadAutomation, 60 * 1000);
+setInterval(async () => {
+  try {
+    await runLeadAutomation();
+    console.log("✅ Lead automation completed");
+  } catch (err) {
+    console.error("❌ Lead automation error:", err);
+  }
+}, 60000);
 
 app.get("/debug-files", (req, res) => {
   const fs = require("fs");
@@ -244,4 +263,8 @@ setInterval(async () => {
     WHERE boost_until < NOW()
   `);
 }, 60 * 60 * 1000);
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "client", "index.html"));
+});
 

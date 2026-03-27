@@ -49,11 +49,11 @@ app.use(cors({
     "http://localhost:5500",
     "http://127.0.0.1:5500"
   ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
 
-app.options("/*", cors());
+
 
 // ✅ EXCEPTION for webhook (must be BEFORE json if needed)
 app.use("/api/recruiter/webhook", express.raw({ type: "*/*" }));

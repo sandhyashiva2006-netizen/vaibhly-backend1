@@ -130,9 +130,9 @@ console.log("TOKEN USER ID:", userId);
     o.total_amount,
     o.status,
     o.created_at,
-    c.title AS course_name
+    COALESCE(c.title, 'Course Deleted') AS course_name
   FROM orders o
-  JOIN order_items oi ON oi.order_id = o.id
+  LEFT JOIN order_items oi ON oi.order_id = o.id
   LEFT JOIN courses c ON c.id = oi.course_id
   WHERE o.user_id = $1
   ORDER BY o.created_at DESC
@@ -140,9 +140,9 @@ console.log("TOKEN USER ID:", userId);
 
     res.json(result.rows);
   } catch (err) {
-    console.error("Orders fetch error:", err);
-    res.status(500).json({ error: "Failed to load orders" });
-  }
+  console.error("Orders fetch error FULL:", err); // 🔥 IMPORTANT
+  res.status(500).json({ error: "Failed to load orders" });
+}
 });
 
 /* ===========================

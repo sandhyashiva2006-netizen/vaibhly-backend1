@@ -45,15 +45,15 @@ const instructorEarningsRoutes = require("./routes/instructorEarnings.routes");
 /* ================= MIDDLEWARE ================= */
 app.use(cors({
   origin: [
-    "https://vaibhly-frontend.pages.dev/",
+    "https://vaibhly-frontend.pages.dev",
     "http://localhost:5500",
     "http://127.0.0.1:5500"
   ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
 }));
 
-
+app.options("/*", cors());
 
 // ✅ EXCEPTION for webhook (must be BEFORE json if needed)
 app.use("/api/recruiter/webhook", express.raw({ type: "*/*" }));

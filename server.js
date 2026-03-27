@@ -53,7 +53,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.options("*", cors());
+
 
 // ✅ EXCEPTION for webhook (must be BEFORE json if needed)
 app.use("/api/recruiter/webhook", express.raw({ type: "*/*" }));

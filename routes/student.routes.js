@@ -38,14 +38,16 @@ u.role,
 router.get("/jobs", verifyToken, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT id, title FROM recruiter_jobs ORDER BY id DESC
+      SELECT * FROM recruiter_jobs
     `);
+
+    console.log("JOBS DATA:", result.rows); // 🔥 ADD THIS
 
     res.json(result.rows);
   } catch (err) {
-  console.error("JOBS ERROR:", err);  // 🔥 ADD THIS
-  res.status(500).json({ error: "Failed to load jobs" });
-}
+    console.error("FINAL JOBS ERROR:", err); // 🔥 IMPORTANT
+    res.status(500).json({ error: "Failed to load jobs" });
+  }
 });
 
 
@@ -88,16 +90,14 @@ router.post("/apply/:jobId", verifyToken, async (req, res) => {
 router.get("/my-applications", verifyToken, async (req, res) => {
   try {
     const result = await pool.query(`
-  SELECT j.title
-  FROM job_applications a
-  JOIN recruiter_jobs j ON j.id = a.job_id
-  WHERE a.student_id = $1
-`, [req.user.id]);
+      SELECT * FROM job_applications
+    `);
+
+    console.log("APPS DATA:", result.rows);
 
     res.json(result.rows);
-
   } catch (err) {
-    console.error("JOBS ERROR:", err);
+    console.error("FINAL APPS ERROR:", err);
     res.status(500).json({ error: "Failed to load applications" });
   }
 });

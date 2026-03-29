@@ -72,6 +72,17 @@ router.post("/apply/:jobId", verifyToken, async (req, res) => {
   try {
     const jobId = req.params.jobId;
 
+    // 🔥 CHECK EXISTING
+    const existing = await pool.query(`
+      SELECT * FROM job_applications
+      WHERE student_id = $1 AND job_id = $2
+    `, [req.user.id, jobId]);
+
+    if (existing.rows.length > 0) {
+      return res.json({ message: "Already applied" });
+    }
+
+    // ✅ INSERT
     await pool.query(`
       INSERT INTO job_applications (student_id, job_id)
       VALUES ($1, $2)
@@ -80,7 +91,7 @@ router.post("/apply/:jobId", verifyToken, async (req, res) => {
     res.json({ success: true });
 
   } catch (err) {
-    console.error("APPLY ERROR:", err);
+    console.error(err);
     res.status(500).json({ error: "Apply failed" });
   }
 });

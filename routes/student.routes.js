@@ -38,7 +38,7 @@ u.role,
 router.get("/jobs", verifyToken, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT id, title, company FROM recruiter_jobs ORDER BY id DESC
+      SELECT id, title FROM recruiter_jobs ORDER BY id DESC
     `);
 
     res.json(result.rows);
@@ -54,7 +54,7 @@ router.get("/applied", verifyToken, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT job_id FROM job_applications
-      WHERE user_id = $1
+      WHERE student_id = $1
     `, [req.user.id]);
 
     res.json(result.rows);
@@ -71,7 +71,7 @@ router.post("/apply/:jobId", verifyToken, async (req, res) => {
     const jobId = req.params.jobId;
 
     await pool.query(`
-      INSERT INTO job_applications (user_id, job_id)
+      INSERT INTO job_applications (student_id, job_id)
       VALUES ($1, $2)
     `, [req.user.id, jobId]);
 
@@ -88,11 +88,11 @@ router.post("/apply/:jobId", verifyToken, async (req, res) => {
 router.get("/my-applications", verifyToken, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT j.title, a.stage, a.ai_score
-      FROM job_applications a
-      JOIN jobs j ON j.id = a.job_id
-      WHERE a.user_id = $1
-    `, [req.user.id]);
+  SELECT j.title
+  FROM job_applications a
+  JOIN recruiter_jobs j ON j.id = a.job_id
+  WHERE a.student_id = $1
+`, [req.user.id]);
 
     res.json(result.rows);
 

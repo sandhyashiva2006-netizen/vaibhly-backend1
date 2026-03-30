@@ -38,7 +38,9 @@ u.role,
 router.get("/jobs", verifyToken, async (req, res) => {
   try {
     const result = await pool.query(`
-  SELECT id, title FROM jobs ORDER BY id DESC
+  SELECT id, title, company, description, location
+  FROM jobs
+  ORDER BY id DESC
 `);
 
     console.log("JOBS DATA:", result.rows); // 🔥 ADD THIS

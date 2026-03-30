@@ -37,17 +37,17 @@ u.role,
 // ================= GET JOBS =================
 router.get("/jobs", verifyToken, async (req, res) => {
   try {
-    const result = await pool.query(`
-  SELECT id, title, company, description, location
-  FROM jobs
-  ORDER BY id DESC
-`);
 
-    console.log("JOBS DATA:", result.rows); // 🔥 ADD THIS
+    const result = await pool.query(`
+      SELECT id, title, company, description, location
+      FROM jobs
+      ORDER BY id DESC
+    `);
 
     res.json(result.rows);
+
   } catch (err) {
-    console.error("FINAL JOBS ERROR:", err); // 🔥 IMPORTANT
+    console.error("JOBS ERROR:", err); // 🔥 THIS WILL SHOW REAL ERROR
     res.status(500).json({ error: "Failed to load jobs" });
   }
 });

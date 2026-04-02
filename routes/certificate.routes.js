@@ -203,17 +203,21 @@ router.get("/my", verifyToken, async (req, res) => {
     const userId = req.user.id;
 
     const result = await pool.query(`
-  /* COURSE EXAM CERTIFICATES */
-  SELECT
+  SELECT 
     c.certificate_id,
-    c.issued_at,
+    c.created_at AS issued_at,
     co.title AS course_name,
-    'Final Course Exam' AS exam_name,
-    NULL AS score,
-    NULL AS total_questions
+    e.title AS exam_name
+
   FROM certificates c
-  JOIN courses co ON co.id = c.course_id
+
+  LEFT JOIN courses co ON co.id = c.course_id
+  LEFT JOIN exams e ON e.course_id = c.course_id
+
   WHERE c.user_id = $1
+
+  ORDER BY c.created_at DESC
+`, [req.user.id]);
 
   UNION ALL
 

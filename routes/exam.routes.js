@@ -390,7 +390,11 @@ router.post("/submit", verifyToken, async (req, res) => {
 
     let certificateId = null;
 
-    if (status === "PASSED") {
+if (status === "PASSED") {
+
+  certificateId =
+    "EDU-" +
+    Math.random().toString(36).substring(2, 10).toUpperCase();
 
       // ✅ FIX: use courseId (not exam_id)
       const existingCert = await pool.query(
@@ -406,9 +410,9 @@ router.post("/submit", verifyToken, async (req, res) => {
           "EDU-" + Math.random().toString(36).substring(2, 10).toUpperCase();
 
         await pool.query(`
-  INSERT INTO certificates (user_id, course_id, percentage)
+  INSERT INTO certificates (user_id, course_id, percentage, certificate_id)
   VALUES ($1, $2, $3)
-`, [userId, courseId, percentage]);
+`, [userId, courseId, percentage, certificateId]);
       }
     }
 

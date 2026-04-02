@@ -393,21 +393,14 @@ router.post("/submit", verifyToken, async (req, res) => {
 if (status === "PASSED") {
 
   certificateId =
-    "EDU-" +
-    Math.random().toString(36).substring(2, 10).toUpperCase();
+    "EDU-" + Math.random().toString(36).substring(2, 10).toUpperCase();
 
       // ✅ FIX: use courseId (not exam_id)
-      const existingCert = await pool.query(
-        `SELECT certificate_id FROM certificates WHERE user_id = $1 AND course_id = $2`,
-        [userId, courseId]
-      );
-
-      if (existingCert.rows.length > 0) {
-        certificateId = existingCert.rows[0].certificate_id;
-      } else {
-
-        certificateId =
-          "EDU-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+      UPDATE exam_results
+SET certificate_id = 
+  'EDU-' || UPPER(SUBSTRING(MD5(RANDOM()::text) FROM 1 FOR 8))
+WHERE certificate_id IS NULL
+AND status = 'PASSED';
 
         await pool.query(`
   INSERT INTO certificates (user_id, course_id, percentage, certificate_id)
@@ -424,21 +417,18 @@ if (status === "PASSED") {
     );
 
     if (examExists.rows.length > 0) {
-      await pool.query(
-        `
-        INSERT INTO exam_results
-        (user_id, exam_id, score, total_questions, status, certificate_id, attempted_at)
-        VALUES ($1,$2,$3,$4,$5,$6,NOW())
-        `,
-        [
-          userId,
-          exam_id,
-          correctCount,
-          totalQuestions,
-          status,
-          certificateId
-        ]
-      );
+      await pool.query(`
+  INSERT INTO exam_results
+  (user_id, exam_id, score, total_questions, status, certificate_id, attempted_at)
+  VALUES ($1,$2,$3,$4,$5,$6,NOW())
+`, [
+  userId,
+  exam_id,
+  correctCount,
+  totalQuestions,
+  status,
+  certificateId   // ✅ IMPORTANT
+]);
     }
 
     /* ================= RESPONSE ================= */

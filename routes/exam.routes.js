@@ -403,11 +403,11 @@ if (status === "PASSED") {
       "EDU-" + Math.random().toString(36).substring(2, 10).toUpperCase();
 
     await pool.query(
-      `INSERT INTO certificates 
-       (certificate_id, user_id, exam_id, course_id, issued_at)
-       VALUES ($1,$2,$3,$4,NOW())`,
-      [certificateId, userId, exam_id, courseId]
-    );
+  `INSERT INTO certificates 
+   (certificate_id, user_id, exam_id, course_id, issued_at)
+   VALUES ($1,$2,$3,$4,NOW())`,
+  [certificateId, userId, exam_id, courseId]
+);
   }
 }
 

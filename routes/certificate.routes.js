@@ -9,54 +9,33 @@ router.get("/latest", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const result = await pool.query(
-`
-SELECT
-  u.name AS student_name,
-  c.certificate_id,
-  c.issued_at,
-
-  /* course title */
-  co.title AS course_title,
-
-  /* exam title */
-  CASE
-  WHEN c.type = 'course' THEN NULL
-    WHEN c.type = 'competitive' THEN ce.title
-    WHEN c.type = 'exam' THEN e.title
-    ELSE NULL
-  END AS exam_title,
-
-  NULL AS score,
-  NULL AS total_questions
-
-FROM certificates c
-
-JOIN users u ON u.id = c.user_id
-
-LEFT JOIN courses co ON co.id = c.course_id
-LEFT JOIN competitive_exams ce ON ce.id = c.course_id
-LEFT JOIN exams e ON e.id = c.exam_id
-
-WHERE c.user_id = $1
-
-ORDER BY c.issued_at DESC
-LIMIT 1
-`,
-[userId]
-);
+    const result = await pool.query(`
+      SELECT 
+        c.certificate_id,
+        c.issued_at,
+        co.title AS course_title,
+        e.title AS exam_title,
+        u.name AS student_name
+      FROM certificates c
+      LEFT JOIN courses co ON co.id = c.course_id
+      LEFT JOIN exams e ON e.id = c.exam_id
+      LEFT JOIN users u ON u.id = c.user_id
+      WHERE c.user_id = $1
+      ORDER BY c.issued_at DESC
+      LIMIT 1
+    `, [userId]);
 
     if (!result.rows.length) {
       return res.status(404).json({
-        message: "No certificate found"
+        error: "No certificate found"
       });
     }
 
     res.json(result.rows[0]);
 
   } catch (err) {
-    console.error("❌ certificate error:", err);
-    res.status(500).json({ message: "Certificate error" });
+    console.error("❌ latest certificate error:", err);
+    res.status(500).json({ error: "Failed to load certificate" });
   }
 });
 

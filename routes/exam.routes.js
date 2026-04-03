@@ -256,25 +256,23 @@ router.post("/submit", verifyToken, async (req, res) => {
       });
     }
 
-    /* ================= GET COURSE ID ================= */
+   /* ================= GET COURSE ID ================= */
 
-    const examRes = await pool.query(
-  `SELECT course_id FROM exams WHERE id=$1`,
-  [examId]
+const examRes = await pool.query(
+  `SELECT course_id FROM exams WHERE id = $1`,
+  [exam_id]   // ✅ correct variable
 );
 
 const courseId = examRes.rows[0]?.course_id;
 
-`, [examId, courseId]);
+console.log("COURSE ID:", courseId);
 
-    console.log("COURSE ID:", courseId);
-
-    if (!courseId) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid exam → course mapping"
-      });
-    }
+if (!courseId) {
+  return res.status(400).json({
+    success: false,
+    error: "Invalid exam → course mapping"
+  });
+}
 
 /* ================= VALIDATE USER COURSE ACCESS ================= */
 

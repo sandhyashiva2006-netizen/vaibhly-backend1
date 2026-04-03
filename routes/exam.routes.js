@@ -375,61 +375,69 @@ router.post("/submit", verifyToken, async (req, res) => {
     console.log("📊 Percentage:", percentage);
     console.log("🏁 Status:", status);
 
-    /* ================= SAVE ATTEMPT ================= */
+/* ================= SAVE ATTEMPT ================= */
 
-    await pool.query(
-      `
-      INSERT INTO exam_attempts
-      (user_id, exam_id, score, status, attempted_at)
-      VALUES ($1,$2,$3,$4,NOW())
-      `,
-      [userId, exam_id, correctCount, status]
-    );
+await pool.query(
+  `
+  INSERT INTO exam_attempts
+  (user_id, exam_id, score, status, attempted_at)
+  VALUES ($1,$2,$3,$4,NOW())
+  `,
+  [userId, exam_id, correctCount, status]
+);
 
-    /* ================= GENERATE CERTIFICATE ================= */
+/* ================= GENERATE CERTIFICATE ================= */
 
-    let certificateId = null;
+let certificateId = null;
 
 if (status === "PASSED") {
 
-  certificateId =
-    "EDU-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+  // ✅ check if already exists (avoid duplicates)
+  const existingCert = await pool.query(`
+    SELECT certificate_id FROM certificates
+    WHERE user_id = $1 AND course_id = $2
+  `, [userId, courseId]);
 
-      // ✅ FIX: use courseId (not exam_id)
-      UPDATE exam_results
-SET certificate_id = 
-  'EDU-' || UPPER(SUBSTRING(MD5(RANDOM()::text) FROM 1 FOR 8))
-WHERE certificate_id IS NULL
-AND status = 'PASSED';
+  if (existingCert.rows.length > 0) {
 
-        await pool.query(`
-  INSERT INTO certificates (user_id, course_id, percentage, certificate_id)
-  VALUES ($1, $2, $3)
-`, [userId, courseId, percentage, certificateId]);
-      }
-    }
+    certificateId = existingCert.rows[0].certificate_id;
 
-    /* ================= SAVE RESULT ================= */
+  } else {
 
-    const examExists = await pool.query(
-      `SELECT id FROM exams WHERE id = $1`,
-      [exam_id]
-    );
+    // ✅ generate new ID
+    certificateId =
+      "EDU-" + Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    if (examExists.rows.length > 0) {
-      await pool.query(`
-  INSERT INTO exam_results
-  (user_id, exam_id, score, total_questions, status, certificate_id, attempted_at)
-  VALUES ($1,$2,$3,$4,$5,$6,NOW())
-`, [
-  userId,
-  exam_id,
-  correctCount,
-  totalQuestions,
-  status,
-  certificateId   // ✅ IMPORTANT
-]);
-    }
+    // ✅ insert certificate
+    await pool.query(`
+      INSERT INTO certificates (user_id, course_id, percentage, certificate_id)
+      VALUES ($1, $2, $3)
+    `, [userId, courseId, percentage, certificateId]);
+  }
+}
+
+/* ================= SAVE RESULT ================= */
+
+const examExists = await pool.query(
+  `SELECT id FROM exams WHERE id = $1`,
+  [exam_id]
+);
+
+if (examExists.rows.length > 0) {
+
+  await pool.query(`
+    INSERT INTO exam_results
+    (user_id, exam_id, score, total_questions, status, certificate_id, attempted_at)
+    VALUES ($1,$2,$3,$4,$5,$6,NOW())
+  `, [
+    userId,
+    exam_id,
+    correctCount,
+    totalQuestions,
+    status,
+    certificateId   // ✅ linked correctly
+  ]);
+}
 
     /* ================= RESPONSE ================= */
 

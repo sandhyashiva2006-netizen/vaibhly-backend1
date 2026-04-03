@@ -260,36 +260,28 @@ router.post("/submit", verifyToken, async (req, res) => {
 
 const examRes = await pool.query(
   `SELECT course_id FROM exams WHERE id = $1`,
-  [examId]
+  [exam_id]
 );
 
 const courseId = examRes.rows[0]?.course_id;
 
-const result = await pool.query(`
-SELECT id, question, option_a, option_b, option_c, option_d
-FROM questions WHERE exam_id = $1
+/* ================= USE IT BELOW ================= */
 
-UNION ALL
+const qRes = await pool.query(
+  `
+  SELECT id, correct_option FROM questions WHERE exam_id = $1
 
-SELECT id, question, option_a, option_b, option_c, option_d
-FROM exam_questions WHERE course_id = $2
+  UNION ALL
 
-UNION ALL
+  SELECT id, correct_answer AS correct_option 
+  FROM exam_questions WHERE course_id = $2
 
-SELECT id, question, option_a, option_b, option_c, option_d
-FROM competitive_questions WHERE exam_id = $1
-`, [examId, courseId]);
+  UNION ALL
 
-const courseId = examRes.rows[0]?.course_id;
-
-console.log("COURSE ID:", courseId);
-
-if (!courseId) {
-  return res.status(400).json({
-    success: false,
-    error: "Invalid exam → course mapping"
-  });
-}
+  SELECT id, correct_option FROM competitive_questions WHERE exam_id = $1
+  `,
+  [exam_id, courseId]
+);
 
 /* ================= VALIDATE USER COURSE ACCESS ================= */
 

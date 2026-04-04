@@ -260,7 +260,7 @@ router.post("/submit", verifyToken, async (req, res) => {
 
 const examRes = await pool.query(
   `SELECT course_id FROM exams WHERE id = $1`,
-  [examId]
+  [exam_id ✅]
 );
 
 const courseId = examRes.rows[0]?.course_id;
@@ -278,7 +278,7 @@ UNION ALL
 
 SELECT id, question, option_a, option_b, option_c, option_d
 FROM competitive_questions WHERE exam_id = $1
-`, [examId, courseId]);
+`, [exam_id ✅, courseId]);
 
 
 

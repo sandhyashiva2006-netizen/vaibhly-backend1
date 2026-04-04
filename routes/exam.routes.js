@@ -282,32 +282,12 @@ const examRes = await pool.query(
 
 const courseId = examRes.rows[0]?.course_id;
 
-const result = await pool.query(`
-SELECT id, question, option_a, option_b, option_c, option_d
-FROM questions WHERE exam_id = $1
-
-UNION ALL
-
-SELECT id, question, option_a, option_b, option_c, option_d
-FROM exam_questions WHERE course_id = $2
-
-UNION ALL
-
-SELECT id, question, option_a, option_b, option_c, option_d
-FROM competitive_questions WHERE exam_id = $1
-`, [exam_id, courseId]);
 
 
 
 /* ================= VALIDATE USER COURSE ACCESS ================= */
 
-// check if it's a course-based exam
-const isCourseExam = await pool.query(
-  `SELECT course_id FROM exams WHERE id = $1`,
-  [exam_id]
-);
 
-const courseId = isCourseExam.rows[0]?.course_id;
 
 if (courseId) {
 

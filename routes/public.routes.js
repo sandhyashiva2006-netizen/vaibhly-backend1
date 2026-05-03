@@ -258,9 +258,10 @@ router.get('/api/feed', verifyToken, async (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
     const userId = req.user.id;
 
-    const result = await pool.query(
-      `
-      SELECT 
+    const course = req.query.course;
+
+let query = `
+SELECT 
   posts.id,
   posts.title,
   posts.content,
@@ -270,26 +271,33 @@ router.get('/api/feed', verifyToken, async (req, res) => {
   users.username,
   users.id AS user_id,
 
-        EXISTS (
-          SELECT 1 
-          FROM followers f
-          WHERE f.follower_id = $2
-          AND f.following_id = users.id
-        ) AS is_following,
+  EXISTS (
+    SELECT 1 FROM followers f
+    WHERE f.follower_id = $2
+    AND f.following_id = users.id
+  ) AS is_following,
 
-        COUNT(comments.id)::int AS comment_count
+  COUNT(comments.id)::int AS comment_count
 
-      FROM posts
-      JOIN users ON posts.user_id = users.id
-      LEFT JOIN comments ON comments.post_id = posts.id
+FROM posts
+JOIN users ON posts.user_id = users.id
+LEFT JOIN comments ON comments.post_id = posts.id
+`;
 
-      GROUP BY posts.id, users.id, posts.course
+const values = [offset, userId];
 
-      ORDER BY posts.created_at DESC
-      LIMIT 10 OFFSET $1
-      `,
-      [offset, userId]
-    );
+if (course && course.trim() !== "") {
+  query += ` WHERE posts.course ILIKE $3`;
+  values.push(`%${course}%`);
+}
+
+query += `
+GROUP BY posts.id, users.id, posts.course
+ORDER BY posts.created_at DESC
+LIMIT 10 OFFSET $1
+`;
+
+const result = await pool.query(query, values);
 
     res.json(result.rows);
 

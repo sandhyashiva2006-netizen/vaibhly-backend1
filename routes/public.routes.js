@@ -354,22 +354,28 @@ res.json({
 });
 
 router.delete('/api/posts/:id', verifyToken, async (req, res) => {
+  try {
 
-  const postId = req.params.id;
-  const userId = req.user.id;
+    const postId = req.params.id;
+    const userId = req.user.id;
 
-  const result = await pool.query(
-    `DELETE FROM posts
-     WHERE id = $1 AND user_id = $2`,
-    [postId, userId]
-  );
+    const result = await pool.query(
+      `DELETE FROM posts 
+       WHERE id = $1 AND user_id = $2
+       RETURNING *`,
+      [postId, userId]
+    );
 
-  if (result.rowCount === 0) {
-    return res.status(403).json({ error: "Not allowed" });
+    if (result.rowCount === 0) {
+      return res.status(403).json({ error: "Not allowed" });
+    }
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("DELETE POST ERROR:", err.message);
+    res.status(500).json({ error: err.message });
   }
-
-  res.json({ success: true });
-
 });
 
 router.get('/api/posts/:id', async (req, res) => {
@@ -393,24 +399,30 @@ router.get('/api/posts/:id', async (req, res) => {
 });
 
 router.put('/api/posts/:id', verifyToken, async (req, res) => {
+  try {
 
-  const postId = req.params.id;
-  const userId = req.user.id;
-  const { title, content } = req.body;
+    const postId = req.params.id;
+    const userId = req.user.id;
+    const { content } = req.body;
 
-  const result = await pool.query(
-    `UPDATE posts
-     SET title = $1, content = $2
-     WHERE id = $3 AND user_id = $4`,
-    [title, content, postId, userId]
-  );
+    const result = await pool.query(
+      `UPDATE posts 
+       SET content = $1 
+       WHERE id = $2 AND user_id = $3
+       RETURNING *`,
+      [content, postId, userId]
+    );
 
-  if (result.rowCount === 0) {
-    return res.status(403).json({ error: "Not allowed" });
+    if (result.rowCount === 0) {
+      return res.status(403).json({ error: "Not allowed" });
+    }
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("EDIT POST ERROR:", err.message);
+    res.status(500).json({ error: err.message });
   }
-
-  res.json({ success: true });
-
 });
 
 router.get('/api/me', verifyToken, async (req, res) => {

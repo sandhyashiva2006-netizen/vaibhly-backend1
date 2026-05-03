@@ -269,8 +269,8 @@ router.get('/api/feed', verifyToken, async (req, res) => {
         users.username,
         users.id AS user_id,
 
-        (
-          SELECT COUNT(*) > 0 
+        EXISTS (
+          SELECT 1 
           FROM followers f
           WHERE f.follower_id = $2
           AND f.following_id = users.id

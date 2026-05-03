@@ -298,6 +298,7 @@ router.get('/api/feed', verifyToken, async (req, res) => {
   }
 });
 
+
 router.get('/api/profile/:username', async (req, res) => {
 
   const { username } = req.params;

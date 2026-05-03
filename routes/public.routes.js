@@ -489,6 +489,7 @@ router.get('/api/users/:id/following', async (req, res) => {
 
 router.post('/api/posts', verifyToken, async (req, res) => {
   try {
+
     console.log("USER:", req.user);
     console.log("BODY:", req.body);
 
@@ -502,15 +503,20 @@ router.post('/api/posts', verifyToken, async (req, res) => {
       title = "",
       type = "learning",
       content = "",
-      image_url = null
+      image_url = null,
+      course = ""          // ✅ ADD THIS
     } = req.body || {};
+
+    if (!title || !content || !course) {
+      return res.status(400).json({ error: "Title, content and course required" });
+    }
 
     const result = await pool.query(
       `INSERT INTO posts
-       (user_id, type, title, content, image_url)
-       VALUES ($1,$2,$3,$4,$5)
+       (user_id, type, title, content, image_url, course)
+       VALUES ($1,$2,$3,$4,$5,$6)
        RETURNING id`,
-      [userId, type, title, content, image_url]
+      [userId, type, title, content, image_url, course]
     );
 
     res.json({

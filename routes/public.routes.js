@@ -307,6 +307,29 @@ const result = await pool.query(query, values);
   }
 });
 
+router.get('/api/suggestions', verifyToken, async (req, res) => {
+  try {
+
+    const userId = req.user.id;
+
+    const result = await pool.query(`
+      SELECT id, username
+      FROM users
+      WHERE id != $1
+      AND id NOT IN (
+        SELECT following_id FROM followers WHERE follower_id = $1
+      )
+      ORDER BY RANDOM()
+      LIMIT 5
+    `, [userId]);
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Suggestion failed" });
+  }
+});
 
 router.get('/api/profile/:username', async (req, res) => {
 
@@ -723,8 +746,28 @@ router.post('/api/users/:id/follow', verifyToken, async (req, res) => {
     [currentUserId, targetUserId]
   );
 
+await pool.query(
+  `INSERT INTO notifications (user_id, message)
+   VALUES ($1, $2)`,
+  [targetUserId, "Someone followed you"]
+);
+
   res.json({ followed: true });
 
+});
+
+router.get('/api/notifications', verifyToken, async (req, res) => {
+
+  const userId = req.user.id;
+
+  const result = await pool.query(
+    `SELECT * FROM notifications
+     WHERE user_id = $1
+     ORDER BY created_at DESC`,
+    [userId]
+  );
+
+  res.json(result.rows);
 });
 
 router.get('/u/:username', async (req, res) => {

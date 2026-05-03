@@ -261,13 +261,14 @@ router.get('/api/feed', verifyToken, async (req, res) => {
     const result = await pool.query(
       `
       SELECT 
-        posts.id,
-        posts.title,
-        posts.content,
-        posts.likes,
-        posts.created_at,
-        users.username,
-        users.id AS user_id,
+  posts.id,
+  posts.title,
+  posts.content,
+  posts.likes,
+  posts.created_at,
+  posts.course,
+  users.username,
+  users.id AS user_id,
 
         EXISTS (
           SELECT 1 
@@ -282,7 +283,7 @@ router.get('/api/feed', verifyToken, async (req, res) => {
       JOIN users ON posts.user_id = users.id
       LEFT JOIN comments ON comments.post_id = posts.id
 
-      GROUP BY posts.id, users.id
+      GROUP BY posts.id, users.id, posts.course
 
       ORDER BY posts.created_at DESC
       LIMIT 10 OFFSET $1

@@ -313,15 +313,35 @@ router.get('/api/suggestions', verifyToken, async (req, res) => {
     const userId = req.user.id;
 
     const result = await pool.query(`
-      SELECT id, username
-      FROM users
-      WHERE id != $1
-      AND id NOT IN (
-        SELECT following_id FROM followers WHERE follower_id = $1
-      )
-      ORDER BY RANDOM()
-      LIMIT 5
-    `, [userId]);
+      SELECT 
+  u.id,
+  u.username,
+  COALESCE(p.course, 'Student') AS course,
+
+  -- mutual followers count
+  (
+    SELECT COUNT(*) 
+    FROM followers f1
+    JOIN followers f2 
+      ON f1.following_id = f2.following_id
+    WHERE f1.follower_id = $1
+    AND f2.follower_id = u.id
+  ) AS mutual_count,
+
+  -- activity score (posts count)
+  (
+    SELECT COUNT(*) 
+    FROM posts p2 
+    WHERE p2.user_id = u.id
+  ) AS posts_count
+
+FROM users u
+LEFT JOIN posts p ON p.user_id = u.id
+
+WHERE u.id != $1
+GROUP BY u.id, p.course
+ORDER BY mutual_count DESC, posts_count DESC
+LIMIT 6;
 
     res.json(result.rows);
 

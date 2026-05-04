@@ -842,4 +842,40 @@ router.post("/api/recruiter/register", async (req, res) => {
   }
 });
 
+router.get('/api/users/:id/preview', verifyToken, async (req, res) => {
+  try {
+
+    const userId = req.params.id;
+
+    const result = await pool.query(`
+      SELECT 
+        u.id,
+        u.username,
+
+        COUNT(DISTINCT p.id) AS posts,
+        COUNT(DISTINCT f1.id) AS followers,
+        COUNT(DISTINCT f2.id) AS following,
+
+        (
+          SELECT course FROM posts 
+          WHERE user_id = u.id 
+          LIMIT 1
+        ) AS course
+
+      FROM users u
+      LEFT JOIN posts p ON p.user_id = u.id
+      LEFT JOIN followers f1 ON f1.following_id = u.id
+      LEFT JOIN followers f2 ON f2.follower_id = u.id
+
+      WHERE u.id = $1
+      GROUP BY u.id
+    `, [userId]);
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

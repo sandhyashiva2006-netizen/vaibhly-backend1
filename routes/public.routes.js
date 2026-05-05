@@ -928,4 +928,29 @@ router.get('/api/users/:id', verifyToken, async (req, res) => {
   }
 });
 
+router.get('/api/users/:id/posts', verifyToken, async (req, res) => {
+  try {
+
+    const userId = req.params.id;
+
+    const result = await pool.query(`
+      SELECT 
+        id,
+        title,
+        content,
+        course,
+        created_at
+      FROM posts
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+    `, [userId]);
+
+    res.json({ posts: result.rows });
+
+  } catch (err) {
+    console.error("USER POSTS ERROR:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

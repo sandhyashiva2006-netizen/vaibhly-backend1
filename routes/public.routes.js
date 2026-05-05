@@ -739,45 +739,62 @@ router.put('/api/comments/:id', verifyToken, async (req, res) => {
 });
 
 router.post('/api/users/:id/follow', verifyToken, async (req, res) => {
+  try {
 
-  const targetUserId = req.params.id;
-  const currentUserId = req.user.id;
+    const targetUserId = parseInt(req.params.id);
+    const currentUserId = req.user.id;
 
-  if (targetUserId == currentUserId) {
-    return res.status(400).json({ error: "Cannot follow yourself" });
-  }
+    if (!targetUserId) {
+      return res.status(400).json({ error: "Invalid user id" });
+    }
 
-  const existing = await pool.query(
-    `SELECT id FROM followers
-     WHERE follower_id = $1 AND following_id = $2`,
-    [currentUserId, targetUserId]
-  );
+    if (targetUserId === currentUserId) {
+      return res.status(400).json({ error: "Cannot follow yourself" });
+    }
 
-  if (existing.rowCount > 0) {
-
-    await pool.query(
-      `DELETE FROM followers
+    // CHECK EXISTING FOLLOW
+    const existing = await pool.query(
+      `SELECT id FROM followers
        WHERE follower_id = $1 AND following_id = $2`,
       [currentUserId, targetUserId]
     );
 
-    return res.json({ unfollowed: true });
+    // 🔁 UNFOLLOW
+    if (existing.rowCount > 0) {
+
+      await pool.query(
+        `DELETE FROM followers
+         WHERE follower_id = $1 AND following_id = $2`,
+        [currentUserId, targetUserId]
+      );
+
+      return res.json({ unfollowed: true });
+    }
+
+    // ✅ FOLLOW
+    await pool.query(
+      `INSERT INTO followers (follower_id, following_id)
+       VALUES ($1, $2)`,
+      [currentUserId, targetUserId]
+    );
+
+    // 🔔 OPTIONAL NOTIFICATION (SAFE)
+    try {
+      await pool.query(
+        `INSERT INTO notifications (user_id, message)
+         VALUES ($1, $2)`,
+        [targetUserId, "Someone followed you"]
+      );
+    } catch (notifErr) {
+      console.warn("Notification failed:", notifErr.message);
+    }
+
+    res.json({ followed: true });
+
+  } catch (err) {
+    console.error("FOLLOW ERROR:", err.message);
+    res.status(500).json({ error: err.message });
   }
-
-  await pool.query(
-    `INSERT INTO followers (follower_id, following_id)
-     VALUES ($1, $2)`,
-    [currentUserId, targetUserId]
-  );
-
-await pool.query(
-  `INSERT INTO notifications (user_id, message)
-   VALUES ($1, $2)`,
-  [targetUserId, "Someone followed you"]
-);
-
-  res.json({ followed: true });
-
 });
 
 router.get('/api/notifications', verifyToken, async (req, res) => {

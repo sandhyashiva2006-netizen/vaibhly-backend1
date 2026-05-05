@@ -899,4 +899,33 @@ router.get('/api/users/:id/preview', verifyToken, async (req, res) => {
   }
 });
 
+router.get('/api/users/:id', verifyToken, async (req, res) => {
+  try {
+
+    const userId = req.params.id;
+
+    const result = await pool.query(`
+      SELECT 
+        id,
+        username AS name,
+        email,
+        role,
+        headline,
+        bio,
+        avatar_url,
+
+        (SELECT COUNT(*) FROM followers WHERE following_id = $1) AS followers,
+        (SELECT COUNT(*) FROM followers WHERE follower_id = $1) AS following
+
+      FROM users
+      WHERE id = $1
+    `, [userId]);
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

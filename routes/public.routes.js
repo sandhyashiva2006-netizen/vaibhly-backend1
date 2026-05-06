@@ -954,13 +954,15 @@ router.get('/api/users/:id/posts', verifyToken, async (req, res) => {
 });
 
 /* ================= PROFILE ACTIVITY ================= */
+/* ================= PROFILE ACTIVITY ================= */
 router.get('/api/profile/activity', verifyToken, async (req, res) => {
 
   try {
 
-    const userId = req.user.id;
+    const userId =
+      req.query.userId || req.user.id;
 
-    /* ================= POSTED POSTS ================= */
+    /* ===== POSTED ===== */
     const posted = await pool.query(`
       SELECT
         p.id,
@@ -973,7 +975,7 @@ router.get('/api/profile/activity', verifyToken, async (req, res) => {
       WHERE p.user_id = $1
     `, [userId]);
 
-    /* ================= LIKED POSTS ================= */
+    /* ===== LIKED ===== */
     const liked = await pool.query(`
       SELECT
         p.id,
@@ -988,7 +990,7 @@ router.get('/api/profile/activity', verifyToken, async (req, res) => {
       WHERE l.user_id = $1
     `, [userId]);
 
-    /* ================= COMMENTED POSTS ================= */
+    /* ===== COMMENTED ===== */
     const commented = await pool.query(`
       SELECT DISTINCT
         p.id,
@@ -1003,14 +1005,14 @@ router.get('/api/profile/activity', verifyToken, async (req, res) => {
       WHERE c.user_id = $1
     `, [userId]);
 
-    /* ================= MERGE ================= */
+    /* ===== MERGE ===== */
     const posts = [
       ...posted.rows,
       ...liked.rows,
       ...commented.rows
     ];
 
-    /* ================= SORT LATEST ================= */
+    /* ===== SORT ===== */
     posts.sort((a,b)=>
       new Date(b.created_at) -
       new Date(a.created_at)
@@ -1020,10 +1022,13 @@ router.get('/api/profile/activity', verifyToken, async (req, res) => {
 
   } catch (err) {
 
-    console.error("PROFILE ACTIVITY ERROR:", err);
+    console.error(
+      "PROFILE ACTIVITY ERROR:",
+      err
+    );
 
     res.status(500).json({
-      error: "Failed to load activity"
+      error:"Failed to load activity"
     });
 
   }

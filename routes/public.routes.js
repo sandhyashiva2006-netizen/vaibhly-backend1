@@ -65,6 +65,87 @@ router.get("/course/:id", async (req, res) => {
   }
 });
 
+/* ================= PROFILE ACTIVITY ================= */
+router.get('/api/profile/activity', verifyToken, async (req, res) => {
+
+  try {
+
+    const userId =
+      req.query.userId || req.user.id;
+
+    /* ===== POSTED ===== */
+    const posted = await pool.query(`
+      SELECT
+        p.id,
+        p.title,
+        p.content,
+        p.course,
+        p.created_at,
+        'posted' AS activity_type
+      FROM posts p
+      WHERE p.user_id = $1
+    `, [userId]);
+
+    /* ===== LIKED ===== */
+    const liked = await pool.query(`
+      SELECT
+        p.id,
+        p.title,
+        p.content,
+        p.course,
+        l.created_at,
+        'liked' AS activity_type
+      FROM post_likes l
+      JOIN posts p
+        ON p.id = l.post_id
+      WHERE l.user_id = $1
+    `, [userId]);
+
+    /* ===== COMMENTED ===== */
+    const commented = await pool.query(`
+      SELECT DISTINCT
+        p.id,
+        p.title,
+        p.content,
+        p.course,
+        c.created_at,
+        'commented' AS activity_type
+      FROM comments c
+      JOIN posts p
+        ON p.id = c.post_id
+      WHERE c.user_id = $1
+    `, [userId]);
+
+    /* ===== MERGE ===== */
+    const posts = [
+      ...posted.rows,
+      ...liked.rows,
+      ...commented.rows
+    ];
+
+    /* ===== SORT ===== */
+    posts.sort((a,b)=>
+      new Date(b.created_at) -
+      new Date(a.created_at)
+    );
+
+    res.json({ posts });
+
+  } catch (err) {
+
+    console.error(
+      "PROFILE ACTIVITY ERROR:",
+      err
+    );
+
+    res.status(500).json({
+      error:"Failed to load activity"
+    });
+
+  }
+
+});
+
 // 🎓 Public certificates by username
 router.get("/certificates/:username", async (req, res) => {
   try {
@@ -953,86 +1034,6 @@ router.get('/api/users/:id/posts', verifyToken, async (req, res) => {
   }
 });
 
-/* ================= PROFILE ACTIVITY ================= */
-/* ================= PROFILE ACTIVITY ================= */
-router.get('/api/profile/activity', verifyToken, async (req, res) => {
 
-  try {
-
-    const userId =
-      req.query.userId || req.user.id;
-
-    /* ===== POSTED ===== */
-    const posted = await pool.query(`
-      SELECT
-        p.id,
-        p.title,
-        p.content,
-        p.course,
-        p.created_at,
-        'posted' AS activity_type
-      FROM posts p
-      WHERE p.user_id = $1
-    `, [userId]);
-
-    /* ===== LIKED ===== */
-    const liked = await pool.query(`
-      SELECT
-        p.id,
-        p.title,
-        p.content,
-        p.course,
-        l.created_at,
-        'liked' AS activity_type
-      FROM post_likes l
-      JOIN posts p
-        ON p.id = l.post_id
-      WHERE l.user_id = $1
-    `, [userId]);
-
-    /* ===== COMMENTED ===== */
-    const commented = await pool.query(`
-      SELECT DISTINCT
-        p.id,
-        p.title,
-        p.content,
-        p.course,
-        c.created_at,
-        'commented' AS activity_type
-      FROM comments c
-      JOIN posts p
-        ON p.id = c.post_id
-      WHERE c.user_id = $1
-    `, [userId]);
-
-    /* ===== MERGE ===== */
-    const posts = [
-      ...posted.rows,
-      ...liked.rows,
-      ...commented.rows
-    ];
-
-    /* ===== SORT ===== */
-    posts.sort((a,b)=>
-      new Date(b.created_at) -
-      new Date(a.created_at)
-    );
-
-    res.json({ posts });
-
-  } catch (err) {
-
-    console.error(
-      "PROFILE ACTIVITY ERROR:",
-      err
-    );
-
-    res.status(500).json({
-      error:"Failed to load activity"
-    });
-
-  }
-
-});
 
 module.exports = router;

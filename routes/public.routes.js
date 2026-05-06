@@ -66,7 +66,7 @@ router.get("/course/:id", async (req, res) => {
 });
 
 /* ================= PROFILE ACTIVITY ================= */
-router.get('/api/profile/activity', verifyToken, async (req, res) => {
+router.get('/profile-activity', verifyToken, async (req, res) => {
 
   try {
 

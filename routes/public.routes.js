@@ -71,7 +71,10 @@ router.get('/api/profile/activity', verifyToken, async (req, res) => {
   try {
 
     const userId =
-      req.query.userId || req.user.id;
+  req.query.userId ||
+  req.user.id ||
+  req.user.user_id ||
+  req.user.userId;
 
     /* ===== POSTED ===== */
     const posted = await pool.query(`

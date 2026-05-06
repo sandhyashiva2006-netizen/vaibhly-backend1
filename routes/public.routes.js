@@ -71,59 +71,82 @@ router.get('/profile-activity', verifyToken, async (req, res) => {
   try {
 
     const userId =
-  req.query.userId ||
-  req.user.id ||
-  req.user.user_id ||
-  req.user.userId;
+      req.query.userId ||
+      req.user.id ||
+      req.user.user_id ||
+      req.user.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: "User not found"
+      });
+    }
 
     /* ===== POSTED ===== */
     const posted = await pool.query(`
       SELECT
-        p.id,
-        p.title,
-        p.content,
-        p.course,
-        p.created_at,
+        id,
+        title,
+        content,
+        created_at,
         'posted' AS activity_type
-      FROM posts p
-      WHERE p.user_id = $1
+      FROM posts
+      WHERE user_id = $1
     `, [userId]);
 
     /* ===== LIKED ===== */
-    const liked = await pool.query(`
-      SELECT
-        p.id,
-        p.title,
-        p.content,
-        p.course,
-        l.created_at,
-        'liked' AS activity_type
-      FROM post_likes l
-      JOIN posts p
-        ON p.id = l.post_id
-      WHERE l.user_id = $1
-    `, [userId]);
+    let likedRows = [];
+
+    try {
+
+      const liked = await pool.query(`
+        SELECT
+          p.id,
+          p.title,
+          p.content,
+          l.created_at,
+          'liked' AS activity_type
+        FROM post_likes l
+        JOIN posts p
+          ON p.id = l.post_id
+        WHERE l.user_id = $1
+      `, [userId]);
+
+      likedRows = liked.rows;
+
+    } catch(err){
+      console.log("LIKED QUERY SKIPPED");
+    }
 
     /* ===== COMMENTED ===== */
-    const commented = await pool.query(`
-      SELECT DISTINCT
-        p.id,
-        p.title,
-        p.content,
-        p.course,
-        c.created_at,
-        'commented' AS activity_type
-      FROM comments c
-      JOIN posts p
-        ON p.id = c.post_id
-      WHERE c.user_id = $1
-    `, [userId]);
+    let commentedRows = [];
+
+    try {
+
+      const commented = await pool.query(`
+        SELECT DISTINCT
+          p.id,
+          p.title,
+          p.content,
+          c.created_at,
+          'commented' AS activity_type
+        FROM comments c
+        JOIN posts p
+          ON p.id = c.post_id
+        WHERE c.user_id = $1
+      `, [userId]);
+
+      commentedRows = commented.rows;
+
+    } catch(err){
+      console.log("COMMENT QUERY SKIPPED");
+    }
 
     /* ===== MERGE ===== */
     const posts = [
       ...posted.rows,
-      ...liked.rows,
-      ...commented.rows
+      ...likedRows,
+      ...commentedRows
     ];
 
     /* ===== SORT ===== */
@@ -138,11 +161,11 @@ router.get('/profile-activity', verifyToken, async (req, res) => {
 
     console.error(
       "PROFILE ACTIVITY ERROR:",
-      err
+      err.message
     );
 
     res.status(500).json({
-      error:"Failed to load activity"
+      error: "Failed to load activity"
     });
 
   }

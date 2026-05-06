@@ -231,45 +231,75 @@ router.get("/my", verifyToken, async (req, res) => {
 });
 
 router.get("/", verifyToken, async (req, res) => {
+
   try {
+
     const userId = req.user.id;
 
     const result = await pool.query(`
+
       SELECT
         c.certificate_id,
         c.issued_at,
         c.type,
 
-        CASE
-          WHEN c.type = 'competitive'
-            THEN ce.title
-          ELSE co.title
-        END AS course_name,
+        /* COURSE NAME */
+        co.title AS course_name,
 
+        /* EXAM NAME */
         CASE
+
+          /* competitive exams */
           WHEN c.type = 'competitive'
             THEN ce.title
-          WHEN c.type = 'course'
-            THEN 'Final Course Exam'
+
+          /* normal exams */
           WHEN c.type = 'exam'
             THEN e.title
-          ELSE 'Assessment'
+
+          /* course completion */
+          WHEN c.type = 'course'
+            THEN co.title
+
+          ELSE NULL
+
         END AS exam_name
 
       FROM certificates c
-      LEFT JOIN courses co ON co.id = c.course_id
-      LEFT JOIN competitive_exams ce ON ce.id = c.course_id
-      LEFT JOIN exams e ON e.id = c.exam_id
+
+      /* courses */
+      LEFT JOIN courses co
+        ON co.id = c.course_id
+
+      /* competitive exams */
+      LEFT JOIN competitive_exams ce
+        ON ce.id = c.exam_id
+
+      /* regular exams */
+      LEFT JOIN exams e
+        ON e.id = c.exam_id
 
       WHERE c.user_id = $1
+
       ORDER BY c.issued_at DESC
-    `,[userId]);
+
+    `, [userId]);
 
     res.json(result.rows);
 
   } catch(err) {
-    res.status(500).json({error:"Failed"});
+
+    console.error(
+      "Certificate fetch failed:",
+      err
+    );
+
+    res.status(500).json({
+      error:"Failed"
+    });
+
   }
+
 });
 
 module.exports = router;

@@ -99,18 +99,18 @@ router.get('/profile-activity', verifyToken, async (req, res) => {
 
     try {
 
-      const liked = await pool.query(`
-        SELECT
-          p.id,
-          p.title,
-          p.content,
-          l.created_at,
-          'liked' AS activity_type
-        FROM post_likes l
-        JOIN posts p
-          ON p.id = l.post_id
-        WHERE l.user_id = $1
-      `, [userId]);
+     const liked = await pool.query(`
+  SELECT
+    p.id,
+    p.title,
+    p.content,
+    p.created_at,
+    'liked' AS activity_type
+  FROM post_likes l
+  JOIN posts p
+    ON p.id = l.post_id
+  WHERE l.user_id::text = $1::text
+`, [userId]);
 
       likedRows = liked.rows;
 
@@ -123,18 +123,18 @@ router.get('/profile-activity', verifyToken, async (req, res) => {
 
     try {
 
-      const commented = await pool.query(`
-        SELECT DISTINCT
-          p.id,
-          p.title,
-          p.content,
-          c.created_at,
-          'commented' AS activity_type
-        FROM comments c
-        JOIN posts p
-          ON p.id = c.post_id
-        WHERE c.user_id = $1
-      `, [userId]);
+     const commented = await pool.query(`
+  SELECT DISTINCT
+    p.id,
+    p.title,
+    p.content,
+    c.created_at,
+    'commented' AS activity_type
+  FROM comments c
+  JOIN posts p
+    ON p.id = c.post_id
+  WHERE c.user_id::text = $1::text
+`, [userId]);
 
       commentedRows = commented.rows;
 

@@ -8,6 +8,7 @@ app.disable("etag");
 const passport = require("./config/passport");
 
 const cors = require("cors");
+const multer = require("multer");
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -101,22 +102,63 @@ app.get("/u/:username", (req, res) => {
 });
 
 
-app.use("/uploads", (req,res,next)=>{
+const fs = require("fs");
 
- res.setHeader(
-   "Content-Type",
-   "application/pdf"
- );
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads");
+}
 
- res.setHeader(
-   "Content-Disposition",
-   "inline"
- );
+/* ===== IMAGE UPLOAD ===== */
 
- next();
+const storage = multer.diskStorage({
 
-}, express.static(path.join(SERVER_ROOT,"uploads")));
+  destination:(req,file,cb)=>{
+    cb(null,"uploads/");
+  },
 
+  filename:(req,file,cb)=>{
+
+    cb(
+      null,
+      Date.now() +
+      path.extname(file.originalname)
+    );
+
+  }
+
+});
+
+const upload = multer({ storage });
+
+app.use(
+  "/uploads",
+  express.static("uploads")
+);
+
+/* ===== UPLOAD ROUTE ===== */
+
+app.post(
+  "/api/upload",
+  upload.single("image"),
+  (req,res)=>{
+
+    if(!req.file){
+
+      return res.status(400).json({
+        error:"No image uploaded"
+      });
+
+    }
+
+    res.json({
+
+      url:
+`https://vaibhly-backend1.onrender.com/uploads/${req.file.filename}`
+
+    });
+
+  }
+);
 
 /* ================= API ROUTES ================= */
 app.use("/api/auth", require("./routes/auth.routes"));
@@ -130,7 +172,7 @@ app.use("/api/course-content", courseContentRoutes);
 app.use("/api/modules", require("./routes/module.routes"));
 app.use("/api/lessons", require("./routes/lesson.routes"));
 app.use("/api/player", playerRoutes);
-app.use("/api/upload", require("./routes/upload.routes"));
+
 app.use("/api/progress", require("./routes/progress.routes"));
 app.use("/api/purchase", purchaseRoutes);
 app.use("/api/store", storeRoutes);

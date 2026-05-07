@@ -1194,6 +1194,29 @@ router.post(
       const userId = req.user.id;
       const examId = req.params.examId;
 
+      // exam details
+      const examRes = await pool.query(
+        `
+        SELECT
+          id,
+          title,
+          price
+        FROM competitive_exams
+        WHERE id = $1
+        `,
+        [examId]
+      );
+
+      if(!examRes.rowCount){
+
+        return res.status(404).json({
+          error:"Exam not found"
+        });
+
+      }
+
+      const exam = examRes.rows[0];
+
       // already unlocked?
       const existing = await pool.query(
         `
@@ -1209,23 +1232,64 @@ router.post(
 
         return res.json({
           success:true,
-          alreadyUnlocked:true
+          unlocked:true,
+          redirect:
+            `/exam.html?id=${examId}`
         });
 
       }
 
-      // unlock directly (temporary)
-      await pool.query(
+      // user wallet
+      const walletRes = await pool.query(
         `
-        INSERT INTO user_exam_unlocks
-        (user_id, exam_id)
-        VALUES ($1,$2)
+        SELECT coins
+        FROM users
+        WHERE id = $1
         `,
-        [userId, examId]
+        [userId]
       );
 
+      const coins =
+        walletRes.rows[0]?.coins || 0;
+
+      // enough coins?
+      if(coins >= exam.price){
+
+        // deduct coins
+        await pool.query(
+          `
+          UPDATE users
+          SET coins = coins - $1
+          WHERE id = $2
+          `,
+          [exam.price, userId]
+        );
+
+        // unlock
+        await pool.query(
+          `
+          INSERT INTO user_exam_unlocks
+          (user_id, exam_id)
+          VALUES ($1,$2)
+          `,
+          [userId, examId]
+        );
+
+        return res.json({
+          success:true,
+          unlocked:true,
+          redirect:
+            `/exam.html?id=${examId}`,
+          usedCoins:true
+        });
+
+      }
+
+      // not enough coins
       res.json({
-        success:true
+        success:false,
+        needsPayment:true,
+        price:exam.price
       });
 
     } catch(err){

@@ -372,6 +372,7 @@ SELECT
   posts.id,
   posts.title,
   posts.content,
+  posts.image_url,
   posts.likes,
   posts.created_at,
   posts.course,

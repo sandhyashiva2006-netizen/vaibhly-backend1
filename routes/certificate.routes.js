@@ -247,23 +247,12 @@ router.get("/", verifyToken, async (req, res) => {
         co.title AS course_name,
 
         /* EXAM NAME */
-        CASE
-
-          /* competitive exams */
-          WHEN c.type = 'competitive'
-            THEN ce.title
-
-          /* normal exams */
-          WHEN c.type = 'exam'
-            THEN e.title
-
-          /* course completion */
-          WHEN c.type = 'course'
-            THEN co.title
-
-          ELSE NULL
-
-        END AS exam_name
+       COALESCE(
+  c.certificate_title,
+  ce.title,
+  e.title,
+  co.title
+) AS exam_name
 
       FROM certificates c
 
@@ -284,6 +273,11 @@ router.get("/", verifyToken, async (req, res) => {
       ORDER BY c.issued_at DESC
 
     `, [userId]);
+
+console.log(
+  "CERTIFICATES DB:",
+  result.rows
+);
 
     res.json(result.rows);
 

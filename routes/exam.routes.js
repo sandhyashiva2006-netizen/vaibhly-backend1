@@ -1183,4 +1183,65 @@ attempts: result.rows[0]?.attempts || 0
 
 });
 
+/* ================= UNLOCK EXAM ================= */
+router.post(
+  "/unlock/:examId",
+  verifyToken,
+  async (req, res) => {
+
+    try {
+
+      const userId = req.user.id;
+      const examId = req.params.examId;
+
+      // already unlocked?
+      const existing = await pool.query(
+        `
+        SELECT id
+        FROM user_exam_unlocks
+        WHERE user_id = $1
+        AND exam_id = $2
+        `,
+        [userId, examId]
+      );
+
+      if(existing.rowCount > 0){
+
+        return res.json({
+          success:true,
+          alreadyUnlocked:true
+        });
+
+      }
+
+      // unlock directly (temporary)
+      await pool.query(
+        `
+        INSERT INTO user_exam_unlocks
+        (user_id, exam_id)
+        VALUES ($1,$2)
+        `,
+        [userId, examId]
+      );
+
+      res.json({
+        success:true
+      });
+
+    } catch(err){
+
+      console.error(
+        "UNLOCK ERROR:",
+        err
+      );
+
+      res.status(500).json({
+        error:"Unlock failed"
+      });
+
+    }
+
+  }
+);
+
 module.exports = router;

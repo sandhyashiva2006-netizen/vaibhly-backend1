@@ -386,7 +386,8 @@ router.post("/submit", verifyToken, async (req, res) => {
       );
     }
 
-    
+    const totalQuestions =
+  qRes.rows.length;
 
 
     /* ================= CALCULATE SCORE ================= */
@@ -969,6 +970,7 @@ attempts: result.rows[0]?.attempts || 0
 });
 
 /* ================= UNLOCK EXAM ================= */
+
 router.post(
   "/unlock/:examId",
   verifyToken,
@@ -977,10 +979,12 @@ router.post(
     try {
 
       const userId = req.user.id;
-      const examId =
-  Number(req.params.examId);
 
-      // exam details
+      const examId =
+        Number(req.params.examId);
+
+      /* ===== LOAD EXAM ===== */
+
       const examRes = await pool.query(
         `
         SELECT
@@ -993,91 +997,129 @@ router.post(
         [examId]
       );
 
-      if(!examRes.rowCount){
+      if (!examRes.rowCount) {
 
         return res.status(404).json({
+          success:false,
           error:"Exam not found"
         });
 
       }
 
-      const exam = examRes.rows[0];
+      const exam =
+        examRes.rows[0];
 
- 
+      /* ===== USER WALLET ===== */
 
-      // user wallet
       const walletRes = await pool.query(
         `
         SELECT coins
-FROM user_wallets
-WHERE user_id = $1
+        FROM user_wallets
+        WHERE user_id = $1
         `,
         [userId]
       );
 
       const coins =
-        walletRes.rows[0]?.coins || 0;
+        Number(
+          walletRes.rows[0]?.coins || 0
+        );
 
-      // enough coins?
-      if(coins >= exam.price){
+      /* =========================================
+         DIRECT COIN UNLOCK
+      ========================================= */
 
-        // deduct coins
+      if (coins >= Number(exam.price)) {
+
+        /* deduct coins */
+
         await pool.query(
           `
           UPDATE user_wallets
-SET coins = coins - $1
-WHERE user_id = $2
-          WHERE id = $2
+
+          SET coins =
+            coins - $1
+
+          WHERE user_id = $2
           `,
-          [exam.price, userId]
+          [
+            Number(exam.price),
+            userId
+          ]
         );
 
+        /* add attempt */
 
+        await pool.query(
+          `
+          INSERT INTO user_exam_tokens
+          (
+            user_id,
+            exam_id,
+            attempts
+          )
 
-   /* ===== ADD EXAM TOKEN ===== */
+          VALUES ($1,$2,1)
 
-await pool.query(
-`
-INSERT INTO user_exam_tokens
-(user_id, exam_id, attempts)
+          ON CONFLICT
+          (user_id, exam_id)
 
-VALUES ($1,$2,1)
+          DO UPDATE SET
 
-ON CONFLICT (user_id, exam_id)
+          attempts =
+          user_exam_tokens.attempts + 1
+          `,
+          [userId, examId]
+        );
 
-DO UPDATE SET
-attempts =
-user_exam_tokens.attempts + 1
-`,
-[userId, examId]
-);
+        return res.json({
 
-      // not enough coins
+          success:true,
+
+          directUnlock:true,
+
+          redirect:
+            `/exam.html?id=${examId}`,
+
+          usedCoins:true
+
+        });
+
+      }
+
+      /* =========================================
+         PAYMENT REQUIRED
+      ========================================= */
+
       return res.json({
 
-  success:true,
+        success:true,
 
-  directUnlock:false,
+        directUnlock:false,
 
-  payable:Number(exam.price),
+        payable:Number(exam.price),
 
-  price:Number(exam.price),
+        price:Number(exam.price),
 
-  coins:Number(coins),
+        coins,
 
-  discount:0
+        discount:0
 
-});
+      });
 
-    } catch(err){
+    } catch(err) {
 
       console.error(
         "UNLOCK ERROR:",
         err
       );
 
-      res.status(500).json({
+      return res.status(500).json({
+
+        success:false,
+
         error:"Unlock failed"
+
       });
 
     }

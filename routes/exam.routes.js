@@ -1017,11 +1017,17 @@ router.post(
       if(existing.rowCount > 0){
 
         return res.json({
-          success:true,
-          unlocked:true,
-          redirect:
-            `/exam.html?id=${examId}`
-        });
+
+  success:true,
+
+  directUnlock:true,
+
+  redirect:
+    `/exam.html?id=${examId}`,
+
+  usedCoins:true
+
+});
 
       }
 
@@ -1074,11 +1080,21 @@ router.post(
       }
 
       // not enough coins
-      res.json({
-        success:false,
-        needsPayment:true,
-        price:exam.price
-      });
+      return res.json({
+
+  success:true,
+
+  directUnlock:false,
+
+  payable:Number(exam.price),
+
+  price:Number(exam.price),
+
+  coins:Number(coins),
+
+  discount:0
+
+});
 
     } catch(err){
 

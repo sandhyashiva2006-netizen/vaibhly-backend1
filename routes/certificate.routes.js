@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require("../config/db");
 const { verifyToken } = require("../middleware/auth.middleware");
 const puppeteer = require("puppeteer");
+const chromium = require("@sparticuz/chromium");
 
 /* ================= GET LATEST CERTIFICATE ================= */
 router.get("/latest", verifyToken, async (req, res) => {
@@ -105,9 +106,17 @@ router.get("/download/:certificateId", async (req, res) => {
   try {
 
     const browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
-    });
+
+  args: chromium.args,
+
+  defaultViewport: chromium.defaultViewport,
+
+  executablePath:
+    await chromium.executablePath(),
+
+  headless: chromium.headless
+
+});
 
     const page = await browser.newPage();
 

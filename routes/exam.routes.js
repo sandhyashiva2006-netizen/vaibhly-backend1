@@ -1003,40 +1003,14 @@ router.post(
 
       const exam = examRes.rows[0];
 
-      // already unlocked?
-      const existing = await pool.query(
-        `
-        SELECT id
-        FROM user_exam_unlocks
-        WHERE user_id = $1
-        AND exam_id = $2
-        `,
-        [userId, examId]
-      );
-
-      if(existing.rowCount > 0){
-
-        return res.json({
-
-  success:true,
-
-  directUnlock:true,
-
-  redirect:
-    `/exam.html?id=${examId}`,
-
-  usedCoins:true
-
-});
-
-      }
+ 
 
       // user wallet
       const walletRes = await pool.query(
         `
         SELECT coins
-        FROM users
-        WHERE id = $1
+FROM user_wallets
+WHERE user_id = $1
         `,
         [userId]
       );
@@ -1050,8 +1024,9 @@ router.post(
         // deduct coins
         await pool.query(
           `
-          UPDATE users
-          SET coins = coins - $1
+          UPDATE user_wallets
+SET coins = coins - $1
+WHERE user_id = $2
           WHERE id = $2
           `,
           [exam.price, userId]
@@ -1059,25 +1034,23 @@ router.post(
 
 
 
-        // unlock
-        await pool.query(
-          `
-          INSERT INTO user_exam_unlocks
-          (user_id, exam_id)
-          VALUES ($1,$2)
-          `,
-          [userId, examId]
-        );
+   /* ===== ADD EXAM TOKEN ===== */
 
-        return res.json({
-          success:true,
-          unlocked:true,
-          redirect:
-            `/exam.html?id=${examId}`,
-          usedCoins:true
-        });
+await pool.query(
+`
+INSERT INTO user_exam_tokens
+(user_id, exam_id, attempts)
 
-      }
+VALUES ($1,$2,1)
+
+ON CONFLICT (user_id, exam_id)
+
+DO UPDATE SET
+attempts =
+user_exam_tokens.attempts + 1
+`,
+[userId, examId]
+);
 
       // not enough coins
       return res.json({

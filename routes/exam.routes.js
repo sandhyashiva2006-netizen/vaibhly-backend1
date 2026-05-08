@@ -977,7 +977,8 @@ router.post(
     try {
 
       const userId = req.user.id;
-      const examId = req.params.examId;
+      const examId =
+  Number(req.params.examId);
 
       // exam details
       const examRes = await pool.query(

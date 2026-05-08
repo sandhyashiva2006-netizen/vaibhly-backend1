@@ -5,86 +5,7 @@ const { verifyToken, isAdmin } = require("../middleware/auth.middleware");
 const verifySubscription = require("../middleware/subscription");
 const EXAM_UNLOCK_COST = 200; // same for all exams
 
-router.post("/unlock", verifyToken, async (req, res) => {
-  try {
 
-    const userId = req.user.id;
-    const { exam_id } = req.body;
-
-    const COINS_PER_RUPEE = 10;
-
-    const examRes = await pool.query(
-      `SELECT id,title,price
-       FROM competitive_exams
-       WHERE id=$1 AND active=true`,
-      [exam_id]
-    );
-
-    if (!examRes.rows.length) {
-      return res.status(404).json({
-        error: "Exam not found"
-      });
-    }
-
-    const exam = examRes.rows[0];
-    const price = Number(exam.price);
-
-    const walletRes = await pool.query(
-      `SELECT coins
-       FROM user_wallets
-       WHERE user_id=$1`,
-      [userId]
-    );
-
-    const coins = walletRes.rows[0]?.coins || 0;
-
-    const rupeeDiscount = Math.floor(coins / COINS_PER_RUPEE);
-
-    let payable = price - rupeeDiscount;
-
-    if (payable < 0) payable = 0;
-
-    if (payable === 0) {
-
-      const coinsUsed = price * COINS_PER_RUPEE;
-
-      await pool.query(
-        `UPDATE user_wallets
-         SET coins = coins - $1
-         WHERE user_id=$2`,
-        [coinsUsed, userId]
-      );
-
-      await pool.query(
-        `INSERT INTO user_exam_unlocks(user_id,exam_id)
-         VALUES($1,$2)
-         ON CONFLICT DO NOTHING`,
-        [userId, exam_id]
-      );
-
-      return res.json({
-        success: true,
-        directUnlock: true
-      });
-    }
-
-    return res.json({
-      success: true,
-      directUnlock: false,
-      exam_id,
-      price,
-      coins,
-      discount: rupeeDiscount,
-      payable
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Unlock failed"
-    });
-  }
-});
 
 /* ======================================================
    GET QUESTIONS FOR EXAM
@@ -170,17 +91,20 @@ router.get("/:examId/questions", verifyToken, async (req, res) => {
         });
       }
 
-      /* consume one attempt immediately */
-      await pool.query(
-        `
-        UPDATE user_exam_tokens
-        SET attempts = attempts - 1
-        WHERE user_id = $1
-        AND exam_id = $2
-        `,
-        [userId, examId]
-      );
-    }
+     /* ===== CONSUME TOKEN ===== */
+
+await pool.query(
+  `
+  UPDATE user_exam_tokens
+
+  SET attempts =
+    attempts - 1
+
+  WHERE user_id = $1
+  AND exam_id = $2
+  `,
+  [userId, examId]
+);
 
     /* ================= LOAD QUESTIONS ================= */
 
@@ -475,66 +399,7 @@ router.post("/submit", verifyToken, async (req, res) => {
       );
     }
 
-    /* ================= ATTEMPT LIMIT ================= */
-
-    const attemptCheck = await pool.query(
-      `
-      SELECT COUNT(*) 
-      FROM exam_attempts
-      WHERE user_id = $1 AND exam_id = $2
-      `,
-      [userId, exam_id]
-    );
-
-    const attempts = Number(attemptCheck.rows[0].count);
-    const MAX_ATTEMPTS = 5;
-
-    const alreadyPassed = await pool.query(
-      `
-      SELECT 1
-      FROM exam_attempts
-      WHERE user_id = $1
-      AND exam_id = $2
-      AND status = 'PASSED'
-      LIMIT 1
-      `,
-      [userId, exam_id]
-    );
-
-    if (examType === "course" && alreadyPassed.rows.length > 0) {
- return res.status(400).json({
-   success:false,
-   error:"You already passed this course exam"
- });
-}
-
-    if (attempts >= MAX_ATTEMPTS) {
-      return res.status(403).json({
-        success: false,
-        error: "Maximum attempts reached"
-      });
-    }
-
-    const totalQuestions = Object.keys(answers).length;
-
-    if (totalQuestions === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "No answers submitted"
-      });
-    }
-
-if (examType === "course" && attempts >= 1) {
-
-  const wallet = await pool.query(
-    `
-    SELECT coins
-    FROM user_wallets
-    WHERE user_id = $1
-    `,
-    [userId]
-  );
-
+    
   const coins = wallet.rows[0]?.coins || 0;
 
   if (coins < 20) {
@@ -1006,43 +871,9 @@ user_exam_tokens.attempts + 1
 
 
 
-router.get("/exams-view", verifyToken, isAdmin, async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT
-        e.id,
-        e.title AS exam_name,
-        COUNT(q.id) AS total_questions,
-        CASE 
-          WHEN e.active = true THEN 'Active'
-          ELSE 'Inactive'
-        END AS status
-      FROM exams e
-      LEFT JOIN questions q ON q.exam_id = e.id
-      GROUP BY e.id
-      ORDER BY e.id ASC
-    `);
 
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Admin exams-view error:", err);
-    res.status(500).json({ error: "Failed to load exams" });
-  }
-});
 
-/* ================= Delete EXAM ================= */
-router.delete("/:id", verifyToken, isAdmin, async (req, res) => {
-  try {
-    const examId = req.params.id;
 
-    await pool.query("DELETE FROM exams WHERE id = $1", [examId]);
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("❌ Delete exam error:", err);
-    res.status(500).json({ error: "Failed to delete exam" });
-  }
-});
 
 /* ================= ADMIN EXAMS ================= */
 
@@ -1126,42 +957,7 @@ router.patch("/exams/:id/toggle", verifyToken, isAdmin, async (req, res) => {
 });
 
 
-/* ======================================================
-   TOGGLE EXAM ACTIVE STATUS (ADMIN)
-====================================================== */
-router.patch("/:id/toggle", verifyToken, isAdmin, async (req, res) => {
 
-  try {
-    const examId = Number(req.params.id);
-
-    if (!examId) {
-      return res.status(400).json({ error: "Invalid exam id" });
-    }
-
-    const result = await pool.query(
-      `
-      UPDATE exams
-      SET active = NOT active
-      WHERE id = $1
-      RETURNING id, title, active
-      `,
-      [examId]
-    );
-
-    if (!result.rows.length) {
-      return res.status(404).json({ error: "Exam not found" });
-    }
-
-    res.json({
-      success: true,
-      exam: result.rows[0]
-    });
-
-  } catch (err) {
-    console.error("❌ Toggle exam error:", err);
-    res.status(500).json({ error: "Failed to toggle exam" });
-  }
-});
 
 router.get("/tokens/:examId", verifyToken, async (req,res)=>{
 
@@ -1264,6 +1060,8 @@ router.post(
           `,
           [exam.price, userId]
         );
+
+
 
         // unlock
         await pool.query(

@@ -91,20 +91,7 @@ router.get("/:examId/questions", verifyToken, async (req, res) => {
         });
       }
 
-     /* ===== CONSUME TOKEN ===== */
-
-await pool.query(
-  `
-  UPDATE user_exam_tokens
-
-  SET attempts =
-    attempts - 1
-
-  WHERE user_id = $1
-  AND exam_id = $2
-  `,
-  [userId, examId]
-);
+}
 
     /* ================= LOAD QUESTIONS ================= */
 
@@ -400,24 +387,7 @@ router.post("/submit", verifyToken, async (req, res) => {
     }
 
     
-  const coins = wallet.rows[0]?.coins || 0;
 
-  if (coins < 20) {
-    return res.status(403).json({
-      success:false,
-      error:"Need 20 coins for reattempt"
-    });
-  }
-
-  await pool.query(
-    `
-    UPDATE user_wallets
-    SET coins = coins - 20
-    WHERE user_id = $1
-    `,
-    [userId]
-  );
-}
 
     /* ================= CALCULATE SCORE ================= */
 
@@ -585,6 +555,25 @@ VALUES ($1,$2,$3,$4,$5,$6,NOW())
         ]
       );
     }
+
+/* ===== CONSUME TOKEN AFTER SUBMIT ===== */
+
+if(examType === "competitive"){
+
+  await pool.query(
+    `
+    UPDATE user_exam_tokens
+
+    SET attempts =
+      attempts - 1
+
+    WHERE user_id = $1
+    AND exam_id = $2
+    `,
+    [userId, exam_id]
+  );
+
+}
 
     /* ================= RESPONSE ================= */
 

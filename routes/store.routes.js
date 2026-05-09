@@ -221,6 +221,11 @@ router.get("/my-orders", verifyToken, async (req, res) => {
 
     res.json(result.rows);
 
+console.log(
+  "🔥 FINAL ORDERS:",
+  result.rows
+);
+
   } catch (err) {
 
     console.error(

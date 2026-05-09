@@ -1070,6 +1070,8 @@ console.log(req.user);
 
     const userId = req.user.id;
 
+console.log(User.schema.obj);
+
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
@@ -1078,7 +1080,7 @@ console.log(req.user);
       });
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findOne({ id: userId });
 
     if (!user) {
       return res.status(404).json({

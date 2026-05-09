@@ -125,17 +125,42 @@ router.get("/my-orders", verifyToken, async (req, res) => {
     const userId = req.user.id;
 console.log("TOKEN USER ID:", userId);
     const result = await pool.query(`
-  SELECT 
+
+(
+  SELECT
     o.id,
     o.total_amount,
     o.status,
     o.created_at,
-    COALESCE(c.title, 'Course Deleted') AS course_name
+    COALESCE(c.title, 'Course Deleted') AS course_name,
+    'course' AS purchase_type,
+    NULL AS theme_code
   FROM orders o
-  LEFT JOIN order_items oi ON oi.order_id = o.id
-  LEFT JOIN courses c ON c.id = oi.course_id
+  LEFT JOIN order_items oi
+    ON oi.order_id = o.id
+  LEFT JOIN courses c
+    ON c.id = oi.course_id
   WHERE o.user_id = $1
-  ORDER BY o.created_at DESC
+)
+
+UNION ALL
+
+(
+  SELECT
+    wl.id,
+    ABS(wl.amount) AS total_amount,
+    'completed' AS status,
+    wl.created_at,
+    wl.purpose AS course_name,
+    'wallet' AS purchase_type,
+    NULL AS theme_code
+  FROM wallet_ledger wl
+  WHERE wl.user_id = $1
+  AND wl.amount < 0
+)
+
+ORDER BY created_at DESC
+
 `, [userId]);
 
     res.json(result.rows);

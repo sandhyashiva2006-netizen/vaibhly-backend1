@@ -135,7 +135,7 @@ router.get(
       const url =
         `${baseUrl}/certificate.html?id=${certificateId}`;
 
-      await page.goto(url, {
+await page.goto(url, {
 
   waitUntil:"domcontentloaded",
 
@@ -143,15 +143,10 @@ router.get(
 
 });
 
-await page.waitForFunction(
+/* wait small time for rendering */
 
-  () =>
-    document.body.getAttribute(
-      "data-ready"
-    ) === "true",
-
-  { timeout:30000 }
-
+await new Promise(resolve =>
+  setTimeout(resolve, 4000)
 );
 
       /* ===== IMPORTANT ===== */

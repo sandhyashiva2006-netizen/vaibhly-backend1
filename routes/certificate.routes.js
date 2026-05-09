@@ -137,7 +137,7 @@ router.get(
 
 await page.goto(url, {
 
-  waitUntil:"domcontentloaded",
+  waitUntil:"load",
 
   timeout:60000
 
@@ -146,7 +146,7 @@ await page.goto(url, {
 /* wait small time for rendering */
 
 await new Promise(resolve =>
-  setTimeout(resolve, 4000)
+  setTimeout(resolve, 1500)
 );
 
       /* ===== IMPORTANT ===== */

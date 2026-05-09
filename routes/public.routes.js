@@ -1062,7 +1062,7 @@ router.get('/api/users/:id/posts', verifyToken, async (req, res) => {
   }
 });
 
-router.post("/change-password", verifytoken, async (req, res) => {
+router.post("/change-password", verifyToken, async (req, res) => {
 
   try {
 

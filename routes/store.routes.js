@@ -72,6 +72,47 @@ if (courseRes.rows.length === 0) {
 
 const price = courseRes.rows[0].price || 0;
 
+/* ===== GET USER WALLET ===== */
+
+const walletRes = await client.query(
+  `SELECT coins
+   FROM user_wallets
+   WHERE user_id = $1`,
+  [userId]
+);
+
+const currentCoins =
+  walletRes.rows[0]?.coins || 0;
+
+/* ===== CHECK BALANCE ===== */
+
+if(currentCoins < price){
+
+  throw new Error("Not enough coins");
+}
+
+/* ===== DEDUCT COINS ===== */
+
+await client.query(
+  `UPDATE user_wallets
+   SET coins = coins - $1
+   WHERE user_id = $2`,
+  [price, userId]
+);
+
+/* ===== LEDGER ENTRY ===== */
+
+await client.query(
+  `INSERT INTO wallet_ledger
+   (user_id, amount, type, purpose)
+   VALUES($1,$2,$3,$4)`,
+  [
+    userId,
+    -price,
+    'course_purchase',
+    'Course Purchase'
+  ]
+);
 
     // Create order
     const orderRes = await client.query(
@@ -223,13 +264,7 @@ router.post("/confirm-purchase", verifyToken, async (req, res) => {
       [userId, courseId]
     );
 
- // Enroll user
-    await client.query(
-      `INSERT INTO user_courses(user_id, courseId)
-       VALUES($1, $2)
-       ON CONFLICT DO NOTHING`,
-      [userId, courseId]
-    );
+
 
     await client.query("COMMIT");
 

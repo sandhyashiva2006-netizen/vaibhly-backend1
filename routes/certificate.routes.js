@@ -100,63 +100,108 @@ router.get("/verify/:id", async (req, res) => {
 });
 
 /* ================= DOWNLOAD CERTIFICATE PDF ================= */
-router.get("/download/:certificateId", async (req, res) => {
-  const { certificateId } = req.params;
+router.get(
+  "/download/:certificateId",
+  async (req, res) => {
 
-  try {
+    const { certificateId } =
+      req.params;
 
-    const browser = await puppeteer.launch({
+    try {
 
-  args: chromium.args,
+      const browser =
+        await puppeteer.launch({
 
-  defaultViewport: chromium.defaultViewport,
+          args: chromium.args,
 
-  executablePath:
-    await chromium.executablePath(),
+          defaultViewport:
+            chromium.defaultViewport,
 
-  headless: chromium.headless
+          executablePath:
+            await chromium.executablePath(),
 
-});
+          headless:
+            chromium.headless
 
-    const page = await browser.newPage();
+        });
 
-    const baseUrl =
-  process.env.BASE_URL ||
-  "https://vaibhly-backend1.onrender.com";
+      const page =
+        await browser.newPage();
 
-const url =
-  `${baseUrl}/certificate.html?id=${certificateId}`;
+      const baseUrl =
+        process.env.BASE_URL ||
+        "https://vaibhly-backend1.onrender.com";
 
-    await page.goto(url, {
-      waitUntil: "networkidle0",
-      timeout: 60000
-    });
+      const url =
+        `${baseUrl}/certificate.html?id=${certificateId}`;
 
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      landscape: true,
-      printBackground: true
-    });
+      await page.goto(url, {
 
-    await browser.close();
+        waitUntil:"networkidle0",
 
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=certificate-${certificateId}.pdf`
-    );
-    res.setHeader("Content-Type", "application/pdf");
+        timeout:60000
 
-    res.send(pdfBuffer);
+      });
 
-  } catch (err) {
-    console.error("❌ PDF GENERATION FAILED:", err);
+      /* ===== IMPORTANT ===== */
 
-    res.status(500).json({
-      error: "Failed to generate certificate PDF",
-      details: err.message
-    });
+      await page.emulateMediaType(
+        "screen"
+      );
+
+      /* ===== PDF ===== */
+
+      const pdfBuffer =
+        await page.pdf({
+
+          format:"A4",
+
+          landscape:true,
+
+          printBackground:true
+
+        });
+
+      await browser.close();
+
+      /* ===== RESPONSE ===== */
+
+      res.set({
+
+        "Content-Type":
+          "application/pdf",
+
+        "Content-Disposition":
+          `attachment; filename="certificate-${certificateId}.pdf"`,
+
+        "Content-Length":
+          pdfBuffer.length
+
+      });
+
+      return res.end(pdfBuffer);
+
+    } catch (err) {
+
+      console.error(
+        "❌ PDF GENERATION FAILED:",
+        err
+      );
+
+      return res.status(500).json({
+
+        error:
+          "Failed to generate certificate PDF",
+
+        details:
+          err.message
+
+      });
+
+    }
+
   }
-});
+);
 
 
 /* ================= CERTIFICATE STATUS ================= */

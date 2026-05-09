@@ -137,11 +137,22 @@ router.get(
 
       await page.goto(url, {
 
-        waitUntil:"networkidle0",
+  waitUntil:"domcontentloaded",
 
-        timeout:60000
+  timeout:60000
 
-      });
+});
+
+await page.waitForFunction(
+
+  () =>
+    document.body.getAttribute(
+      "data-ready"
+    ) === "true",
+
+  { timeout:30000 }
+
+);
 
       /* ===== IMPORTANT ===== */
 

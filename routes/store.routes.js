@@ -165,6 +165,8 @@ router.get("/my-orders", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
 console.log("TOKEN USER ID:", userId);
+console.log("🔥 NEW MY ORDERS ROUTE HIT");
+
     const result = await pool.query(`
 
 (
@@ -173,7 +175,7 @@ console.log("TOKEN USER ID:", userId);
     o.total_amount,
     o.status,
     o.created_at,
-    COALESCE(c.title, 'Course Deleted') AS course_name,
+    COALESCE(c.title, 'Course Purchase') AS course_name,
     'course' AS purchase_type,
     NULL AS theme_code
   FROM orders o
@@ -190,9 +192,12 @@ UNION ALL
   SELECT
     wl.id,
     ABS(wl.amount) AS total_amount,
-    'completed' AS status,
+    'PAID' AS status,
     wl.created_at,
-    wl.purpose AS course_name,
+    COALESCE(
+      wl.purpose,
+      'Coin Spent'
+    ) AS course_name,
     'wallet' AS purchase_type,
     NULL AS theme_code
   FROM wallet_ledger wl

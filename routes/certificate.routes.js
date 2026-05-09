@@ -151,9 +151,13 @@ await new Promise(resolve =>
 
       /* ===== IMPORTANT ===== */
 
-      await page.emulateMediaType(
-        "screen"
-      );
+      await page.emulateMediaType("print");
+
+/* print mode */
+
+await page.emulateMediaType(
+  "print"
+);
 
       /* ===== PDF ===== */
 

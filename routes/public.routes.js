@@ -1062,11 +1062,11 @@ router.get('/api/users/:id/posts', verifyToken, async (req, res) => {
   }
 });
 
-router.post("/change-password", authMiddleware, async (req, res) => {
+router.post("/change-password", verifytoken, async (req, res) => {
 
   try {
 
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     const { oldPassword, newPassword } = req.body;
 

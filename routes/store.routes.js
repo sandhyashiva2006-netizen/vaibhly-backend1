@@ -162,58 +162,76 @@ await client.query(
    GET MY ORDERS
 =========================== */
 router.get("/my-orders", verifyToken, async (req, res) => {
+
   try {
+
     const userId = req.user.id;
-console.log("TOKEN USER ID:", userId);
-console.log("🔥 NEW MY ORDERS ROUTE HIT");
+
+    console.log("🔥 MY ORDERS UNION ROUTE HIT");
 
     const result = await pool.query(`
 
-(
-  SELECT
-    o.id,
-    o.total_amount,
-    o.status,
-    o.created_at,
-    COALESCE(c.title, 'Course Purchase') AS course_name,
-    'course' AS purchase_type,
-    NULL AS theme_code
-  FROM orders o
-  LEFT JOIN order_items oi
-    ON oi.order_id = o.id
-  LEFT JOIN courses c
-    ON c.id = oi.course_id
-  WHERE o.user_id = $1
-)
+      (
+        SELECT
+          o.id,
+          o.total_amount,
+          o.status,
+          o.created_at,
+          COALESCE(
+            c.title,
+            'Course Purchase'
+          ) AS course_name,
+          'course' AS purchase_type,
+          NULL AS theme_code
+        FROM orders o
+        LEFT JOIN order_items oi
+          ON oi.order_id = o.id
+        LEFT JOIN courses c
+          ON c.id = oi.course_id
+        WHERE o.user_id = $1
+      )
 
-UNION ALL
+      UNION ALL
 
-(
-  SELECT
-    wl.id,
-    ABS(wl.amount) AS total_amount,
-    'PAID' AS status,
-    wl.created_at,
-    COALESCE(
-      wl.purpose,
-      'Coin Spent'
-    ) AS course_name,
-    'wallet' AS purchase_type,
-    NULL AS theme_code
-  FROM wallet_ledger wl
-  WHERE wl.user_id = $1
-  AND wl.amount < 0
-)
+      (
+        SELECT
+          wl.id,
+          ABS(wl.amount) AS total_amount,
+          'PAID' AS status,
+          wl.created_at,
+          COALESCE(
+            wl.purpose,
+            'Coin Spent'
+          ) AS course_name,
+          'wallet' AS purchase_type,
+          NULL AS theme_code
+        FROM wallet_ledger wl
+        WHERE wl.user_id = $1
+        AND wl.amount < 0
+      )
 
-ORDER BY created_at DESC
+      ORDER BY created_at DESC
 
-`, [userId]);
+    `, [userId]);
+
+    console.log(
+      "🔥 FINAL ORDERS:",
+      result.rows
+    );
 
     res.json(result.rows);
+
   } catch (err) {
-  console.error("Orders fetch error FULL:", err); // 🔥 IMPORTANT
-  res.status(500).json({ error: "Failed to load orders" });
-}
+
+    console.error(
+      "Orders fetch error FULL:",
+      err
+    );
+
+    res.status(500).json({
+      error: "Failed to load orders"
+    });
+  }
 });
 
 /* ===========================

@@ -1062,61 +1062,71 @@ router.get('/api/users/:id/posts', verifyToken, async (req, res) => {
   }
 });
 
-router.post("/profile/change-password", verifyToken, async (req, res) => {
+router.post(
+  "/profile/change-password",
+  verifyToken,
+  async (req,res)=>{
 
-  try {
+    try{
 
-console.log(req.user);
+      const userId = req.user.id;
 
-    const userId = req.user.id;
+      const {
+        oldPassword,
+        newPassword
+      } = req.body;
 
-console.log(User.schema.obj);
+      const userResult =
+        await pool.query(
+          "SELECT * FROM users WHERE id = $1",
+          [userId]
+        );
 
-    const { oldPassword, newPassword } = req.body;
+      const user = userResult.rows[0];
 
-    if (!oldPassword || !newPassword) {
-      return res.status(400).json({
-        message: "All fields required"
+      if(!user){
+
+        return res.status(404).json({
+          message:"User not found"
+        });
+      }
+
+      const isMatch =
+        await bcrypt.compare(
+          oldPassword,
+          user.password
+        );
+
+      if(!isMatch){
+
+        return res.status(400).json({
+          message:"Current password incorrect"
+        });
+      }
+
+      const hashed =
+        await bcrypt.hash(newPassword,10);
+
+      await pool.query(
+        "UPDATE users SET password=$1 WHERE id=$2",
+        [hashed,userId]
+      );
+
+      res.json({
+        message:"Password updated successfully"
+      });
+
+    }catch(err){
+
+      console.log(
+        "CHANGE PASSWORD ERROR:",
+        err
+      );
+
+      res.status(500).json({
+        message:"Server error"
       });
     }
-
-    const user = await User.findOne({ id: userId });
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found"
-      });
-    }
-
-    const isMatch = await bcrypt.compare(
-      oldPassword,
-      user.password
-    );
-
-    if (!isMatch) {
-      return res.status(400).json({
-        message: "Current password incorrect"
-      });
-    }
-
-    const hashed = await bcrypt.hash(newPassword, 10);
-
-    user.password = hashed;
-
-    await user.save();
-
-    res.json({
-      message: "Password updated successfully"
-    });
-
-  } catch(err){
-
-  console.log("CHANGE PASSWORD ERROR:", err);
-
-  res.status(500).json({
-    message:"Server error"
-  });
-}
 });
 
 module.exports = router;

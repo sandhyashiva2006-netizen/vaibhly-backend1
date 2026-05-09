@@ -1066,7 +1066,9 @@ router.post("/profile/change-password", verifyToken, async (req, res) => {
 
   try {
 
-    const userId = req.user.userId;
+console.log(req.user);
+
+    const userId = req.user.id;
 
     const { oldPassword, newPassword } = req.body;
 
@@ -1105,14 +1107,14 @@ router.post("/profile/change-password", verifyToken, async (req, res) => {
       message: "Password updated successfully"
     });
 
-  } catch (err) {
+  } catch(err){
 
-    console.log(err);
+  console.log("CHANGE PASSWORD ERROR:", err);
 
-    res.status(500).json({
-      message: "Server error"
-    });
-  }
+  res.status(500).json({
+    message:"Server error"
+  });
+}
 });
 
 module.exports = router;

@@ -128,12 +128,12 @@ router.get(
       const page =
         await browser.newPage();
 
-      const baseUrl =
-        process.env.BASE_URL ||
-        "https://vaibhly-backend1.onrender.com";
+      const frontendUrl =
+  process.env.FRONTEND_URL ||
+  "https://vaibhly-frontend.pages.dev/";
 
       const url =
-        `${baseUrl}/certificate.html?id=${certificateId}`;
+`${frontendUrl}/certificate.html?id=${certificateId}`;
 
 await page.goto(url, {
 

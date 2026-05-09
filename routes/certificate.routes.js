@@ -125,7 +125,7 @@ router.get("/download/:certificateId", async (req, res) => {
   "https://vaibhly-backend1.onrender.com";
 
 const url =
-  `${baseUrl}/certificate.html?id=${id}`;
+  `${baseUrl}/certificate.html?id=${certificateId}`;
 
     await page.goto(url, {
       waitUntil: "networkidle0",

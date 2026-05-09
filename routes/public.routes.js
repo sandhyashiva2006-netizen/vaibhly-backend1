@@ -2,7 +2,8 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/db");
 const { verifyToken } = require("../middleware/auth.middleware");
-
+const bcrypt = require("bcryptjs");
+const User = require("../models/User");
 
 /* ================= PUBLIC COURSES ================= */
 router.get("/courses", async (req, res) => {
@@ -1061,6 +1062,57 @@ router.get('/api/users/:id/posts', verifyToken, async (req, res) => {
   }
 });
 
+router.post("/change-password", authMiddleware, async (req, res) => {
 
+  try {
+
+    const userId = req.user.id;
+
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        message: "All fields required"
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    const isMatch = await bcrypt.compare(
+      oldPassword,
+      user.password
+    );
+
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Current password incorrect"
+      });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    user.password = hashed;
+
+    await user.save();
+
+    res.json({
+      message: "Password updated successfully"
+    });
+
+  } catch (err) {
+
+    console.log(err);
+
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
+});
 
 module.exports = router;

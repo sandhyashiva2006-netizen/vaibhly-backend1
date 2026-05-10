@@ -200,17 +200,27 @@ router.get("/my-orders", verifyToken, async (req, res) => {
     ABS(wl.amount) AS total_amount,
 
     CASE
-      WHEN wl.amount > 0
-      THEN 'CREDIT'
-      ELSE 'PAID'
-    END AS status,
+  WHEN wl.type = 'coin_purchase'
+  THEN 'CREDIT'
+  ELSE 'PAID'
+END AS status,
 
     wl.created_at,
 
-    COALESCE(
-      wl.purpose,
-      'Coin Spent'
-    ) AS course_name,
+    CASE
+
+  WHEN wl.type = 'coin_purchase'
+  THEN 'Coin Pack Purchase'
+
+  WHEN wl.type = 'course_purchase'
+  THEN 'Course Purchase'
+
+  WHEN wl.type = 'store_purchase'
+  THEN 'Store Purchase'
+
+  ELSE 'Coin Spent'
+
+END AS course_name,
 
     'wallet' AS purchase_type,
 

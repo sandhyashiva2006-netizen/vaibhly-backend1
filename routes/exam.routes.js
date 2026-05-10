@@ -1048,6 +1048,26 @@ router.post(
           ]
         );
 
+await pool.query(
+  `
+  INSERT INTO wallet_ledger
+  (
+    user_id,
+    amount,
+    type,
+    purpose
+  )
+
+  VALUES ($1,$2,$3,$4)
+  `,
+  [
+    userId,
+    -Number(exam.price),
+    'exam_purchase',
+    'Competitive Exam Purchase'
+  ]
+);
+
         /* add attempt */
 
         await pool.query(

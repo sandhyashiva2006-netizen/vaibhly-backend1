@@ -220,6 +220,9 @@ THEN 'Coins Used For Course'
   WHEN wl.type = 'store_purchase'
   THEN 'Store Purchase'
 
+WHEN wl.type = 'exam_purchase'
+THEN 'Competitive Exam Purchase'
+
   ELSE 'Coin Spent'
 
 END AS course_name,

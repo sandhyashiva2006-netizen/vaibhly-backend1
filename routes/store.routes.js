@@ -194,22 +194,39 @@ router.get("/my-orders", verifyToken, async (req, res) => {
       UNION ALL
 
       (
-        SELECT
-          wl.id,
-          ABS(wl.amount) AS total_amount,
-          'PAID' AS status,
-          wl.created_at,
-          COALESCE(
-            wl.purpose,
-            'Coin Spent'
-          ) AS course_name,
-          'wallet' AS purchase_type,
-          NULL AS theme_code
-        FROM wallet_ledger wl
-        WHERE wl.user_id = $1
-        AND wl.amount < 0
-      )
+  SELECT
+    wl.id,
 
+    ABS(wl.amount) AS total_amount,
+
+    CASE
+      WHEN wl.amount > 0
+      THEN 'CREDIT'
+      ELSE 'PAID'
+    END AS status,
+
+    wl.created_at,
+
+    COALESCE(
+      wl.purpose,
+      'Coin Spent'
+    ) AS course_name,
+
+    'wallet' AS purchase_type,
+
+    NULL AS theme_code
+
+  FROM wallet_ledger wl
+
+  WHERE wl.user_id = $1
+
+  AND wl.type IN (
+    'coin_purchase',
+    'store_purchase',
+    'course_purchase',
+    'coin_spent'
+  )
+)
       ORDER BY created_at DESC
 
     `, [userId]);

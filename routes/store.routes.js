@@ -100,6 +100,18 @@ await client.query(
   [price, userId]
 );
 
+await client.query(`
+INSERT INTO wallet_ledger
+(user_id, amount, type, purpose)
+
+VALUES ($1,$2,$3,$4)
+`,[
+  userId,
+  -price,
+  'course_purchase',
+  'Course Purchase'
+]);
+
 /* ===== LEDGER ENTRY ===== */
 
 await client.query(
@@ -230,12 +242,7 @@ END AS course_name,
 
   WHERE wl.user_id = $1
 
-  AND wl.type IN (
-    'coin_purchase',
-    'store_purchase',
-    'course_purchase',
-    'coin_spent'
-  )
+ AND wl.amount != 0
 )
       ORDER BY created_at DESC
 

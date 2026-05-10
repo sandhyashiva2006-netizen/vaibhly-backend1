@@ -100,17 +100,7 @@ await client.query(
   [price, userId]
 );
 
-await client.query(`
-INSERT INTO wallet_ledger
-(user_id, amount, type, purpose)
 
-VALUES ($1,$2,$3,$4)
-`,[
-  userId,
-  -price,
-  'course_purchase',
-  'Course Purchase'
-]);
 
 /* ===== LEDGER ENTRY ===== */
 
@@ -193,7 +183,7 @@ router.get("/my-orders", verifyToken, async (req, res) => {
             c.title,
             'Course Purchase'
           ) AS course_name,
-          'course' AS purchase_type,
+          'course_order' AS purchase_type,
           NULL AS theme_code
         FROM orders o
         LEFT JOIN order_items oi
@@ -225,7 +215,7 @@ END AS status,
   THEN 'Coin Pack Purchase'
 
   WHEN wl.type = 'course_purchase'
-  THEN 'Course Purchase'
+THEN 'Coins Used For Course'
 
   WHEN wl.type = 'store_purchase'
   THEN 'Store Purchase'
@@ -234,7 +224,7 @@ END AS status,
 
 END AS course_name,
 
-    'wallet' AS purchase_type,
+    'wallet_transaction' AS purchase_type,
 
     NULL AS theme_code
 

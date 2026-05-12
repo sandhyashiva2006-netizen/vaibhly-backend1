@@ -376,19 +376,23 @@ router.get("/download/:resumeId", async (req, res) => {
 
     /* ===== FETCH CERTIFICATES ===== */
 
-    const certRes = await pool.query(
-      `
-      SELECT
-        cr.title AS course_name,
-        c.issued_at
-      FROM certificates c
-      JOIN courses cr
-        ON cr.id = c.course_id
-      WHERE c.user_id = $1
-      ORDER BY c.issued_at DESC
-      `,
-      [userId]
-    );
+   const certRes = await pool.query(
+  `
+  SELECT
+    cr.title AS course_name,
+    c.issued_at
+
+  FROM certificates c
+
+  JOIN courses cr
+    ON cr.id = c.course_id
+
+  WHERE c.user_id = $1
+
+  ORDER BY c.issued_at DESC
+  `,
+  [resumeRow.user_id]
+);
 
     const certificates =
       certRes.rows || [];
@@ -468,6 +472,8 @@ const TEMPLATE_CSS = {
   `
 
 };
+
+console.log("TEMPLATE =", template);
 
     /* ===== FINAL HTML ===== */
 
@@ -823,6 +829,9 @@ if (candidateEmail && message) {
 router.get("/stats", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
+
+const resumeRow = r.rows[0];
+const resume = resumeRow.resume_data || {};
 
     // Get resume id
     const resume = await pool.query(

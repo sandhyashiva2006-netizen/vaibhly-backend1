@@ -506,28 +506,13 @@ ${certificates.map(c => `
 </html>
 `;
 
-/* ===== FIND INSTALLED CHROME ===== */
 
-const chromeBase =
-  "/opt/render/.cache/puppeteer/chrome";
-
-const chromeFolder =
-  fs.readdirSync(chromeBase)
-    .find(f => f.startsWith("linux-"));
-
-const chromePath =
-  path.join(
-    chromeBase,
-    chromeFolder,
-    "chrome-linux64",
-    "chrome"
-  );
 
 /* ===== PUPPETEER ===== */
 
 browser = await puppeteer.launch({
 
-  executablePath: chromePath,
+  channel: "chrome",
 
   headless: "new",
 
@@ -539,7 +524,6 @@ browser = await puppeteer.launch({
   ]
 
 });
- 
 
     const page = await browser.newPage();
 

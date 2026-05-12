@@ -104,7 +104,7 @@ router.get("/store-items", async (req, res) => {
         coins,
         price,
         active
-      FROM coin_store
+      FROM marketplace_items
       WHERE active = true
       ORDER BY coins ASC
     `);
@@ -120,53 +120,110 @@ router.get("/store-items", async (req, res) => {
 });
 
 router.post("/buy", verifyToken, async (req, res) => {
+
   try {
+
     const userId = req.user.id;
+
     const { item_id } = req.body;
 
+    /* ===== GET ITEM ===== */
+
     const itemRes = await pool.query(
-      `SELECT * FROM coin_store_items WHERE id=$1 AND is_active=true`,
+      `
+      SELECT *
+      FROM marketplace_items
+      WHERE id = $1
+      AND is_active = true
+      `,
       [item_id]
     );
 
     if (!itemRes.rows.length) {
-      return res.status(404).json({ error: "Item not found" });
+
+      return res.status(404).json({
+        error: "Item not found"
+      });
+
     }
 
     const item = itemRes.rows[0];
 
+    /* ===== USER WALLET ===== */
+
     const wallet = await pool.query(
-      `SELECT coins FROM user_wallets WHERE user_id=$1`,
+      `
+      SELECT coins
+      FROM user_wallets
+      WHERE user_id = $1
+      `,
       [userId]
     );
 
-    const coins = wallet.rows[0]?.coins || 0;
+    const userCoins =
+      wallet.rows[0]?.coins || 0;
 
-    if (coins < item.coin_cost) {
-      return res.status(400).json({ error: "Not enough coins" });
+    /* ===== CHECK BALANCE ===== */
+
+    if (userCoins < item.coins) {
+
+      return res.status(400).json({
+        error: "Not enough coins"
+      });
+
     }
 
+    /* ===== DEDUCT COINS ===== */
+
     await pool.query(
-      `UPDATE user_wallets SET coins = coins - $1 WHERE user_id = $2`,
-      [item.coin_cost, userId]
+      `
+      UPDATE user_wallets
+      SET coins = coins - $1
+      WHERE user_id = $2
+      `,
+      [item.coins, userId]
     );
 
-    await pool.query(`
-INSERT INTO wallet_ledger
-(user_id, amount, type, purpose)
-VALUES ($1,$2,$3,$4)
-`,[
- userId,
- -item.coin_cost,
- 'store_purchase',
- 'Store Item Purchase'
-]);
+    /* ===== WALLET HISTORY ===== */
 
-    res.json({ success: true, item });
+    await pool.query(
+      `
+      INSERT INTO wallet_ledger
+      (user_id, amount, type, purpose)
+
+      VALUES ($1,$2,$3,$4)
+      `,
+      [
+        userId,
+        -item.coins,
+        'store_purchase',
+        item.name || 'Store Item Purchase'
+      ]
+    );
+
+    /* ===== SUCCESS ===== */
+
+    res.json({
+
+      success: true,
+
+      item
+
+    });
 
   } catch (err) {
-    res.status(500).json({ error: "Purchase failed" });
+
+    console.error(
+      "Store purchase error:",
+      err
+    );
+
+    res.status(500).json({
+      error: "Purchase failed"
+    });
+
   }
+
 });
 
 router.post("/buy-coins", verifyToken, async (req, res) => {

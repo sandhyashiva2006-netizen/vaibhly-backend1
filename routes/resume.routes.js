@@ -445,17 +445,48 @@ const certificates = certRes.rows;
 
     // ✅ Puppeteer
     const browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox"]
-    });
+
+  headless:true,
+
+  args:[
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu"
+  ]
+
+});
 
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
+
+await page.setViewport({
+  width:1400,
+  height:2000
+});
+
+await page.setContent(html, {
+
+  waitUntil:"domcontentloaded",
+  timeout:0
+
+});
 
     const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true
-    });
+
+  format:"A4",
+
+  printBackground:true,
+
+  margin:{
+    top:"20px",
+    right:"20px",
+    bottom:"20px",
+    left:"20px"
+  },
+
+  preferCSSPageSize:true
+
+});
 
     await browser.close();
 

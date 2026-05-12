@@ -510,7 +510,9 @@ ${certificates.map(c => `
 
 browser = await puppeteer.launch({
 
- 
+  executablePath:
+    "/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome",
+
   headless: "new",
 
   args: [
@@ -521,7 +523,6 @@ browser = await puppeteer.launch({
   ]
 
 });
-
  
 
     const page = await browser.newPage();

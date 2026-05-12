@@ -98,16 +98,17 @@ router.get("/store-items", async (req, res) => {
   try {
 
     const result = await pool.query(`
-      SELECT
-        id,
-        name,
-        coins,
-        price,
-        active
-      FROM marketplace_items
-      WHERE active = true
-      ORDER BY coins ASC
-    `);
+  SELECT
+    id,
+    name,
+    description,
+    coin_cost,
+    type,
+    active
+  FROM marketplace_items
+  WHERE active = true
+  ORDER BY coin_cost ASC
+`);
 
     res.json(result.rows);
 
@@ -165,7 +166,7 @@ router.post("/buy", verifyToken, async (req, res) => {
 
     /* ===== CHECK BALANCE ===== */
 
-    if (userCoins < item.coins) {
+    if (userCoins < item.coin_cost) {
 
       return res.status(400).json({
         error: "Not enough coins"
@@ -181,7 +182,7 @@ router.post("/buy", verifyToken, async (req, res) => {
       SET coins = coins - $1
       WHERE user_id = $2
       `,
-      [item.coins, userId]
+      [item.coin_cost, userId]
     );
 
     /* ===== WALLET HISTORY ===== */
@@ -195,7 +196,7 @@ router.post("/buy", verifyToken, async (req, res) => {
       `,
       [
         userId,
-        -item.coins,
+        -item.coin_cost,
         'store_purchase',
         item.name || 'Store Item Purchase'
       ]

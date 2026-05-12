@@ -510,9 +510,7 @@ ${certificates.map(c => `
 
 browser = await puppeteer.launch({
 
-  executablePath:
-    process.env.PUPPETEER_EXECUTABLE_PATH,
-
+ 
   headless: "new",
 
   args: [

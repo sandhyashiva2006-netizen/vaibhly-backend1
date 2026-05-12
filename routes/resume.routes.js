@@ -802,51 +802,87 @@ if (candidateEmail && message) {
   }
 });
 
+/* ================= RESUME STATS ================= */
 router.get("/stats", verifyToken, async (req, res) => {
+
   try {
+
     const userId = req.user.id;
 
-const resumeRow = resumeRes.rows[0];
-const resume = resumeRow.resume_data || {};
+    /* ===== GET RESUME ===== */
 
-    // Get resume id
     const resumeRes = await pool.query(
-      "SELECT id FROM resumes WHERE user_id = $1",
+      `
+      SELECT id
+      FROM resumes
+      WHERE user_id = $1
+      `,
       [userId]
     );
 
-    if (!resumeRes.rows.length)
-      return res.json({ views: 0, contacts: 0 });
+    if (!resumeRes.rows.length) {
+
+      return res.json({
+        views: 0,
+        contacts: 0
+      });
+
     }
 
-    const resumeId = resume.rows[0].id;
+    const resumeId =
+      resumeRes.rows[0].id;
 
-    // Count views
+    /* ===== COUNT VIEWS ===== */
+
     const views = await pool.query(
-      "SELECT COUNT(*) FROM resume_contacts WHERE resume_id = $1 AND type = 'view'",
-      [resumeId]
-    );
-
-    // Count contacts
-    const contacts = await pool.query(
       `
-      SELECT COUNT(*) 
-      FROM resume_contacts 
-      WHERE resume_id = $1 
-      AND type IN ('email','whatsapp','message')
+      SELECT COUNT(*)
+      FROM resume_contacts
+      WHERE resume_id = $1
+      AND type = 'view'
       `,
       [resumeId]
     );
 
-    res.json({
-      views: Number(views.rows[0].count),
-      contacts: Number(contacts.rows[0].count)
+    /* ===== COUNT CONTACTS ===== */
+
+    const contacts = await pool.query(
+      `
+      SELECT COUNT(*)
+      FROM resume_contacts
+      WHERE resume_id = $1
+      AND type IN (
+        'email',
+        'whatsapp',
+        'message'
+      )
+      `,
+      [resumeId]
+    );
+
+    return res.json({
+
+      views:
+        Number(views.rows[0].count),
+
+      contacts:
+        Number(contacts.rows[0].count)
+
     });
 
   } catch (err) {
-    console.error("Stats error:", err);
-    res.status(500).json({ error: "Stats failed" });
+
+    console.error(
+      "Stats error:",
+      err
+    );
+
+    return res.status(500).json({
+      error: "Stats failed"
+    });
+
   }
+
 });
 
 /* ================= RECRUITER INBOX ================= */

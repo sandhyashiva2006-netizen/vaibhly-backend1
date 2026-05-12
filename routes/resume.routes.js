@@ -5,6 +5,8 @@ const { verifyToken } = require("../middleware/auth.middleware");
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
+const { computeExecutablePath } =
+  require("@puppeteer/browsers");
 
 const Razorpay = require("razorpay");
 
@@ -510,9 +512,20 @@ ${certificates.map(c => `
 
 /* ===== PUPPETEER ===== */
 
+const executablePath =
+  computeExecutablePath({
+
+    browser: "chrome",
+
+    buildId: "127.0.6533.88",
+
+    cacheDir: "/opt/render/.cache/puppeteer"
+
+  });
+
 browser = await puppeteer.launch({
 
-  channel: "chrome",
+  executablePath,
 
   headless: "new",
 

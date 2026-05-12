@@ -333,16 +333,29 @@ router.get("/public/:userId", async (req, res) => {
 
 /* ================= DOWNLOAD PDF ================= */
 router.get("/download/:resumeId", async (req, res) => {
+
+  let browser;
+
   try {
+
     const resumeId = Number(req.params.resumeId);
 
     if (!resumeId) {
       return res.status(400).send("Invalid resume id");
     }
 
-    // ✅ Fetch resume using resume ID (NOT user_id)
+    /* ===== FETCH RESUME ===== */
+
     const r = await pool.query(
-      "SELECT resume_data, template FROM resumes WHERE id = $1",
+      `
+      SELECT
+        id,
+        user_id,
+        resume_data,
+        template
+      FROM resumes
+      WHERE id = $1
+      `,
       [resumeId]
     );
 
@@ -350,158 +363,230 @@ router.get("/download/:resumeId", async (req, res) => {
       return res.status(404).send("Resume not found");
     }
 
-    const resume = r.rows[0].resume_data || {};
-    const template = r.rows[0].template || "modern";
+    const resume =
+      r.rows[0].resume_data || {};
 
-    // ✅ Resume HTML
-    const resumeHTML = `
-      <div class="resume-sheet">
-        <h1>${resume.name || ""}</h1>
-        <h3>${resume.title || ""}</h3>
-        <p>${resume.email || ""} ${resume.phone || ""}</p>
-        <hr>
+    const template =
+      r.rows[0].template || "modern";
 
-        <h3>Summary</h3>
-        <p>${resume.summary || ""}</p>
+    const userId =
+      r.rows[0].user_id;
 
-        <h3>Skills</h3>
-        <p>${resume.skills || ""}</p>
+    /* ===== FETCH CERTIFICATES ===== */
 
-        <h3>Projects</h3>
-        <p>${resume.projects || ""}</p>
+    const certRes = await pool.query(
+      `
+      SELECT
+        cr.title AS course_name,
+        c.issued_at
+      FROM certificates c
+      JOIN courses cr
+        ON cr.id = c.course_id
+      WHERE c.user_id = $1
+      ORDER BY c.issued_at DESC
+      `,
+      [userId]
+    );
 
-        <h3>Education</h3>
-        <p>${resume.education || ""}</p>
-      </div>
-    `;
+    const certificates =
+      certRes.rows || [];
 
-// 🔥 Fetch certificates for this resume
-const certRes = await pool.query(
-  `
-  SELECT cr.title AS course_name, c.issued_at
-  FROM certificates c
-  JOIN courses cr ON cr.id = c.course_id
-  JOIN resumes r ON r.user_id = c.user_id
-  WHERE r.id = $1
-  ORDER BY c.issued_at DESC
-  `,
-  [resumeId]
-);
+    /* ===== SAFE HTML ===== */
 
-const certificates = certRes.rows;
+    const safe = (v = "") =>
+      String(v)
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 
-    // ✅ Template CSS
-    const TEMPLATE_CSS = {
-  modern: `
-    body { font-family: system-ui; padding:40px; }
-    .resume-sheet { max-width:800px; margin:auto; }
-  `,
+    /* ===== FINAL HTML ===== */
 
-  creative: `
-    body {
-      font-family: system-ui;
-      background:#faf7f9;
-      padding:40px;
-    }
-
-    .resume-sheet {
-      background:white;
-      padding:40px;
-      border-radius:16px;
-      box-shadow:0 8px 30px rgba(0,0,0,.08);
-    }
-
-    h1 { color:#e91e63; }
-    h3 { color:#e91e63; margin-top:24px; }
-  `,   // 👈 THIS COMMA WAS MISSING
-
-  minimal: `
-    body { font-family: Georgia, serif; padding:40px; }
-    h1 { font-size:32px; letter-spacing:2px; }
-    h3 { margin-top:20px; border-bottom:1px solid #ddd; }
-  `,
-
-  professional: `
-    body { font-family: system-ui; padding:40px; }
-    .resume-sheet { border-left:6px solid #2563eb; padding-left:20px; }
-    h1 { color:#2563eb; }
-  `
-};
-
-
-    // ✅ Final HTML
     const html = `
-      <html>
-      <head>
-        <style>
-          ${TEMPLATE_CSS[template] || TEMPLATE_CSS.modern}
-        </style>
-      </head>
-      <body>
-        ${resumeHTML}
-      </body>
-      </html>
-    `;
+<!DOCTYPE html>
+<html>
+<head>
 
-    // ✅ Puppeteer
-    const browser = await puppeteer.launch({
+<meta charset="UTF-8">
 
-  headless:true,
+<style>
 
-  args:[
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-gpu"
-  ]
+${TEMPLATE_CSS[template] || TEMPLATE_CSS.modern}
 
-});
+body{
+
+  font-family:Arial,sans-serif;
+
+  padding:40px;
+
+  color:#111;
+
+}
+
+.resume-sheet{
+
+  max-width:800px;
+
+  margin:auto;
+
+}
+
+h1{
+
+  margin-bottom:4px;
+
+}
+
+h3{
+
+  margin-top:24px;
+
+}
+
+p,
+li{
+
+  line-height:1.7;
+
+}
+
+ul{
+
+  padding-left:18px;
+
+}
+
+hr{
+
+  margin:18px 0;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="resume-sheet">
+
+<h1>${safe(resume.name)}</h1>
+
+<h3>${safe(resume.title)}</h3>
+
+<p>
+${safe(resume.email)}
+<br>
+${safe(resume.phone)}
+</p>
+
+<hr>
+
+<h3>Summary</h3>
+<p>${safe(resume.summary)}</p>
+
+<h3>Skills</h3>
+<p>${safe(resume.skills)}</p>
+
+<h3>Projects</h3>
+<p>${safe(resume.projects)}</p>
+
+<h3>Education</h3>
+<p>${safe(resume.education)}</p>
+
+<h3>Certificates</h3>
+
+<ul>
+${certificates.map(c => `
+<li>${safe(c.course_name)}</li>
+`).join("")}
+</ul>
+
+</div>
+
+</body>
+</html>
+`;
+
+    /* ===== PUPPETEER ===== */
+
+    browser = await puppeteer.launch({
+
+      headless: true,
+
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu"
+      ]
+
+    });
 
     const page = await browser.newPage();
 
-await page.setViewport({
-  width:1400,
-  height:2000
-});
+    await page.setViewport({
+      width: 1400,
+      height: 2000
+    });
 
-await page.setContent(html, {
+    await page.setContent(html, {
 
-  waitUntil:"domcontentloaded",
-  timeout:0
+      waitUntil: "domcontentloaded",
 
-});
+      timeout: 0
+
+    });
 
     const pdf = await page.pdf({
 
-  format:"A4",
+      format: "A4",
 
-  printBackground:true,
+      printBackground: true,
 
-  margin:{
-    top:"20px",
-    right:"20px",
-    bottom:"20px",
-    left:"20px"
-  },
+      preferCSSPageSize: true,
 
-  preferCSSPageSize:true
+      margin: {
+        top: "20px",
+        right: "20px",
+        bottom: "20px",
+        left: "20px"
+      }
 
-});
+    });
 
     await browser.close();
 
-    res.setHeader("Content-Type", "application/pdf");
+    /* ===== RESPONSE ===== */
+
     res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=EduNexa_Resume_${resumeId}.pdf`
+      "Content-Type",
+      "application/pdf"
     );
 
-    res.send(pdf);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Vaibhly_Resume_${resumeId}.pdf`
+    );
+
+    return res.send(pdf);
 
   } catch (err) {
-    console.error("❌ PDF ERROR:", err);
-    res.status(500).send("PDF generation failed");
+
+    console.error(
+      "❌ PDF ERROR FULL:",
+      err
+    );
+
+    if (browser) {
+      try {
+        await browser.close();
+      } catch {}
+    }
+
+    return res
+      .status(500)
+      .send("PDF generation failed");
   }
+
 });
 
 

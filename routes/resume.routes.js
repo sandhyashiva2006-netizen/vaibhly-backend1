@@ -510,6 +510,20 @@ ${certificates.map(c => `
 
     browser = await puppeteer.launch({
 
+  executablePath:
+    puppeteer.executablePath(),
+
+  headless:"new",
+
+  args:[
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu"
+  ]
+
+});
+
       headless: true,
 
       args: [

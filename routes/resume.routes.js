@@ -352,22 +352,20 @@ router.get("/download/:resumeId", async (req, res) => {
 
     /* ===== FETCH RESUME ===== */
 
-    const r = await pool.query(
+    const result = await pool.query(
       `
       SELECT
         id,
         user_id,
         resume_data,
         template
-
       FROM resumes
-
       WHERE id = $1
       `,
       [resumeId]
     );
 
-    if (!r.rows.length) {
+    if (!result.rows.length) {
 
       return res
         .status(404)
@@ -375,30 +373,28 @@ router.get("/download/:resumeId", async (req, res) => {
 
     }
 
+    const row =
+      result.rows[0];
+
     const resume =
-      r.rows[0].resume_data || {};
+      row.resume_data || {};
 
     const template =
-      r.rows[0].template || "modern";
+      row.template || "modern";
 
     const userId =
-      r.rows[0].user_id;
+      row.user_id;
 
     /* ===== FETCH CERTIFICATES ===== */
 
     const certRes = await pool.query(
       `
       SELECT
-        cr.title AS course_name,
-        c.issued_at
-
+        cr.title AS course_name
       FROM certificates c
-
       JOIN courses cr
         ON cr.id = c.course_id
-
       WHERE c.user_id = $1
-
       ORDER BY c.issued_at DESC
       `,
       [userId]
@@ -430,17 +426,10 @@ router.get("/download/:resumeId", async (req, res) => {
           border-left:8px solid #2563eb;
           padding:40px;
           border-radius:18px;
-          box-shadow:0 10px 30px rgba(0,0,0,.08);
         }
 
         h1{
           color:#2563eb;
-          font-size:38px;
-        }
-
-        h3{
-          color:#111827;
-          margin-top:24px;
         }
       `,
 
@@ -456,7 +445,6 @@ router.get("/download/:resumeId", async (req, res) => {
           padding:40px;
           border-radius:24px;
           border-top:10px solid #ec4899;
-          box-shadow:0 10px 30px rgba(0,0,0,.08);
         }
 
         h1,h3{
@@ -475,21 +463,33 @@ router.get("/download/:resumeId", async (req, res) => {
           background:white;
           padding:40px;
           border-radius:20px;
-          box-shadow:0 10px 30px rgba(0,0,0,.08);
         }
 
         h1{
           color:#7c3aed;
         }
       `
+
     };
 
-    console.log(
-      "TEMPLATE =",
-      template
-    );
+    /* ===== CERTIFICATES HTML ===== */
 
-    /* ===== HTML ===== */
+    let certificatesHTML =
+      "<p>No certificates added</p>";
+
+    if (certificates.length) {
+
+      certificatesHTML = `
+        <ul>
+          ${certificates.map(c =>
+            `<li>${safe(c.course_name)}</li>`
+          ).join("")}
+        </ul>
+      `;
+
+    }
+
+    /* ===== FINAL HTML ===== */
 
     const html = `
 <!DOCTYPE html>
@@ -501,10 +501,6 @@ router.get("/download/:resumeId", async (req, res) => {
 <style>
 
 ${TEMPLATE_CSS[template] || TEMPLATE_CSS.modern}
-
-body{
-  color:#111;
-}
 
 .resume-sheet{
   max-width:800px;
@@ -566,16 +562,7 @@ ${safe(resume.phone)}
 
 <h3>Certificates</h3>
 
-${certificates.length
-  ? "<ul>" +
-    certificates.map(c =>
-      "<li>" +
-      safe(c.course_name) +
-      "</li>"
-    ).join("")
-    + "</ul>"
-  : "<p>No certificates added</p>"
-}
+${certificatesHTML}
 
 </div>
 
@@ -603,13 +590,6 @@ ${certificates.length
     const page =
       await browser.newPage();
 
-    await page.setViewport({
-
-      width: 1400,
-      height: 2000
-
-    });
-
     await page.setContent(html, {
 
       waitUntil: "domcontentloaded",
@@ -618,26 +598,18 @@ ${certificates.length
 
     });
 
-    const pdf = await page.pdf({
+    const pdf =
+      await page.pdf({
 
-      format: "A4",
+        format: "A4",
 
-      printBackground: true,
+        printBackground: true,
 
-      preferCSSPageSize: true,
+        preferCSSPageSize: true
 
-      margin: {
-        top: "20px",
-        right: "20px",
-        bottom: "20px",
-        left: "20px"
-      }
-
-    });
+      });
 
     await browser.close();
-
-    /* ===== RESPONSE ===== */
 
     res.setHeader(
       "Content-Type",
@@ -669,6 +641,7 @@ ${certificates.length
     return res
       .status(500)
       .send("PDF generation failed");
+
   }
 
 });

@@ -566,15 +566,16 @@ ${safe(resume.phone)}
 
 <h3>Certificates</h3>
 
-${certificates.length ? `
-<ul>
-  ${certificates.map(c => `
-    <li>${safe(c.course_name)}</li>
-  `).join("")}
-</ul>
-` : `
-<p>No certificates added</p>
-`}
+${certificates.length
+  ? "<ul>" +
+    certificates.map(c =>
+      "<li>" +
+      safe(c.course_name) +
+      "</li>"
+    ).join("")
+    + "</ul>"
+  : "<p>No certificates added</p>"
+}
 
 </div>
 

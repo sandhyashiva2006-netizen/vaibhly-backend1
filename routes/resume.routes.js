@@ -830,16 +830,16 @@ router.get("/stats", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
-const resumeRow = r.rows[0];
+const resumeRow = resumeRes.rows[0];
 const resume = resumeRow.resume_data || {};
 
     // Get resume id
-    const resume = await pool.query(
+    const resumeRes = await pool.query(
       "SELECT id FROM resumes WHERE user_id = $1",
       [userId]
     );
 
-    if (!resume.rows.length) {
+    if (!resumeRes.rows.length)
       return res.json({ views: 0, contacts: 0 });
     }
 

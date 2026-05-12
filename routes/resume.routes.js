@@ -7,6 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const { computeExecutablePath } =
   require("@puppeteer/browsers");
+const chromium = require("@sparticuz/chromium");
 
 const Razorpay = require("razorpay");
 
@@ -340,10 +341,13 @@ router.get("/download/:resumeId", async (req, res) => {
 
   try {
 
-    const resumeId = Number(req.params.resumeId);
+    const resumeId =
+      Number(req.params.resumeId);
 
     if (!resumeId) {
-      return res.status(400).send("Invalid resume id");
+      return res
+        .status(400)
+        .send("Invalid resume id");
     }
 
     /* ===== FETCH RESUME ===== */
@@ -355,14 +359,20 @@ router.get("/download/:resumeId", async (req, res) => {
         user_id,
         resume_data,
         template
+
       FROM resumes
+
       WHERE id = $1
       `,
       [resumeId]
     );
 
     if (!r.rows.length) {
-      return res.status(404).send("Resume not found");
+
+      return res
+        .status(404)
+        .send("Resume not found");
+
     }
 
     const resume =
@@ -376,23 +386,23 @@ router.get("/download/:resumeId", async (req, res) => {
 
     /* ===== FETCH CERTIFICATES ===== */
 
-   const certRes = await pool.query(
-  `
-  SELECT
-    cr.title AS course_name,
-    c.issued_at
+    const certRes = await pool.query(
+      `
+      SELECT
+        cr.title AS course_name,
+        c.issued_at
 
-  FROM certificates c
+      FROM certificates c
 
-  JOIN courses cr
-    ON cr.id = c.course_id
+      JOIN courses cr
+        ON cr.id = c.course_id
 
-  WHERE c.user_id = $1
+      WHERE c.user_id = $1
 
-  ORDER BY c.issued_at DESC
-  `,
-  [resumeRow.user_id]
-);
+      ORDER BY c.issued_at DESC
+      `,
+      [userId]
+    );
 
     const certificates =
       certRes.rows || [];
@@ -404,78 +414,82 @@ router.get("/download/:resumeId", async (req, res) => {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 
-const TEMPLATE_CSS = {
+    /* ===== TEMPLATE CSS ===== */
 
-  executive: `
-    body{
-      font-family:Arial,sans-serif;
-      background:#f4f6f9;
-      padding:40px;
-    }
+    const TEMPLATE_CSS = {
 
-    .resume-sheet{
-      background:white;
-      border-left:8px solid #2563eb;
-      padding:40px;
-      border-radius:18px;
-      box-shadow:0 10px 30px rgba(0,0,0,.08);
-    }
+      executive: `
+        body{
+          font-family:Arial,sans-serif;
+          background:#f4f6f9;
+          padding:40px;
+        }
 
-    h1{
-      color:#2563eb;
-      font-size:38px;
-    }
+        .resume-sheet{
+          background:white;
+          border-left:8px solid #2563eb;
+          padding:40px;
+          border-radius:18px;
+          box-shadow:0 10px 30px rgba(0,0,0,.08);
+        }
 
-    h3{
-      color:#111827;
-      margin-top:24px;
-    }
-  `,
+        h1{
+          color:#2563eb;
+          font-size:38px;
+        }
 
-  creative: `
-    body{
-      font-family:system-ui;
-      background:#fff7fb;
-      padding:40px;
-    }
+        h3{
+          color:#111827;
+          margin-top:24px;
+        }
+      `,
 
-    .resume-sheet{
-      background:white;
-      padding:40px;
-      border-radius:24px;
-      border-top:10px solid #ec4899;
-      box-shadow:0 10px 30px rgba(0,0,0,.08);
-    }
+      creative: `
+        body{
+          font-family:system-ui;
+          background:#fff7fb;
+          padding:40px;
+        }
 
-    h1,h3{
-      color:#ec4899;
-    }
-  `,
+        .resume-sheet{
+          background:white;
+          padding:40px;
+          border-radius:24px;
+          border-top:10px solid #ec4899;
+          box-shadow:0 10px 30px rgba(0,0,0,.08);
+        }
 
-  modern: `
-    body{
-      font-family:system-ui;
-      background:#f8fafc;
-      padding:40px;
-    }
+        h1,h3{
+          color:#ec4899;
+        }
+      `,
 
-    .resume-sheet{
-      background:white;
-      padding:40px;
-      border-radius:20px;
-      box-shadow:0 10px 30px rgba(0,0,0,.08);
-    }
+      modern: `
+        body{
+          font-family:system-ui;
+          background:#f8fafc;
+          padding:40px;
+        }
 
-    h1{
-      color:#7c3aed;
-    }
-  `
+        .resume-sheet{
+          background:white;
+          padding:40px;
+          border-radius:20px;
+          box-shadow:0 10px 30px rgba(0,0,0,.08);
+        }
 
-};
+        h1{
+          color:#7c3aed;
+        }
+      `
+    };
 
-console.log("TEMPLATE =", template);
+    console.log(
+      "TEMPLATE =",
+      template
+    );
 
-    /* ===== FINAL HTML ===== */
+    /* ===== HTML ===== */
 
     const html = `
 <!DOCTYPE html>
@@ -489,52 +503,33 @@ console.log("TEMPLATE =", template);
 ${TEMPLATE_CSS[template] || TEMPLATE_CSS.modern}
 
 body{
-
-  font-family:Arial,sans-serif;
-
-  padding:40px;
-
   color:#111;
-
 }
 
 .resume-sheet{
-
   max-width:800px;
-
   margin:auto;
-
 }
 
 h1{
-
   margin-bottom:4px;
-
 }
 
 h3{
-
   margin-top:24px;
-
 }
 
 p,
 li{
-
   line-height:1.7;
-
 }
 
 ul{
-
   padding-left:18px;
-
 }
 
 hr{
-
   margin:18px 0;
-
 }
 
 </style>
@@ -571,11 +566,15 @@ ${safe(resume.phone)}
 
 <h3>Certificates</h3>
 
+${certificates.length ? `
 <ul>
-${certificates.map(c => `
-<li>${safe(c.course_name)}</li>
-`).join("")}
+  ${certificates.map(c => `
+    <li>${safe(c.course_name)}</li>
+  `).join("")}
 </ul>
+` : `
+<p>No certificates added</p>
+`}
 
 </div>
 
@@ -583,29 +582,31 @@ ${certificates.map(c => `
 </html>
 `;
 
+    /* ===== PUPPETEER ===== */
 
+    browser = await puppeteer.launch({
 
-/* ===== PUPPETEER ===== */
+      args: chromium.args,
 
-const chromium = require("@sparticuz/chromium");
+      defaultViewport:
+        chromium.defaultViewport,
 
-browser = await puppeteer.launch({
+      executablePath:
+        await chromium.executablePath(),
 
-  args: chromium.args,
+      headless:
+        chromium.headless
 
-  defaultViewport: chromium.defaultViewport,
+    });
 
-  executablePath: await chromium.executablePath(),
-
-  headless: chromium.headless
-
-});
-
-    const page = await browser.newPage();
+    const page =
+      await browser.newPage();
 
     await page.setViewport({
+
       width: 1400,
       height: 2000
+
     });
 
     await page.setContent(html, {
@@ -657,9 +658,11 @@ browser = await puppeteer.launch({
     );
 
     if (browser) {
+
       try {
         await browser.close();
       } catch {}
+
     }
 
     return res
@@ -668,7 +671,6 @@ browser = await puppeteer.launch({
   }
 
 });
-
 
 /* ================= TOGGLE RESUME VISIBILITY ================= */
 router.post("/toggle-privacy", verifyToken, async (req, res) => {

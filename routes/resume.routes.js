@@ -512,18 +512,17 @@ ${certificates.map(c => `
 
 /* ===== PUPPETEER ===== */
 
+const chromium = require("@sparticuz/chromium");
+
 browser = await puppeteer.launch({
 
-  executablePath: "/usr/bin/chromium",
+  args: chromium.args,
 
-  headless: true,
+  defaultViewport: chromium.defaultViewport,
 
-  args: [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-gpu"
-  ]
+  executablePath: await chromium.executablePath(),
+
+  headless: chromium.headless
 
 });
 

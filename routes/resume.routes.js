@@ -400,6 +400,75 @@ router.get("/download/:resumeId", async (req, res) => {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 
+const TEMPLATE_CSS = {
+
+  executive: `
+    body{
+      font-family:Arial,sans-serif;
+      background:#f4f6f9;
+      padding:40px;
+    }
+
+    .resume-sheet{
+      background:white;
+      border-left:8px solid #2563eb;
+      padding:40px;
+      border-radius:18px;
+      box-shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+
+    h1{
+      color:#2563eb;
+      font-size:38px;
+    }
+
+    h3{
+      color:#111827;
+      margin-top:24px;
+    }
+  `,
+
+  creative: `
+    body{
+      font-family:system-ui;
+      background:#fff7fb;
+      padding:40px;
+    }
+
+    .resume-sheet{
+      background:white;
+      padding:40px;
+      border-radius:24px;
+      border-top:10px solid #ec4899;
+      box-shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+
+    h1,h3{
+      color:#ec4899;
+    }
+  `,
+
+  modern: `
+    body{
+      font-family:system-ui;
+      background:#f8fafc;
+      padding:40px;
+    }
+
+    .resume-sheet{
+      background:white;
+      padding:40px;
+      border-radius:20px;
+      box-shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+
+    h1{
+      color:#7c3aed;
+    }
+  `
+
+};
+
     /* ===== FINAL HTML ===== */
 
     const html = `

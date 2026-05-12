@@ -506,12 +506,28 @@ ${certificates.map(c => `
 </html>
 `;
 
-    /* ===== PUPPETEER ===== */
+/* ===== FIND INSTALLED CHROME ===== */
+
+const chromeBase =
+  "/opt/render/.cache/puppeteer/chrome";
+
+const chromeFolder =
+  fs.readdirSync(chromeBase)
+    .find(f => f.startsWith("linux-"));
+
+const chromePath =
+  path.join(
+    chromeBase,
+    chromeFolder,
+    "chrome-linux64",
+    "chrome"
+  );
+
+/* ===== PUPPETEER ===== */
 
 browser = await puppeteer.launch({
 
-  executablePath:
-    "/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome",
+  executablePath: chromePath,
 
   headless: "new",
 

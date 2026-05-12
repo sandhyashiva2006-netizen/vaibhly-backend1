@@ -512,22 +512,11 @@ ${certificates.map(c => `
 
 /* ===== PUPPETEER ===== */
 
-const executablePath =
-  computeExecutablePath({
-
-    browser: "chrome",
-
-    buildId: "127.0.6533.88",
-
-    cacheDir: "/opt/render/.cache/puppeteer"
-
-  });
-
 browser = await puppeteer.launch({
 
-  executablePath,
+  executablePath: "/usr/bin/chromium",
 
-  headless: "new",
+  headless: true,
 
   args: [
     "--no-sandbox",

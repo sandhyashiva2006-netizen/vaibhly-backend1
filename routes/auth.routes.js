@@ -537,17 +537,17 @@ router.get(
         }
       );
 
-      res.redirect(
-        `https://vaibhly-frontend.pages.dev/google-success.html?token=${token}&role=${req.user.role}`
-      );
+     res.redirect(
+  `https://vaibhly.in/google-success.html?token=${token}&role=${req.user.role}`
+);
 
     }catch(err){
 
       console.log(err);
 
-      res.redirect(
-        "https://vaibhly-frontend.pages.dev/login.html"
-      );
+     res.redirect(
+  "https://vaibhly.in/login.html"
+);
 
     }
 

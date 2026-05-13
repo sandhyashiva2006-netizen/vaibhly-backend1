@@ -499,6 +499,19 @@ router.post("/reset-password", async (req, res) => {
 
 const passport = require("passport");
 
+/* ================= GOOGLE LOGIN ================= */
+
+router.get(
+  "/google",
+
+  passport.authenticate(
+    "google",
+    {
+      scope:["profile","email"]
+    }
+  )
+);
+
 // GOOGLE LOGIN START
 router.get(
   "/google/callback",

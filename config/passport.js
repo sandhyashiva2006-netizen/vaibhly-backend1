@@ -27,12 +27,55 @@ async (accessToken, refreshToken, profile, done)=>{
 
    if(!user.rows.length){
 
-     const created = await pool.query(
-       `INSERT INTO users(name,email,role)
-        VALUES($1,$2,'student')
-        RETURNING *`,
-       [name,email]
-     );
+     const username =
+name.toLowerCase().replace(/\s+/g,"") +
+Math.floor(1000 + Math.random()*9000);
+
+const created = await pool.query(
+  `
+  INSERT INTO users
+  (name,email,role,username)
+  VALUES($1,$2,'student',$3)
+  RETURNING *
+  `,
+  [name,email,username]
+);
+
+const newUser = created.rows[0];
+
+/* ===== CREATE WALLET ===== */
+
+await pool.query(
+  `
+  INSERT INTO user_wallets
+  (user_id,coins)
+  VALUES($1,0)
+  `,
+  [newUser.id]
+);
+
+/* ===== CREATE REFERRAL ===== */
+
+const referralCode =
+name.substring(0,4).toUpperCase() +
+Math.floor(1000 + Math.random()*9000) +
+newUser.id;
+
+await pool.query(
+  `
+  UPDATE users
+  SET referral_code=$1
+  WHERE id=$2
+  `,
+  [referralCode,newUser.id]
+);
+
+user = {
+  rows:[{
+    ...newUser,
+    referral_code:referralCode
+  }]
+};
 
      user = created;
    }

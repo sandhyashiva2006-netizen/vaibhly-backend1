@@ -388,17 +388,23 @@ router.get("/download/:resumeId", async (req, res) => {
     /* ===== FETCH CERTIFICATES ===== */
 
     const certRes = await pool.query(
-      `
-      SELECT
-        cr.title AS course_name
-      FROM certificates c
-      JOIN courses cr
-        ON cr.id = c.course_id
-      WHERE c.user_id = $1
-      ORDER BY c.issued_at DESC
-      `,
-      [userId]
-    );
+  `
+  SELECT
+    title AS course_name
+  FROM competitive_certificates
+  WHERE user_id = $1
+
+  UNION
+
+  SELECT
+    cr.title AS course_name
+  FROM certificates c
+  JOIN courses cr
+    ON cr.id = c.course_id
+  WHERE c.user_id = $1
+  `,
+  [userId]
+);
 
     const certificates =
       certRes.rows || [];

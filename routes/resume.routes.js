@@ -390,18 +390,23 @@ router.get("/download/:resumeId", async (req, res) => {
     const certRes = await pool.query(
   `
   SELECT
-    title AS course_name
-  FROM competitive_certificates
-  WHERE user_id = $1
-
-  UNION
-
-  SELECT
     cr.title AS course_name
+
   FROM certificates c
+
   JOIN courses cr
     ON cr.id = c.course_id
+
   WHERE c.user_id = $1
+
+  UNION ALL
+
+  SELECT
+    cc.title AS course_name
+
+  FROM competitive_certificates cc
+
+  WHERE cc.user_id = $1
   `,
   [userId]
 );

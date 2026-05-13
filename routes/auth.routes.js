@@ -500,26 +500,44 @@ router.post("/reset-password", async (req, res) => {
 const passport = require("passport");
 
 // GOOGLE LOGIN START
-router.get("/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
+router.get(
+  "/google/callback",
 
-// GOOGLE CALLBACK
-router.get("/google/callback",
-  passport.authenticate("google", { session: false }),
+  passport.authenticate("google", {
+    session: false
+  }),
+
   async (req, res) => {
 
-    const jwt = require("jsonwebtoken");
+    try{
 
-    const token = jwt.sign(
-      { id: req.user.id, role: req.user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+      const jwt = require("jsonwebtoken");
 
-    res.redirect(
-`https://vaibhly-frontend.pages.dev/google-success.html?token=${token}`
-);
+      const token = jwt.sign(
+        {
+          id:req.user.id,
+          role:req.user.role
+        },
+        process.env.JWT_SECRET,
+        {
+          expiresIn:"7d"
+        }
+      );
+
+      res.redirect(
+        `https://vaibhly-frontend.pages.dev/google-success.html?token=${token}&role=${req.user.role}`
+      );
+
+    }catch(err){
+
+      console.log(err);
+
+      res.redirect(
+        "https://vaibhly-frontend.pages.dev/login.html"
+      );
+
+    }
+
   }
 );
 

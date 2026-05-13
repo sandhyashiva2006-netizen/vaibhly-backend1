@@ -402,9 +402,12 @@ router.get("/download/:resumeId", async (req, res) => {
   UNION ALL
 
   SELECT
-    cc.title AS course_name
+    ce.title AS course_name
 
   FROM competitive_certificates cc
+
+  JOIN competitive_exams ce
+    ON ce.id = cc.exam_id
 
   WHERE cc.user_id = $1
   `,

@@ -69,11 +69,17 @@ const role =
             await pool.query(
               `
               INSERT INTO users
-              (name,email,role,username)
-              VALUES($1,$2,$3,$4)
-              RETURNING *
+(name,email,password,role,username)
+VALUES($1,$2,$3,$4,$5)
+RETURNING *
               `,
-              [name,email,role,username]
+              [
+  name,
+  email,
+  "GOOGLE_AUTH_USER",
+  role,
+  username
+]
             );
 
           const newUser =
@@ -106,6 +112,16 @@ const role =
             `,
             [referralCode,newUser.id]
           );
+
+const referralCode =
+
+  referralPrefix +
+
+  Math.floor(
+    1000 + Math.random()*9000
+  ) +
+
+  newUser.id;
 
           /* ===== GET UPDATED USER ===== */
 

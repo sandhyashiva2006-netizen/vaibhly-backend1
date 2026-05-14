@@ -14,6 +14,34 @@ const http = require("http");
 const { Server } = require("socket.io");
 require("./cron/subscription.cron");
 
+app.use((req,res,next)=>{
+
+res.header(
+  "Access-Control-Allow-Origin",
+  "*"
+);
+
+res.header(
+  "Access-Control-Allow-Headers",
+  "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+);
+
+res.header(
+  "Access-Control-Allow-Methods",
+  "GET, POST, PUT, DELETE, OPTIONS"
+);
+
+/* HANDLE PREFLIGHT */
+
+if(req.method === "OPTIONS"){
+
+return res.sendStatus(200);
+
+}
+
+next();
+
+});
 
 /* ================= ROUTES ================= */
 const adminRoutes = require("./routes/admin.routes");
@@ -48,10 +76,7 @@ require("./routes/auth.routes");
 /* ================= MIDDLEWARE ================= */
 
 
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+
 
 
 // ✅ EXCEPTION for webhook (must be BEFORE json if needed)

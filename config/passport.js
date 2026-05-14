@@ -11,7 +11,8 @@ new GoogleStrategy(
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
 
   callbackURL:
-  "https://vaibhly-backend1.onrender.com/api/auth/google/callback"
+"https://vaibhly.in/api/auth/google/callback"
+
 },
 async (accessToken, refreshToken, profile, done)=>{
 

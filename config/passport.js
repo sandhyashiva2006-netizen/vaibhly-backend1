@@ -78,7 +78,7 @@ user = {
   }]
 };
 
-     user = created;
+    
    }
 
    return done(null, user.rows[0]);

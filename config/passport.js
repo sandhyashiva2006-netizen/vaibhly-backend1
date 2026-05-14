@@ -10,20 +10,20 @@ passport.use(
 
     {
 
-      clientID:
-        process.env.GOOGLE_CLIENT_ID,
+  clientID:
+    process.env.GOOGLE_CLIENT_ID,
 
-      clientSecret:
-        process.env.GOOGLE_CLIENT_SECRET,
+  clientSecret:
+    process.env.GOOGLE_CLIENT_SECRET,
 
-      callbackURL:
-        "https://vaibhly-backend1.onrender.com/api/auth/google/callback"
+  callbackURL:
+    "https://vaibhly-backend1.onrender.com/api/auth/google/callback",
 
-proxy: true,
+  proxy:true,
 
-passReqToCallback:true
+  passReqToCallback:true
 
-    },
+},
 
     async (
   req,

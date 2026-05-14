@@ -48,30 +48,10 @@ require("./routes/auth.routes");
 /* ================= MIDDLEWARE ================= */
 
 
-app.use(
-  cors({
-    origin:[
-      "https://vaibhly.in",
-      "https://www.vaibhly.in",
-      "https://vaibhly-frontend.pages.dev"
-    ],
-
-    methods:[
-      "GET",
-      "POST",
-      "PUT",
-      "DELETE",
-      "OPTIONS"
-    ],
-
-    allowedHeaders:[
-      "Content-Type",
-      "Authorization"
-    ],
-
-    credentials:true
-  })
-);
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 
 
 // ✅ EXCEPTION for webhook (must be BEFORE json if needed)

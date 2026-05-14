@@ -42,6 +42,8 @@ const instructorModuleRoutes = require("./routes/instructor.module.routes");
 const examRoutes = require("./routes/exam.routes");
 const leaderboardRoutes = require("./routes/leaderboard.routes");
 const instructorEarningsRoutes = require("./routes/instructorEarnings.routes");
+const authRoutes =
+require("./routes/auth.routes");
 
 /* ================= MIDDLEWARE ================= */
 
@@ -220,7 +222,10 @@ app.use("/api", instructorModuleRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/instructor-earnings", instructorEarningsRoutes);
 app.use("/", publicRoutes);
-
+app.use(
+"/api/auth",
+authRoutes
+);
 
 app.use(express.static(path.join(__dirname, "..", "client")));
 

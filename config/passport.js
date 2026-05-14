@@ -51,6 +51,38 @@ const role =
             [email]
           );
 
+/* ===== UPDATE ROLE IF DIFFERENT ===== */
+
+if(user.rows.length){
+
+  const existingUser =
+    user.rows[0];
+
+  if(existingUser.role !== role){
+
+    await pool.query(
+      `
+      UPDATE users
+      SET role=$1
+      WHERE id=$2
+      `,
+      [role, existingUser.id]
+    );
+
+    user =
+      await pool.query(
+        `
+        SELECT *
+        FROM users
+        WHERE id=$1
+        `,
+        [existingUser.id]
+      );
+
+  }
+
+}
+
         /* ===== CREATE USER ===== */
 
         if(!user.rows.length){

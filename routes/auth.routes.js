@@ -517,19 +517,11 @@ router.get(
 router.get(
   "/google/student",
 
-  (req,res,next)=>{
-
-    req.session.oauthRole =
-      "student";
-
-    next();
-
-  },
-
   passport.authenticate(
     "google",
     {
-      scope:["profile","email"]
+      scope:["profile","email"],
+      state:"student"
     }
   )
 );
@@ -539,19 +531,11 @@ router.get(
 router.get(
   "/google/instructor",
 
-  (req,res,next)=>{
-
-    req.session.oauthRole =
-      "instructor";
-
-    next();
-
-  },
-
   passport.authenticate(
     "google",
     {
-      scope:["profile","email"]
+      scope:["profile","email"],
+      state:"instructor"
     }
   )
 );
@@ -561,19 +545,11 @@ router.get(
 router.get(
   "/google/recruiter",
 
-  (req,res,next)=>{
-
-    req.session.oauthRole =
-      "recruiter";
-
-    next();
-
-  },
-
   passport.authenticate(
     "google",
     {
-      scope:["profile","email"]
+      scope:["profile","email"],
+      state:"recruiter"
     }
   )
 );

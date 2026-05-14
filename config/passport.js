@@ -5,148 +5,142 @@ require("passport-google-oauth20").Strategy;
 const pool = require("./db");
 
 passport.use(
-new GoogleStrategy(
-{
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
 
-  callbackURL:
-"https://vaibhly-backend1.onrender.com/api/auth/google/callback"
+  new GoogleStrategy(
 
-},
-async (accessToken, refreshToken, profile, done)=>{
+    {
 
- try{
+      clientID:
+        process.env.GOOGLE_CLIENT_ID,
 
-   const email = profile.emails[0].value;
-   const name = profile.displayName;
+      clientSecret:
+        process.env.GOOGLE_CLIENT_SECRET,
 
-   let user = await pool.query(
-     "SELECT * FROM users WHERE email=$1",
-     [email]
-   );
+      callbackURL:
+        "https://vaibhly-backend1.onrender.com/api/auth/google/callback"
 
-   if(!user.rows.length){
+proxy: true,
 
-  const username =
-    name.toLowerCase()
-    .replace(/\s+/g,"") +
-    Math.floor(1000 + Math.random()*9000);
+passReqToCallback:true,
 
-  const created =
-    await pool.query(
-      `
-      INSERT INTO users
-      (name,email,role,username)
-      VALUES($1,$2,'student',$3)
-      RETURNING *
-      `,
-      [name,email,username]
-    );
+    },
 
-  const newUser =
-    created.rows[0];
+    async (
+  req,
+  accessToken,
+  refreshToken,
+  profile,
+  done
+) => {
 
-  /* ===== CREATE WALLET ===== */
+      try {
 
-  await pool.query(
-    `
-    INSERT INTO user_wallets
-    (user_id,coins)
-    VALUES($1,0)
-    `,
-    [newUser.id]
-  );
+        const email =
+          profile.emails[0].value;
 
-  /* ===== CREATE REFERRAL ===== */
+        const name =
+          profile.displayName;
 
-  const referralCode =
-    name.substring(0,4).toUpperCase() +
-    Math.floor(1000 + Math.random()*9000) +
-    newUser.id;
+const role =
+  req.session.oauthRole ||
+  "student";
 
-  await pool.query(
-    `
-    UPDATE users
-    SET referral_code=$1
-    WHERE id=$2
-    `,
-    [referralCode,newUser.id]
-  );
+        let user =
+          await pool.query(
+            "SELECT * FROM users WHERE email=$1",
+            [email]
+          );
 
-  /* ===== GET FINAL UPDATED USER ===== */
+        /* ===== CREATE USER ===== */
 
-  user = await pool.query(
-    `
-    SELECT *
-    FROM users
-    WHERE id=$1
-    `,
-    [newUser.id]
-  );
+        if(!user.rows.length){
 
-}
+          const username =
+  name
+  .toLowerCase()
+  .replace(/[^a-z0-9]/g,"")
+  .substring(0,15) +
 
-     const username =
-name.toLowerCase().replace(/\s+/g,"") +
-Math.floor(1000 + Math.random()*9000);
+  Date.now()
+  .toString()
+  .slice(-4);
 
-const created = await pool.query(
-  `
-  INSERT INTO users
-  (name,email,role,username)
-  VALUES($1,$2,'student',$3)
-  RETURNING *
-  `,
-  [name,email,username]
-);
+          const created =
+            await pool.query(
+              `
+              INSERT INTO users
+              (name,email,role,username)
+              VALUES($1,$2,$3,$4)
+              RETURNING *
+              `,
+              [name,email,role,username]
+            );
 
-const newUser = created.rows[0];
+          const newUser =
+            created.rows[0];
 
-/* ===== CREATE WALLET ===== */
+          /* ===== CREATE WALLET ===== */
 
-await pool.query(
-  `
-  INSERT INTO user_wallets
-  (user_id,coins)
-  VALUES($1,0)
-  `,
-  [newUser.id]
-);
+          await pool.query(
+            `
+            INSERT INTO user_wallets
+            (user_id,coins)
+            VALUES($1,0)
+            `,
+            [newUser.id]
+          );
 
-/* ===== CREATE REFERRAL ===== */
+          /* ===== CREATE REFERRAL ===== */
 
-const referralCode =
-name.substring(0,4).toUpperCase() +
-Math.floor(1000 + Math.random()*9000) +
-newUser.id;
+          const referralPrefix =
+  name
+  .replace(/[^a-zA-Z]/g,"")
+  .substring(0,4)
+  .toUpperCase() || "VAI";
 
-await pool.query(
-  `
-  UPDATE users
-  SET referral_code=$1
-  WHERE id=$2
-  `,
-  [referralCode,newUser.id]
-);
+          await pool.query(
+            `
+            UPDATE users
+            SET referral_code=$1
+            WHERE id=$2
+            `,
+            [referralCode,newUser.id]
+          );
 
-user = {
-  rows:[{
-    ...newUser,
-    referral_code:referralCode
-  }]
-};
+          /* ===== GET UPDATED USER ===== */
 
-    
-   }
+          user =
+            await pool.query(
+              `
+              SELECT *
+              FROM users
+              WHERE id=$1
+              `,
+              [newUser.id]
+            );
 
-   return done(null, user.rows[0]);
+        }
 
- }catch(err){
-   return done(err,null);
- }
+        return done(
+          null,
+          user.rows[0]
+        );
 
-})
+      } catch(err) {
+
+        console.error(
+          "Google auth error:",
+          err
+        );
+
+        return done(err,null);
+
+      }
+
+    }
+
+  )
+
 );
 
 module.exports = passport;

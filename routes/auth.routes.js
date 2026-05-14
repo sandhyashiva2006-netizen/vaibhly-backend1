@@ -491,7 +491,7 @@ pass:process.env.EMAIL_PASS
 
 /* SEND EMAIL */
 
-await transporter.sendMail({
+transporter.sendMail({
 
 from:process.env.EMAIL_USER,
 
@@ -512,20 +512,33 @@ ${otp}
 </h1>
 
 <p>
-This OTP will expire soon.
+This OTP expires soon.
 </p>
 
 </div>
 
 `
 
+},(error,info)=>{
+
+if(error){
+
+console.log(error);
+
+return res.status(500).json({
+success:false,
+error:"Failed to send OTP"
 });
+
+}
 
 /* SUCCESS */
 
-res.json({
+return res.json({
 success:true,
-message:"OTP sent"
+message:"OTP sent successfully"
+});
+
 });
 
 }catch(err){

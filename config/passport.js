@@ -21,7 +21,7 @@ passport.use(
 
 proxy: true,
 
-passReqToCallback:true,
+passReqToCallback:true
 
     },
 

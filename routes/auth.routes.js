@@ -411,90 +411,219 @@ router.post("/verify-otp", async (req, res) => {
   res.json({ success: true });
 });
 
-const nodemailer = require("nodemailer");
+const nodemailer =
+require("nodemailer");
 
-router.post("/forgot-password", async (req,res)=>{
- try{
+/* ================= FORGOT PASSWORD ================= */
 
-   const { email } = req.body;
+router.post(
+"/forgot-password",
+async(req,res)=>{
 
-   if(!email){
-     return res.status(400).json({
-       error:"Email required"
-     });
-   }
+try{
 
-   const user = await pool.query(
-     `SELECT id,email FROM users WHERE email=$1`,
-     [email]
-   );
+const { email } =
+req.body;
 
-   if(!user.rows.length){
-     return res.status(404).json({
-       error:"Email not found"
-     });
-   }
+if(!email){
 
-   const otp =
-     Math.floor(100000 + Math.random()*900000).toString();
-
-   await pool.query(
-     `
-     UPDATE users
-     SET reset_otp=$1,
-         reset_otp_expiry=NOW() + INTERVAL '10 minutes'
-     WHERE email=$2
-     `,
-     [otp,email]
-   );
-
-   const transporter = nodemailer.createTransport({
-     service:"gmail",
-     auth:{
-       user:process.env.EMAIL_USER,
-       pass:process.env.EMAIL_PASS
-     }
-   });
-
-   await transporter.sendMail({
-     from:process.env.EMAIL_USER,
-     to:email,
-     subject:"Vaibhly Password Reset OTP",
-     text:`Your OTP is ${otp}`
-   });
-
-   res.json({
-     success:true
-   });
-
- }catch(err){
-   console.error(err);
-   res.status(500).json({
-     error:err.message
-   });
- }
+return res.status(400).json({
+error:"Email required"
 });
 
-router.post("/reset-password", async (req, res) => {
-  const { email, otp, newPassword } = req.body;
+}
 
-  const result = await pool.query(
-    "SELECT * FROM otp_codes WHERE email=$1 AND otp=$2 AND expires_at > NOW()",
-    [email, otp]
-  );
+/* CHECK USER */
 
-  if (!result.rows.length) {
-    return res.status(400).json({ error: "Invalid OTP" });
-  }
+const user =
+await pool.query(
+`
+SELECT id
+FROM users
+WHERE email=$1
+`,
+[email]
+);
 
-  const hashed = await bcrypt.hash(newPassword, 10);
+if(user.rows.length === 0){
 
-  await pool.query(
-    "UPDATE users SET password=$1 WHERE email=$2",
-    [hashed, email]
-  );
+return res.status(404).json({
+error:"Email not found"
+});
 
-  res.json({ success: true });
+}
+
+/* GENERATE OTP */
+
+const otp =
+Math.floor(
+100000 + Math.random()*900000
+).toString();
+
+/* SAVE OTP */
+
+await pool.query(
+`
+UPDATE users
+SET reset_otp=$1
+WHERE email=$2
+`,
+[otp,email]
+);
+
+/* EMAIL TRANSPORT */
+
+const transporter =
+nodemailer.createTransport({
+
+host:"smtp.gmail.com",
+
+port:465,
+
+secure:true,
+
+auth:{
+user:process.env.EMAIL_USER,
+pass:process.env.EMAIL_PASS
+}
+
+});
+
+/* SEND EMAIL */
+
+await transporter.sendMail({
+
+from:process.env.EMAIL_USER,
+
+to:email,
+
+subject:"Vaibhly Password Reset OTP",
+
+html:`
+
+<div style="font-family:Arial;padding:20px">
+
+<h2>Password Reset OTP</h2>
+
+<p>Your OTP is:</p>
+
+<h1 style="letter-spacing:4px">
+${otp}
+</h1>
+
+<p>
+This OTP will expire soon.
+</p>
+
+</div>
+
+`
+
+});
+
+/* SUCCESS */
+
+res.json({
+success:true,
+message:"OTP sent"
+});
+
+}catch(err){
+
+console.log(err);
+
+res.status(500).json({
+success:false,
+error:"Failed to send OTP"
+});
+
+}
+
+});
+
+/* ================= RESET PASSWORD ================= */
+
+router.post(
+"/reset-password",
+async(req,res)=>{
+
+try{
+
+const {
+email,
+otp,
+password
+} = req.body;
+
+if(
+!email ||
+!otp ||
+!password
+){
+
+return res.status(400).json({
+error:"All fields required"
+});
+
+}
+
+/* CHECK OTP */
+
+const user =
+await pool.query(
+`
+SELECT id
+FROM users
+WHERE email=$1
+AND reset_otp=$2
+`,
+[email,otp]
+);
+
+if(user.rows.length === 0){
+
+return res.status(400).json({
+error:"Invalid OTP"
+});
+
+}
+
+/* HASH PASSWORD */
+
+const hashed =
+await bcrypt.hash(password,10);
+
+/* UPDATE PASSWORD */
+
+await pool.query(
+`
+UPDATE users
+SET
+password=$1,
+reset_otp=NULL
+WHERE email=$2
+`,
+[hashed,email]
+);
+
+/* SUCCESS */
+
+res.json({
+success:true,
+message:"Password reset successful"
+});
+
+}catch(err){
+
+console.log(err);
+
+res.status(500).json({
+success:false,
+error:"Password reset failed"
+});
+
+}
+
 });
 
 const passport = require("passport");

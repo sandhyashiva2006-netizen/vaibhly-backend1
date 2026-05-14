@@ -45,7 +45,6 @@ const instructorEarningsRoutes = require("./routes/instructorEarnings.routes");
 
 /* ================= MIDDLEWARE ================= */
 
-const cors = require("cors");
 
 app.use(
   cors({

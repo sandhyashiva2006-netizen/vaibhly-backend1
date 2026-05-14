@@ -42,7 +42,11 @@ passport.use(
           profile.displayName;
 
 const role =
-  req.query.state ||
+
+  req.query?.state ||
+
+  req.authInfo?.state ||
+
   "student";
 
         let user =

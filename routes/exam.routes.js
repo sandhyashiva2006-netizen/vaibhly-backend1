@@ -1147,4 +1147,55 @@ await pool.query(
   }
 );
 
+/* ================= COURSE EXAM QUESTIONS ================= */
+
+router.get(
+"/course/:courseId",
+
+verifyToken,
+
+async(req,res)=>{
+
+try{
+
+const courseId =
+Number(req.params.courseId);
+
+if(!courseId){
+
+return res.status(400).json({
+error:"Invalid course ID"
+});
+
+}
+
+const result =
+await pool.query(
+`
+SELECT *
+FROM exam_questions
+WHERE course_id = $1
+ORDER BY id ASC
+`,
+[courseId]
+);
+
+return res.json(result.rows);
+
+}catch(err){
+
+console.error(
+"Load course exam questions error:",
+err
+);
+
+return res.status(500).json({
+error:"Failed to load exam questions"
+});
+
+}
+
+}
+);
+
 module.exports = router;

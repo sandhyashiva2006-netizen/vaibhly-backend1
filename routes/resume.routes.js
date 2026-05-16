@@ -1295,4 +1295,47 @@ VALUES ($1,$2,'PAID',$3,$4,$5)
   }
 });
 
+/* ================= GET MY FULL RESUME ================= */
+router.get("/my-resume", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const r = await pool.query(
+      `
+      SELECT
+        id,
+        user_id,
+        resume_data,
+        template,
+        slug,
+        is_public,
+        updated_at
+      FROM resumes
+      WHERE user_id = $1
+      LIMIT 1
+      `,
+      [userId]
+    );
+
+    if (!r.rows.length) {
+      return res.json({
+        id: null,
+        resume_data: {},
+        template: "modern",
+        slug: null,
+        is_public: false
+      });
+    }
+
+    return res.json(r.rows[0]);
+
+  } catch (err) {
+    console.error("Fetch full resume failed:", err);
+    return res.status(500).json({
+      error: "Failed to fetch resume",
+      details: err.message
+    });
+  }
+});
+
 module.exports = router;

@@ -613,59 +613,98 @@ function getResumeCSS() {
 
     body {
       margin: 0;
-      padding: 35px;
+      padding: 0;
       font-family: Arial, sans-serif;
-      background: #f8f5ff;
-      color: #111827;
+      background: #f4f0ff;
+      color: #1f2937;
     }
 
     .resume-sheet {
-      max-width: 850px;
+      width: 794px;
+      min-height: 1123px;
       margin: 0 auto;
       background: #ffffff;
-      padding: 40px;
-      border-radius: 18px;
-      border: 1px solid #e9d5ff;
-      box-shadow: 0 12px 35px rgba(76, 29, 149, 0.10);
+      padding: 42px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .resume-sheet::before {
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: rgba(124, 58, 237, 0.16);
+      filter: blur(8px);
+      top: -110px;
+      right: -90px;
+      z-index: 0;
+    }
+
+    .resume-sheet::after {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: rgba(37, 99, 235, 0.13);
+      filter: blur(8px);
+      bottom: -100px;
+      left: -100px;
+      z-index: 0;
+    }
+
+    .resume-sheet > * {
+      position: relative;
+      z-index: 1;
     }
 
     .header {
-      text-align: center;
-      border-bottom: 2px solid #ede9fe;
-      padding-bottom: 22px;
+      padding: 26px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #4c1d95, #6d28d9, #2563eb);
+      color: white;
       margin-bottom: 28px;
+      box-shadow: 0 14px 35px rgba(76, 29, 149, 0.22);
     }
 
     h1 {
       margin: 0;
-      color: #4c1d95;
-      font-size: 32px;
+      color: #ffffff;
+      font-size: 34px;
       line-height: 1.2;
+      letter-spacing: -0.5px;
     }
 
     .title {
       margin-top: 8px;
-      color: #6d28d9;
+      color: #ede9fe;
       font-weight: 700;
       font-size: 17px;
     }
 
     .contact {
-      margin-top: 10px;
-      color: #4b5563;
+      margin-top: 12px;
+      color: #f5f3ff;
       font-size: 14px;
       line-height: 1.6;
     }
 
     .section {
-      margin-top: 24px;
+      margin-top: 22px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: #ffffff;
+      border: 1px solid #ede9fe;
+      box-shadow: 0 8px 24px rgba(76, 29, 149, 0.07);
     }
 
     .section h3 {
       color: #4c1d95;
-      font-size: 18px;
-      margin-bottom: 8px;
-      padding-bottom: 7px;
+      font-size: 17px;
+      margin: 0 0 10px;
+      padding-bottom: 8px;
       border-bottom: 1px solid #ddd6fe;
     }
 
@@ -674,6 +713,7 @@ function getResumeCSS() {
       line-height: 1.7;
       white-space: pre-wrap;
       margin: 0;
+      font-size: 14px;
     }
 
     ul {
@@ -681,10 +721,16 @@ function getResumeCSS() {
       padding: 0;
       color: #374151;
       line-height: 1.7;
+      font-size: 14px;
     }
 
     li {
       margin-bottom: 6px;
+    }
+
+    @page {
+      size: A4;
+      margin: 0;
     }
   `;
 }
@@ -722,21 +768,26 @@ function generateFullResumeHTML(resume, certificates = [], template = "modern") 
   const github = escapeHTML(r.github || "");
   const portfolio = escapeHTML(r.portfolio || "");
 
- const certificateHTML = certificates.length
+const certificateHTML = certificates.length
   ? certificates.map(c => {
       const certName =
+        c.certificate_name ||
         c.course_name ||
         c.exam_name ||
-        c.exam_alt_name ||
-        c.title ||
-        c.name ||
-        c.certificate_id ||
-        "Certificate";
+        c.saved_course_name ||
+        c.certificate_title ||
+        (
+          c.type === "competitive"
+            ? "Competitive Exam"
+            : c.type === "course"
+              ? "Course Certificate"
+              : "Certificate"
+        );
 
       return `
         <li>
           ${escapeHTML(certName)}
-          ${c.issued_on ? `(${new Date(c.issued_on).toLocaleDateString()})` : ""}
+          ${c.issued_on || c.issued_at ? `(${new Date(c.issued_on || c.issued_at).toLocaleDateString()})` : ""}
         </li>
       `;
     }).join("")
@@ -837,26 +888,52 @@ router.get("/candidate/:id/resume", verifyToken, async (req, res) => {
 
 const certResult = await pool.query(
   `
-  SELECT 
-    certificates.id,
-    certificates.certificate_id,
-    certificates.type,
-    certificates.issued_on,
-    certificates.course_id,
-    certificates.exam_id,
+  SELECT DISTINCT ON (c.certificate_id)
+    c.id,
+    c.certificate_id,
+    c.type,
+    c.issued_on,
+    c.issued_at,
+    c.course_id,
+    c.exam_id,
+    c.certificate_title,
+    c.course_name AS saved_course_name,
 
-    courses.title AS course_name,
-    exams.title AS exam_name
+    co.title AS course_name,
 
-  FROM certificates
-  LEFT JOIN courses 
-    ON courses.id = certificates.course_id
+    COALESCE(
+      c.certificate_title,
+      ce.title,
+      e.title,
+      co.title,
+      c.course_name,
+      CASE
+        WHEN c.type = 'competitive' THEN 'Competitive Exam'
+        WHEN c.type = 'course' THEN 'Course Certificate'
+        ELSE 'Certificate'
+      END
+    ) AS certificate_name,
 
-  LEFT JOIN exams 
-    ON exams.id = certificates.exam_id
+    COALESCE(
+      ce.title,
+      e.title
+    ) AS exam_name
 
-  WHERE certificates.user_id = $1
-  ORDER BY certificates.issued_on DESC
+  FROM certificates c
+
+  LEFT JOIN courses co
+    ON co.id = c.course_id
+
+  LEFT JOIN competitive_exams ce
+    ON ce.id = c.exam_id
+
+  LEFT JOIN exams e
+    ON e.id = c.exam_id
+
+  WHERE c.user_id = $1
+  AND c.certificate_id IS NOT NULL
+
+  ORDER BY c.certificate_id, c.issued_at DESC
   `,
   [candidateId]
 );
@@ -935,26 +1012,52 @@ router.get("/resume/public/:id", async (req, res) => {
 
 const certResult = await pool.query(
   `
-  SELECT 
-    certificates.id,
-    certificates.certificate_id,
-    certificates.type,
-    certificates.issued_on,
-    certificates.course_id,
-    certificates.exam_id,
+  SELECT DISTINCT ON (c.certificate_id)
+    c.id,
+    c.certificate_id,
+    c.type,
+    c.issued_on,
+    c.issued_at,
+    c.course_id,
+    c.exam_id,
+    c.certificate_title,
+    c.course_name AS saved_course_name,
 
-    courses.title AS course_name,
-    exams.title AS exam_name
+    co.title AS course_name,
 
-  FROM certificates
-  LEFT JOIN courses 
-    ON courses.id = certificates.course_id
+    COALESCE(
+      c.certificate_title,
+      ce.title,
+      e.title,
+      co.title,
+      c.course_name,
+      CASE
+        WHEN c.type = 'competitive' THEN 'Competitive Exam'
+        WHEN c.type = 'course' THEN 'Course Certificate'
+        ELSE 'Certificate'
+      END
+    ) AS certificate_name,
 
-  LEFT JOIN exams 
-    ON exams.id = certificates.exam_id
+    COALESCE(
+      ce.title,
+      e.title
+    ) AS exam_name
 
-  WHERE certificates.user_id = $1
-  ORDER BY certificates.issued_on DESC
+  FROM certificates c
+
+  LEFT JOIN courses co
+    ON co.id = c.course_id
+
+  LEFT JOIN competitive_exams ce
+    ON ce.id = c.exam_id
+
+  LEFT JOIN exams e
+    ON e.id = c.exam_id
+
+  WHERE c.user_id = $1
+  AND c.certificate_id IS NOT NULL
+
+  ORDER BY c.certificate_id, c.issued_at DESC
   `,
   [candidateId]
 );
@@ -1008,31 +1111,57 @@ router.get("/candidate/:id/resume-pdf", async (req, res) => {
       return res.status(404).json({ error: "Resume not found" });
     }
 
-    const certResult = await pool.query(
-      `
-      SELECT 
-        certificates.id,
-        certificates.certificate_id,
-        certificates.type,
-        certificates.issued_on,
-        certificates.course_id,
-        certificates.exam_id,
+const certResult = await pool.query(
+  `
+  SELECT DISTINCT ON (c.certificate_id)
+    c.id,
+    c.certificate_id,
+    c.type,
+    c.issued_on,
+    c.issued_at,
+    c.course_id,
+    c.exam_id,
+    c.certificate_title,
+    c.course_name AS saved_course_name,
 
-        courses.title AS course_name,
-        exams.title AS exam_name
+    co.title AS course_name,
 
-      FROM certificates
-      LEFT JOIN courses 
-        ON courses.id = certificates.course_id
+    COALESCE(
+      c.certificate_title,
+      ce.title,
+      e.title,
+      co.title,
+      c.course_name,
+      CASE
+        WHEN c.type = 'competitive' THEN 'Competitive Exam'
+        WHEN c.type = 'course' THEN 'Course Certificate'
+        ELSE 'Certificate'
+      END
+    ) AS certificate_name,
 
-      LEFT JOIN exams 
-        ON exams.id = certificates.exam_id
+    COALESCE(
+      ce.title,
+      e.title
+    ) AS exam_name
 
-      WHERE certificates.user_id = $1
-      ORDER BY certificates.issued_on DESC
-      `,
-      [candidateId]
-    );
+  FROM certificates c
+
+  LEFT JOIN courses co
+    ON co.id = c.course_id
+
+  LEFT JOIN competitive_exams ce
+    ON ce.id = c.exam_id
+
+  LEFT JOIN exams e
+    ON e.id = c.exam_id
+
+  WHERE c.user_id = $1
+  AND c.certificate_id IS NOT NULL
+
+  ORDER BY c.certificate_id, c.issued_at DESC
+  `,
+  [candidateId]
+);
 
     const resume = result.rows[0].resume_data || {};
     const template = result.rows[0].template || "modern";
@@ -1108,28 +1237,54 @@ router.get("/resume/preview/:id", async (req, res) => {
       return res.status(404).send("Resume not found");
     }
 
-  const certResult = await pool.query(
+const certResult = await pool.query(
   `
-  SELECT 
-    certificates.id,
-    certificates.certificate_id,
-    certificates.type,
-    certificates.issued_on,
-    certificates.course_id,
-    certificates.exam_id,
+  SELECT DISTINCT ON (c.certificate_id)
+    c.id,
+    c.certificate_id,
+    c.type,
+    c.issued_on,
+    c.issued_at,
+    c.course_id,
+    c.exam_id,
+    c.certificate_title,
+    c.course_name AS saved_course_name,
 
-    courses.title AS course_name,
-    exams.title AS exam_name
+    co.title AS course_name,
 
-  FROM certificates
-  LEFT JOIN courses 
-    ON courses.id = certificates.course_id
+    COALESCE(
+      c.certificate_title,
+      ce.title,
+      e.title,
+      co.title,
+      c.course_name,
+      CASE
+        WHEN c.type = 'competitive' THEN 'Competitive Exam'
+        WHEN c.type = 'course' THEN 'Course Certificate'
+        ELSE 'Certificate'
+      END
+    ) AS certificate_name,
 
-  LEFT JOIN exams 
-    ON exams.id = certificates.exam_id
+    COALESCE(
+      ce.title,
+      e.title
+    ) AS exam_name
 
-  WHERE certificates.user_id = $1
-  ORDER BY certificates.issued_on DESC
+  FROM certificates c
+
+  LEFT JOIN courses co
+    ON co.id = c.course_id
+
+  LEFT JOIN competitive_exams ce
+    ON ce.id = c.exam_id
+
+  LEFT JOIN exams e
+    ON e.id = c.exam_id
+
+  WHERE c.user_id = $1
+  AND c.certificate_id IS NOT NULL
+
+  ORDER BY c.certificate_id, c.issued_at DESC
   `,
   [candidateId]
 );

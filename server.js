@@ -74,6 +74,7 @@ const authRoutes =
 require("./routes/auth.routes");
 const recruiterInboxRoutes =
 require("./routes/recruiter.inbox.routes");
+const referralRoutes = require("./routes/referral.routes");
 
 /* ================= MIDDLEWARE ================= */
 
@@ -234,6 +235,7 @@ app.use(
 "/api/auth",
 authRoutes
 );
+app.use("/api/referrals", referralRoutes);
 
 app.use(express.static(path.join(__dirname, "..", "client")));
 

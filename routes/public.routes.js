@@ -5,6 +5,57 @@ const { verifyToken } = require("../middleware/auth.middleware");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+
+const uploadDir = path.join(__dirname, "../uploads/posts");
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+
+  filename: function (req, file, cb) {
+    const uniqueName =
+      Date.now() +
+      "-" +
+      Math.round(Math.random() * 1e9) +
+      path.extname(file.originalname);
+
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 50 * 1024 * 1024
+  },
+  fileFilter: function (req, file, cb) {
+    const allowed = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "video/mp4",
+      "video/webm",
+      "video/ogg",
+      "video/quicktime"
+    ];
+
+    if (!allowed.includes(file.mimetype)) {
+      return cb(new Error("Only image/video files allowed"));
+    }
+
+    cb(null, true);
+  }
+});
+
 /* ================= PUBLIC COURSES ================= */
 router.get("/courses", async (req, res) => {
   try {
@@ -365,48 +416,58 @@ router.get('/api/feed', verifyToken, async (req, res) => {
 
     const offset = parseInt(req.query.offset) || 0;
     const userId = req.user.id;
-
     const course = req.query.course;
 
-let query = `
-SELECT 
-  posts.id,
-  posts.title,
-  posts.content,
-  posts.image_url,
-  posts.likes,
-  posts.created_at,
-  posts.course,
-  users.username,
-  users.id AS user_id,
+    let query = `
+      SELECT 
+        posts.id,
+        posts.title,
+        posts.content,
+        posts.image_url,
+        posts.media_url,
+        posts.media_type,
+        posts.likes,
+        posts.created_at,
+        posts.course,
+        posts.repost_of,
+        posts.repost_count,
 
-  EXISTS (
-    SELECT 1 FROM followers f
-    WHERE f.follower_id = $2
-    AND f.following_id = users.id
-  ) AS is_following,
+        users.username,
+        users.id AS user_id,
 
-  COUNT(comments.id)::int AS comment_count
+        EXISTS (
+          SELECT 1 FROM followers f
+          WHERE f.follower_id = $2
+          AND f.following_id = users.id
+        ) AS is_following,
 
-FROM posts
-JOIN users ON posts.user_id = users.id
-LEFT JOIN comments ON comments.post_id = posts.id
-`;
+        EXISTS (
+          SELECT 1 FROM saved_posts sp
+          WHERE sp.user_id = $2
+          AND sp.post_id = posts.id
+        ) AS is_saved,
 
-const values = [offset, userId];
+        COUNT(comments.id)::int AS comment_count
 
-if (course && course.trim() !== "") {
-  query += ` WHERE posts.course ILIKE $3`;
-  values.push(`%${course}%`);
-}
+      FROM posts
+      JOIN users ON posts.user_id = users.id
+      LEFT JOIN comments ON comments.post_id = posts.id
+    `;
 
-query += `
-GROUP BY posts.id, users.id, posts.course
-ORDER BY posts.created_at DESC
-LIMIT 10 OFFSET $1
-`;
+    const values = [offset, userId];
 
-const result = await pool.query(query, values);
+    if (course && course.trim() !== "") {
+      query += ` WHERE posts.course ILIKE $3`;
+      values.push(`%${course}%`);
+    }
+
+    query += `
+      GROUP BY posts.id, users.id, posts.course
+      ORDER BY posts.created_at DESC
+      LIMIT 10 OFFSET $1
+    `;
+
+    const result = await pool.query(query, values);
 
     res.json(result.rows);
 
@@ -651,48 +712,87 @@ router.get('/api/users/:id/following', async (req, res) => {
   res.json(result.rows);
 });
 
-router.post('/api/posts', verifyToken, async (req, res) => {
-  try {
+router.post(
+  "/api/posts",
+  verifyToken,
+  upload.single("media"),
+  async (req, res) => {
+    try {
 
-    console.log("USER:", req.user);
-    console.log("BODY:", req.body);
+      console.log("USER:", req.user);
+      console.log("BODY:", req.body);
+      console.log("FILE:", req.file);
 
-    const userId = req.user?.id;
+      const userId = req.user?.id;
 
-    if (!userId) {
-      return res.status(401).json({ error: "Invalid user token" });
+      if (!userId) {
+        return res.status(401).json({
+          error: "Invalid user token"
+        });
+      }
+
+      const {
+        title = "",
+        type = "learning",
+        content = "",
+        course = ""
+      } = req.body || {};
+
+      if (!title && !content && !req.file) {
+        return res.status(400).json({
+          error: "Title, content or media required"
+        });
+      }
+
+      if (!course) {
+        return res.status(400).json({
+          error: "Course tag required"
+        });
+      }
+
+      let mediaUrl = null;
+      let mediaType = null;
+
+      if (req.file) {
+        mediaUrl = `/uploads/posts/${req.file.filename}`;
+        mediaType = req.file.mimetype;
+      }
+
+      const result = await pool.query(
+        `
+        INSERT INTO posts
+          (user_id, type, title, content, course, media_url, media_type, image_url)
+        VALUES
+          ($1,$2,$3,$4,$5,$6,$7,$8)
+        RETURNING id
+        `,
+        [
+          userId,
+          type,
+          title,
+          content,
+          course,
+          mediaUrl,
+          mediaType,
+          mediaUrl
+        ]
+      );
+
+      res.json({
+        success: true,
+        postId: result.rows[0].id,
+        media_url: mediaUrl,
+        media_type: mediaType
+      });
+
+    } catch (err) {
+      console.error("POST ERROR:", err);
+      res.status(500).json({
+        error: err.message
+      });
     }
-
-    const {
-      title = "",
-      type = "learning",
-      content = "",
-      image_url = null,
-      course = ""          // ✅ ADD THIS
-    } = req.body || {};
-
-    if (!title || !content || !course) {
-      return res.status(400).json({ error: "Title, content and course required" });
-    }
-
-    const result = await pool.query(
-      `INSERT INTO posts
-       (user_id, type, title, content, image_url, course)
-       VALUES ($1,$2,$3,$4,$5,$6)
-       RETURNING id`,
-      [userId, type, title, content, image_url, course]
-    );
-
-    res.json({
-      success: true,
-      postId: result.rows[0].id
-    });
-
-  } catch (err) {
-    console.error("POST ERROR:", err);
-    res.status(500).json({ error: err.message });
   }
-});
+);
 
 router.post('/api/posts/:id/like', verifyToken, async (req, res) => {
 console.log("LIKE ROUTE HIT");
@@ -747,6 +847,136 @@ console.log("LIKE ROUTE HIT");
     res.status(500).json({ error: "Like toggle failed" });
   }
 
+});
+
+router.post('/api/posts/:id/repost', verifyToken, async (req, res) => {
+  try {
+
+    const originalPostId = req.params.id;
+    const userId = req.user.id;
+
+    const original = await pool.query(
+      `
+      SELECT *
+      FROM posts
+      WHERE id = $1
+      `,
+      [originalPostId]
+    );
+
+    if (!original.rows.length) {
+      return res.status(404).json({
+        error: "Original post not found"
+      });
+    }
+
+    const post = original.rows[0];
+
+    const repost = await pool.query(
+      `
+      INSERT INTO posts
+        (
+          user_id,
+          type,
+          title,
+          content,
+          image_url,
+          media_url,
+          media_type,
+          course,
+          repost_of
+        )
+      VALUES
+        ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      RETURNING id
+      `,
+      [
+        userId,
+        post.type || "learning",
+        post.title || "",
+        post.content || "",
+        post.image_url || null,
+        post.media_url || null,
+        post.media_type || null,
+        post.course || "",
+        originalPostId
+      ]
+    );
+
+    await pool.query(
+      `
+      UPDATE posts
+      SET repost_count = COALESCE(repost_count,0) + 1
+      WHERE id = $1
+      `,
+      [originalPostId]
+    );
+
+    res.json({
+      success: true,
+      repostId: repost.rows[0].id
+    });
+
+  } catch (err) {
+    console.error("REPOST ERROR:", err.message);
+    res.status(500).json({
+      error: "Failed to repost"
+    });
+  }
+});
+
+router.post('/api/posts/:id/save', verifyToken, async (req, res) => {
+  try {
+
+    const postId = req.params.id;
+    const userId = req.user.id;
+
+    const existing = await pool.query(
+      `
+      SELECT id
+      FROM saved_posts
+      WHERE user_id = $1
+      AND post_id = $2
+      `,
+      [userId, postId]
+    );
+
+    if (existing.rowCount > 0) {
+      await pool.query(
+        `
+        DELETE FROM saved_posts
+        WHERE user_id = $1
+        AND post_id = $2
+        `,
+        [userId, postId]
+      );
+
+      return res.json({
+        saved: false,
+        unsaved: true
+      });
+    }
+
+    await pool.query(
+      `
+      INSERT INTO saved_posts
+        (user_id, post_id)
+      VALUES
+        ($1,$2)
+      `,
+      [userId, postId]
+    );
+
+    res.json({
+      saved: true
+    });
+
+  } catch (err) {
+    console.error("SAVE POST ERROR:", err.message);
+    res.status(500).json({
+      error: "Failed to save post"
+    });
+  }
 });
 
 router.post('/api/posts/:id/comments', verifyToken, async (req, res) => {

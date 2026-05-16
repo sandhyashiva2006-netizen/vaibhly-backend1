@@ -7,17 +7,25 @@ function isInstructor(req, res, next) {
   next();
 }
 
-function allowInstructor(req,res,next){
+function allowInstructor(req, res, next) {
+  if (!req.user || req.user.role !== "instructor") {
+    return res.status(403).json({
+      error: "Instructor access only"
+    });
+  }
 
- if(req.user.role !== "instructor"){
-   return res.status(403).json({
-     error:"Instructor access only"
-   });
- }
-
- next();
+  next();
 }
 
+function allowRecruiter(req, res, next) {
+  if (!req.user || req.user.role !== "recruiter") {
+    return res.status(403).json({
+      error: "Recruiter access only"
+    });
+  }
+
+  next();
+}
 
 function isAdminOnly(req, res, next) {
   if (!req.user || req.user.role !== "admin") {
@@ -28,22 +36,9 @@ function isAdminOnly(req, res, next) {
   next();
 }
 
-exports.isInstructor = (req, res, next) => {
-  if (req.user.role === "instructor" || req.user.role === "admin") {
-    return next();
-  }
-  return res.status(403).json({ error: "Instructor access only" });
-};
-
-exports.isAdminOnly = (req, res, next) => {
-  if (req.user.role === "admin") {
-    return next();
-  }
-  return res.status(403).json({ error: "Admin access only" });
-};
-
 module.exports = {
   allowInstructor,
+  allowRecruiter,
   isInstructor,
   isAdminOnly
 };

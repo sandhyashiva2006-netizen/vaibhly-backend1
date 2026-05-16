@@ -5,7 +5,29 @@ const { verifyToken } = require("../middleware/auth.middleware");
 const crypto = require("crypto");
 const razorpay = require("../config/razorpay");
 
+/* ================= PLAN JOB LIMIT RULES ================= */
 
+const PLAN_RULES = {
+  free: {
+    maxActiveJobs: 1,
+    jobDays: 15
+  },
+
+  basic: {
+    maxActiveJobs: 1,
+    jobDays: 30
+  },
+
+  pro: {
+    maxActiveJobs: 3,
+    jobDays: 30
+  },
+
+  premium: {
+    maxActiveJobs: Infinity,
+    jobDays: 30
+  }
+};
 
 /* ================= APPLY TO JOB ================= */
 
@@ -105,10 +127,28 @@ router.get("/jobs/:id/applications", verifyToken, async (req, res) => {
 
 });
 
+/* ================= GET SINGLE JOB ================= */
+
 router.get("/jobs/:id", verifyToken, async (req, res) => {
+
   try {
 
     const jobId = req.params.id;
+
+    /* Auto expire this job if needed */
+    await pool.query(
+      `
+      UPDATE jobs
+      SET 
+        status = 'expired',
+        is_active = false
+      WHERE id = $1
+      AND status = 'active'
+      AND expires_at IS NOT NULL
+      AND expires_at <= NOW()
+      `,
+      [jobId]
+    );
 
     const result = await pool.query(
       `
@@ -129,21 +169,27 @@ router.get("/jobs/:id", verifyToken, async (req, res) => {
 
     if (
       req.user.role !== "admin" &&
+      req.user.role !== "student" &&
       Number(job.recruiter_id) !== Number(req.user.id)
     ) {
       return res.status(403).json({
-        error: "Not your job"
+        error: "Not allowed"
       });
     }
 
     res.json(job);
 
   } catch (err) {
-    console.error(err);
+
+    console.error("GET SINGLE JOB ERROR:", err);
+
     res.status(500).json({
-      error: "Server error"
+      error: "Server error",
+      details: err.message
     });
+
   }
+
 });
 
 /* ================= SAVE JOB ================= */
@@ -927,13 +973,21 @@ router.get("/admin/jobs", verifyToken, async (req, res) => {
   res.json(jobs.rows);
 });
 
+/* ================= POST JOB WITH PLAN LIMIT + EXPIRY ================= */
+
 router.post("/jobs", verifyToken, async (req, res) => {
 
   if (req.user.role !== "recruiter") {
-    return res.status(403).json({ error: "Recruiter access only" });
+    return res.status(403).json({
+      error: "Recruiter access only"
+    });
   }
 
+  const client = await pool.connect();
+
   try {
+
+    const recruiterId = req.user.id;
 
     const {
       title,
@@ -948,138 +1002,219 @@ router.post("/jobs", verifyToken, async (req, res) => {
       skills
     } = req.body;
 
+    if (!title || !description) {
+      return res.status(400).json({
+        error: "Job title and description are required"
+      });
+    }
+
+    await client.query("BEGIN");
+
     /* ==============================
-       1️⃣ CHECK PLAN + EXPIRY
+       1. AUTO EXPIRE OLD JOBS
     =============================== */
 
-    const profileResult = await pool.query(
+    await client.query(
       `
-      SELECT plan_id, plan_expires_at
-      FROM recruiter_profiles
-      WHERE user_id = $1
+      UPDATE jobs
+      SET 
+        status = 'expired',
+        is_active = false
+      WHERE recruiter_id = $1
+      AND status = 'active'
+      AND expires_at IS NOT NULL
+      AND expires_at <= NOW()
       `,
-      [req.user.id]
+      [recruiterId]
+    );
+
+    /* ==============================
+       2. GET RECRUITER PLAN
+    =============================== */
+
+    const profileResult = await client.query(
+      `
+      SELECT 
+        rp.plan_id,
+        rp.plan_expires_at,
+        COALESCE(p.name, 'Free') AS plan_name
+      FROM recruiter_profiles rp
+      LEFT JOIN plans p
+        ON p.id = rp.plan_id
+      WHERE rp.user_id = $1
+      FOR UPDATE
+      `,
+      [recruiterId]
     );
 
     if (!profileResult.rows.length) {
-      return res.status(400).json({ error: "Recruiter profile not found" });
+      await client.query("ROLLBACK");
+
+      return res.status(400).json({
+        error: "Recruiter profile not found"
+      });
     }
 
-    let { plan_id, plan_expires_at } = profileResult.rows[0];
+    let {
+      plan_id,
+      plan_expires_at,
+      plan_name
+    } = profileResult.rows[0];
 
-    // 🔹 Auto downgrade if expired
+    /* ==============================
+       3. AUTO DOWNGRADE EXPIRED PLAN
+    =============================== */
+
     if (
       plan_expires_at &&
       new Date(plan_expires_at) < new Date()
     ) {
-      await pool.query(
+      await client.query(
         `
         UPDATE recruiter_profiles
-        SET plan_id = 1,
-            plan_expires_at = NULL
+        SET 
+          plan_id = 1,
+          plan_expires_at = NULL
         WHERE user_id = $1
         `,
-        [req.user.id]
+        [recruiterId]
       );
 
-      plan_id = 1; // fallback to Free
+      plan_id = 1;
+      plan_name = "Free";
     }
 
-    /* ==============================
-       2️⃣ GET JOB LIMIT FROM PLANS
-    =============================== */
+    const normalizedPlan =
+      String(plan_name || "free")
+      .toLowerCase()
+      .trim();
 
-    const planResult = await pool.query(
-      `
-      SELECT job_limit
-      FROM plans
-      WHERE id = $1
-      `,
-      [plan_id]
-    );
-
-    if (!planResult.rows.length) {
-      return res.status(400).json({ error: "Plan not found" });
-    }
-
-    const jobLimit = planResult.rows[0].job_limit;
+    const rule =
+      PLAN_RULES[normalizedPlan] || PLAN_RULES.free;
 
     /* ==============================
-       3️⃣ CHECK CURRENT JOB COUNT
+       4. COUNT ACTIVE NON-EXPIRED JOBS ONLY
     =============================== */
 
-    const countResult = await pool.query(
+    const countResult = await client.query(
       `
-      SELECT COUNT(*)
+      SELECT COUNT(*)::int AS active_count
       FROM jobs
       WHERE recruiter_id = $1
+      AND status = 'active'
+      AND (
+        expires_at IS NULL
+        OR expires_at > NOW()
+      )
       `,
-      [req.user.id]
+      [recruiterId]
     );
 
-    const currentCount = parseInt(countResult.rows[0].count);
+    const activeCount =
+      Number(countResult.rows[0].active_count || 0);
 
-    if (jobLimit !== -1 && currentCount >= jobLimit) {
+    if (
+      rule.maxActiveJobs !== Infinity &&
+      activeCount >= rule.maxActiveJobs
+    ) {
+      await client.query("ROLLBACK");
+
       return res.status(403).json({
-        error: "Job limit reached. Upgrade your plan."
+        error:
+          `Your ${plan_name} plan allows only ${rule.maxActiveJobs} active job posting${rule.maxActiveJobs > 1 ? "s" : ""}. Upgrade your plan to post more jobs.`,
+        plan: normalizedPlan,
+        active_jobs: activeCount,
+        max_active_jobs: rule.maxActiveJobs
       });
     }
 
     /* ==============================
-       4️⃣ INSERT JOB
+       5. INSERT JOB WITH EXPIRY
     =============================== */
 
-    const insertResult = await pool.query(
-`
-INSERT INTO jobs
-(
- recruiter_id,
- title,
- company_name,
- location,
- job_type,
- experience_level,
- salary_min,
- salary_max,
- remote,
- description,
- skills,
- is_featured,
- status
-)
-VALUES
-(
- $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
-)
-RETURNING *
-`,
-[
- req.user.id,
- title,
- company_name,
- location,
- job_type,
- experience_level,
- salary_min || 0,
- salary_max || 0,
- remote || false,
- description || "",
- skills?.length ? skills : [],
- plan_id !== 1,
- "active"
-]
-);
+    const insertResult = await client.query(
+      `
+      INSERT INTO jobs
+      (
+        recruiter_id,
+        title,
+        company_name,
+        location,
+        job_type,
+        experience_level,
+        salary_min,
+        salary_max,
+        remote,
+        description,
+        skills,
+        is_featured,
+        status,
+        is_active,
+        expires_at,
+        plan_used,
+        created_at
+      )
+      VALUES
+      (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+        'active',
+        true,
+        NOW() + ($13 || ' days')::INTERVAL,
+        $14,
+        NOW()
+      )
+      RETURNING *
+      `,
+      [
+        recruiterId,
+        title,
+        company_name || null,
+        location || null,
+        job_type || null,
+        experience_level || null,
+        salary_min || 0,
+        salary_max || 0,
+        remote || false,
+        description || "",
+        Array.isArray(skills) ? skills : [],
+        normalizedPlan !== "free",
+        rule.jobDays,
+        normalizedPlan
+      ]
+    );
 
-    res.json(insertResult.rows[0]);
+    await client.query("COMMIT");
+
+    return res.json({
+      success: true,
+      message: `Job posted successfully. It will expire in ${rule.jobDays} days.`,
+      job: insertResult.rows[0],
+      plan: normalizedPlan,
+      expires_in_days: rule.jobDays,
+      active_jobs: activeCount + 1,
+      max_active_jobs: rule.maxActiveJobs === Infinity ? "unlimited" : rule.maxActiveJobs
+    });
 
   } catch (err) {
- console.error(err);
- res.status(500).json({
-   error: err.message
- });
-}
+
+    await client.query("ROLLBACK");
+
+    console.error("POST JOB PLAN LIMIT ERROR:", err);
+
+    return res.status(500).json({
+      error: "Failed to post job",
+      details: err.message
+    });
+
+  } finally {
+
+    client.release();
+
+  }
 
 });
+
+/* ================= PUBLIC JOB LIST - ACTIVE ONLY ================= */
 
 router.get("/jobs", async (req, res) => {
 
@@ -1093,10 +1228,28 @@ router.get("/jobs", async (req, res) => {
       search
     } = req.query;
 
+    /* Auto expire old jobs globally */
+    await pool.query(
+      `
+      UPDATE jobs
+      SET 
+        status = 'expired',
+        is_active = false
+      WHERE status = 'active'
+      AND expires_at IS NOT NULL
+      AND expires_at <= NOW()
+      `
+    );
+
     let query = `
       SELECT *
       FROM jobs
       WHERE status = 'active'
+      AND is_active = true
+      AND (
+        expires_at IS NULL
+        OR expires_at > NOW()
+      )
     `;
 
     const values = [];
@@ -1127,9 +1280,12 @@ router.get("/jobs", async (req, res) => {
       values.push(`%${search}%`);
     }
 
-    // ORDER BY must come at the END
     query += `
       ORDER BY
+        CASE 
+          WHEN boost_until IS NOT NULL AND boost_until > NOW()
+          THEN 1 ELSE 0
+        END DESC,
         boost_until DESC NULLS LAST,
         is_featured DESC,
         created_at DESC
@@ -1141,35 +1297,92 @@ router.get("/jobs", async (req, res) => {
 
   } catch (err) {
     console.error("JOB SEARCH ERROR:", err);
-    res.status(500).json({ error: "Job search failed" });
+
+    res.status(500).json({
+      error: "Job search failed",
+      details: err.message
+    });
   }
 
 });
+
+/* ================= RECRUITER MY JOBS ================= */
 
 router.get("/my-jobs", verifyToken, async (req, res) => {
 
   if (req.user.role !== "recruiter") {
-    return res.status(403).json({ error: "Recruiter only" });
+    return res.status(403).json({
+      error: "Recruiter only"
+    });
   }
 
-  const result = await pool.query(
-    `
-    SELECT 
-      jobs.*,
-      COUNT(job_applications.id) AS applications_count
-    FROM jobs
-    LEFT JOIN job_applications
-      ON job_applications.job_id = jobs.id
-    WHERE jobs.recruiter_id = $1
-    GROUP BY jobs.id
-    ORDER BY jobs.created_at DESC
-    `,
-    [req.user.id]
-  );
+  try {
 
-  res.json(result.rows);
+    const recruiterId = req.user.id;
+
+    /* Auto expire recruiter's old jobs */
+    await pool.query(
+      `
+      UPDATE jobs
+      SET 
+        status = 'expired',
+        is_active = false
+      WHERE recruiter_id = $1
+      AND status = 'active'
+      AND expires_at IS NOT NULL
+      AND expires_at <= NOW()
+      `,
+      [recruiterId]
+    );
+
+    const result = await pool.query(
+      `
+      SELECT 
+        jobs.*,
+        COUNT(job_applications.id) AS applications_count,
+
+        CASE
+          WHEN jobs.status = 'active'
+          AND jobs.expires_at IS NOT NULL
+          THEN GREATEST(
+            CEIL(EXTRACT(EPOCH FROM (jobs.expires_at - NOW())) / 86400),
+            0
+          )
+          ELSE 0
+        END AS days_left
+
+      FROM jobs
+
+      LEFT JOIN job_applications
+        ON job_applications.job_id = jobs.id
+
+      WHERE jobs.recruiter_id = $1
+
+      GROUP BY jobs.id
+
+      ORDER BY 
+        CASE 
+          WHEN jobs.status = 'active' THEN 1 ELSE 0
+        END DESC,
+        jobs.created_at DESC
+      `,
+      [recruiterId]
+    );
+
+    res.json(result.rows);
+
+  } catch (err) {
+
+    console.error("MY JOBS ERROR:", err);
+
+    res.status(500).json({
+      error: "Failed to load jobs",
+      details: err.message
+    });
+
+  }
+
 });
-
 
 router.get("/my-applications", verifyToken, async (req, res) => {
 
@@ -1189,23 +1402,76 @@ router.get("/my-applications", verifyToken, async (req, res) => {
   res.json(result.rows);
 });
 
+/* ================= UPDATE JOB STATUS ================= */
+
 router.put("/jobs/:id/status", verifyToken, async (req, res) => {
 
   if (req.user.role !== "recruiter") {
-    return res.status(403).json({ error: "Recruiter only" });
+    return res.status(403).json({
+      error: "Recruiter only"
+    });
   }
 
-  const { status } = req.body;
-  const jobId = req.params.id;
+  try {
 
-  await pool.query(
-    `UPDATE jobs
-     SET status = $1
-     WHERE id = $2 AND recruiter_id = $3`,
-    [status, jobId, req.user.id]
-  );
+    const { status } = req.body;
+    const jobId = req.params.id;
 
-  res.json({ success: true });
+    const allowedStatuses = [
+      "active",
+      "paused",
+      "closed",
+      "expired"
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        error: "Invalid job status"
+      });
+    }
+
+    const isActive =
+      status === "active";
+
+    const result = await pool.query(
+      `
+      UPDATE jobs
+      SET 
+        status = $1,
+        is_active = $2
+      WHERE id = $3
+      AND recruiter_id = $4
+      RETURNING *
+      `,
+      [
+        status,
+        isActive,
+        jobId,
+        req.user.id
+      ]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: "Job not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      job: result.rows[0]
+    });
+
+  } catch (err) {
+
+    console.error("JOB STATUS UPDATE ERROR:", err);
+
+    res.status(500).json({
+      error: "Failed to update job status",
+      details: err.message
+    });
+
+  }
 
 });
 

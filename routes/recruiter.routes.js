@@ -735,6 +735,62 @@ function getResumeCSS() {
   `;
 }
 
+async function getCandidateCertificates(candidateId) {
+  const certResult = await pool.query(
+    `
+    SELECT DISTINCT ON (c.certificate_id)
+      c.id,
+      c.certificate_id,
+      c.type,
+      c.issued_on,
+      c.issued_at,
+      c.course_id,
+      c.exam_id,
+      c.certificate_title,
+      c.course_name AS saved_course_name,
+
+      co.title AS course_name,
+
+      COALESCE(
+        c.certificate_title,
+        ce.title,
+        e.title,
+        co.title,
+        c.course_name,
+        CASE
+          WHEN c.type = 'competitive' THEN 'Competitive Exam'
+          WHEN c.type = 'course' THEN 'Course Certificate'
+          ELSE 'Certificate'
+        END
+      ) AS certificate_name,
+
+      COALESCE(
+        ce.title,
+        e.title
+      ) AS exam_name
+
+    FROM certificates c
+
+    LEFT JOIN courses co
+      ON co.id = c.course_id
+
+    LEFT JOIN competitive_exams ce
+      ON ce.id = c.exam_id
+
+    LEFT JOIN exams e
+      ON e.id = c.exam_id
+
+    WHERE c.user_id = $1
+    AND c.certificate_id IS NOT NULL
+
+    ORDER BY c.certificate_id, c.issued_at DESC
+    `,
+    [candidateId]
+  );
+
+  return certResult.rows || [];
+}
+
 function generateFullResumeHTML(resume, certificates = [], template = "modern") {
   const r = safeParseResumeData(resume);
 
@@ -768,8 +824,24 @@ function generateFullResumeHTML(resume, certificates = [], template = "modern") 
   const github = escapeHTML(r.github || "");
   const portfolio = escapeHTML(r.portfolio || "");
 
-const certificateHTML = certificates.length
-  ? certificates.map(c => {
+const savedCertificates = Array.isArray(r.certificates)
+  ? r.certificates
+      .map(c => ({
+        certificate_name:
+          c.certificate_name ||
+          c.name ||
+          c.title ||
+          "Certificate"
+      }))
+      .filter(c => c.certificate_name && c.certificate_name !== "Certificate")
+  : [];
+
+const finalCertificates = savedCertificates.length
+  ? savedCertificates
+  : certificates;
+
+const certificateHTML = finalCertificates.length
+  ? finalCertificates.map(c => {
       const certName =
         c.certificate_name ||
         c.course_name ||
@@ -862,130 +934,94 @@ const certificateHTML = certificates.length
 }
 
 router.get("/candidate/:id/resume", verifyToken, async (req, res) => {
-  if (req.user.role !== "recruiter") {
-    return res.status(403).json({ error: "Only recruiters allowed" });
-  }
-
   try {
-    const candidateId = req.params.id;
+    if (req.user.role !== "recruiter") {
+      return res.status(403).json({ error: "Recruiter only" });
+    }
+
+    const candidateId = Number(req.params.id);
+
+    if (!candidateId) {
+      return res.status(400).json({ error: "Invalid candidate id" });
+    }
+
+const accessCheck = await pool.query(
+  `
+  SELECT ja.id
+  FROM job_applications ja
+  JOIN jobs j ON j.id = ja.job_id
+  WHERE ja.student_id = $1
+  AND j.recruiter_id = $2
+  LIMIT 1
+  `,
+  [candidateId, req.user.id]
+);
+
+if (!accessCheck.rows.length) {
+  return res.status(403).json({
+    error: "You do not have access to this candidate resume"
+  });
+}
 
     const result = await pool.query(
       `
-      SELECT 
-        resumes.resume_data,
-        resumes.resume_file,
-        resumes.template,
-        users.name AS user_name,
-        users.email AS user_email,
-        users.username
+      SELECT
+        id,
+        user_id,
+        resume_data,
+        template,
+        updated_at
       FROM resumes
-      JOIN users ON users.id = resumes.user_id
-      WHERE resumes.user_id = $1
-           LIMIT 1
+      WHERE user_id = $1
+      LIMIT 1
       `,
       [candidateId]
     );
 
-const certResult = await pool.query(
-  `
-  SELECT DISTINCT ON (c.certificate_id)
-    c.id,
-    c.certificate_id,
-    c.type,
-    c.issued_on,
-    c.issued_at,
-    c.course_id,
-    c.exam_id,
-    c.certificate_title,
-    c.course_name AS saved_course_name,
-
-    co.title AS course_name,
-
-    COALESCE(
-      c.certificate_title,
-      ce.title,
-      e.title,
-      co.title,
-      c.course_name,
-      CASE
-        WHEN c.type = 'competitive' THEN 'Competitive Exam'
-        WHEN c.type = 'course' THEN 'Course Certificate'
-        ELSE 'Certificate'
-      END
-    ) AS certificate_name,
-
-    COALESCE(
-      ce.title,
-      e.title
-    ) AS exam_name
-
-  FROM certificates c
-
-  LEFT JOIN courses co
-    ON co.id = c.course_id
-
-  LEFT JOIN competitive_exams ce
-    ON ce.id = c.exam_id
-
-  LEFT JOIN exams e
-    ON e.id = c.exam_id
-
-  WHERE c.user_id = $1
-  AND c.certificate_id IS NOT NULL
-
-  ORDER BY c.certificate_id, c.issued_at DESC
-  `,
-  [candidateId]
-);
-
     if (!result.rows.length) {
       return res.json({
         resume_data: {},
-        resume_file: null,
-        certificates: certResult.rows || []
+        template: "modern",
+        certificates: []
       });
     }
 
-    const row = result.rows[0];
+    const resumeData = safeParseResumeData(result.rows[0].resume_data || {});
+const dbCertificates = await getCandidateCertificates(candidateId);
 
-    let resumeData = safeParseResumeData(row.resume_data);
+const savedCertificates = Array.isArray(resumeData.certificates)
+  ? resumeData.certificates
+      .map(c => ({
+        certificate_name:
+          c.certificate_name ||
+          c.name ||
+          c.title ||
+          "Certificate"
+      }))
+      .filter(c => c.certificate_name && c.certificate_name !== "Certificate")
+  : [];
 
-    resumeData = {
-      name: resumeData.name || resumeData.full_name || row.user_name || "",
-      email: resumeData.email || row.user_email || "",
-      phone: resumeData.phone || resumeData.mobile || "",
-      title: resumeData.title || "",
-      location: resumeData.location || resumeData.city || "",
-      summary: resumeData.summary || resumeData.about || resumeData.profile_summary || "",
-      skills: resumeData.skills || "",
-      experience: resumeData.experience || resumeData.work_experience || "",
-      projects: resumeData.projects || "",
-      education: resumeData.education || "",
-      linkedin: resumeData.linkedin || "",
-      github: resumeData.github || "",
-      portfolio: resumeData.portfolio || ""
-    };
+const certificates = savedCertificates.length
+  ? savedCertificates
+  : dbCertificates;
 
-    res.json({
-      resume_data: resumeData,
-      resume_file: row.resume_file || null,
-      template: row.template || "modern",
-      certificates: certResult.rows || []
-    });
+res.json({
+  id: result.rows[0].id,
+  user_id: result.rows[0].user_id,
+  resume_data: resumeData,
+  template: result.rows[0].template || "modern",
+  updated_at: result.rows[0].updated_at,
+  certificates
+});
 
   } catch (err) {
-    console.error("GET CANDIDATE RESUME ERROR:", err);
+    console.error("CANDIDATE RESUME ERROR:", err);
     res.status(500).json({
       error: "Failed to load candidate resume",
       details: err.message
     });
   }
 });
-
-
-
-
-
 
 
 
@@ -1010,61 +1046,11 @@ router.get("/resume/public/:id", async (req, res) => {
       return res.status(404).send("Resume not found");
     }
 
-const certResult = await pool.query(
-  `
-  SELECT DISTINCT ON (c.certificate_id)
-    c.id,
-    c.certificate_id,
-    c.type,
-    c.issued_on,
-    c.issued_at,
-    c.course_id,
-    c.exam_id,
-    c.certificate_title,
-    c.course_name AS saved_course_name,
 
-    co.title AS course_name,
-
-    COALESCE(
-      c.certificate_title,
-      ce.title,
-      e.title,
-      co.title,
-      c.course_name,
-      CASE
-        WHEN c.type = 'competitive' THEN 'Competitive Exam'
-        WHEN c.type = 'course' THEN 'Course Certificate'
-        ELSE 'Certificate'
-      END
-    ) AS certificate_name,
-
-    COALESCE(
-      ce.title,
-      e.title
-    ) AS exam_name
-
-  FROM certificates c
-
-  LEFT JOIN courses co
-    ON co.id = c.course_id
-
-  LEFT JOIN competitive_exams ce
-    ON ce.id = c.exam_id
-
-  LEFT JOIN exams e
-    ON e.id = c.exam_id
-
-  WHERE c.user_id = $1
-  AND c.certificate_id IS NOT NULL
-
-  ORDER BY c.certificate_id, c.issued_at DESC
-  `,
-  [candidateId]
-);
 
     const resume = result.rows[0].resume_data || {};
     const template = result.rows[0].template || "modern";
-    const certificates = certResult.rows || [];
+    const certificates = await getCandidateCertificates(candidateId);
 
     const html = generateFullResumeHTML(resume, certificates, template);
 
@@ -1093,11 +1079,37 @@ router.get("/candidate/:id/resume-pdf", async (req, res) => {
       return res.status(403).json({ error: "Recruiter only" });
     }
 
-    const candidateId = req.params.id;
+    const candidateId = Number(req.params.id);
+
+    if (!candidateId) {
+      return res.status(400).json({ error: "Invalid candidate id" });
+    }
+
+const recruiterId = decoded.id || decoded.userId;
+
+const accessCheck = await pool.query(
+  `
+  SELECT ja.id
+  FROM job_applications ja
+  JOIN jobs j ON j.id = ja.job_id
+  WHERE ja.student_id = $1
+  AND j.recruiter_id = $2
+  LIMIT 1
+  `,
+  [candidateId, recruiterId]
+);
+
+if (!accessCheck.rows.length) {
+  return res.status(403).json({
+    error: "You do not have access to this candidate resume"
+  });
+}
 
     const result = await pool.query(
       `
-      SELECT 
+      SELECT
+        id,
+        user_id,
         resume_data,
         template
       FROM resumes
@@ -1111,85 +1123,37 @@ router.get("/candidate/:id/resume-pdf", async (req, res) => {
       return res.status(404).json({ error: "Resume not found" });
     }
 
-const certResult = await pool.query(
-  `
-  SELECT DISTINCT ON (c.certificate_id)
-    c.id,
-    c.certificate_id,
-    c.type,
-    c.issued_on,
-    c.issued_at,
-    c.course_id,
-    c.exam_id,
-    c.certificate_title,
-    c.course_name AS saved_course_name,
+    const row = result.rows[0];
 
-    co.title AS course_name,
-
-    COALESCE(
-      c.certificate_title,
-      ce.title,
-      e.title,
-      co.title,
-      c.course_name,
-      CASE
-        WHEN c.type = 'competitive' THEN 'Competitive Exam'
-        WHEN c.type = 'course' THEN 'Course Certificate'
-        ELSE 'Certificate'
-      END
-    ) AS certificate_name,
-
-    COALESCE(
-      ce.title,
-      e.title
-    ) AS exam_name
-
-  FROM certificates c
-
-  LEFT JOIN courses co
-    ON co.id = c.course_id
-
-  LEFT JOIN competitive_exams ce
-    ON ce.id = c.exam_id
-
-  LEFT JOIN exams e
-    ON e.id = c.exam_id
-
-  WHERE c.user_id = $1
-  AND c.certificate_id IS NOT NULL
-
-  ORDER BY c.certificate_id, c.issued_at DESC
-  `,
-  [candidateId]
-);
-
-    const resume = result.rows[0].resume_data || {};
-    const template = result.rows[0].template || "modern";
-    const certificates = certResult.rows || [];
+    const resume = row.resume_data || {};
+    const template = row.template || "modern";
+    const certificates = await getCandidateCertificates(candidateId);
 
     const html = generateFullResumeHTML(resume, certificates, template);
 
-   browser = await puppeteerCore.launch({
-  args: chromium.args,
-  defaultViewport: chromium.defaultViewport,
-  executablePath: await chromium.executablePath(),
-  headless: chromium.headless
-});
+    browser = await puppeteerCore.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless
+    });
 
     const page = await browser.newPage();
 
     await page.setContent(html, {
-      waitUntil: "networkidle0"
+      waitUntil: "domcontentloaded",
+      timeout: 0
     });
 
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
+      preferCSSPageSize: true,
       margin: {
-        top: "15mm",
-        right: "12mm",
-        bottom: "15mm",
-        left: "12mm"
+        top: "0mm",
+        right: "0mm",
+        bottom: "0mm",
+        left: "0mm"
       }
     });
 
@@ -1207,7 +1171,7 @@ const certResult = await pool.query(
       await browser.close().catch(() => {});
     }
 
-    console.error("PDF ERROR:", err);
+    console.error("RECRUITER RESUME PDF ERROR:", err);
 
     res.status(500).json({
       error: "Failed to generate resume PDF",
@@ -1237,61 +1201,11 @@ router.get("/resume/preview/:id", async (req, res) => {
       return res.status(404).send("Resume not found");
     }
 
-const certResult = await pool.query(
-  `
-  SELECT DISTINCT ON (c.certificate_id)
-    c.id,
-    c.certificate_id,
-    c.type,
-    c.issued_on,
-    c.issued_at,
-    c.course_id,
-    c.exam_id,
-    c.certificate_title,
-    c.course_name AS saved_course_name,
 
-    co.title AS course_name,
-
-    COALESCE(
-      c.certificate_title,
-      ce.title,
-      e.title,
-      co.title,
-      c.course_name,
-      CASE
-        WHEN c.type = 'competitive' THEN 'Competitive Exam'
-        WHEN c.type = 'course' THEN 'Course Certificate'
-        ELSE 'Certificate'
-      END
-    ) AS certificate_name,
-
-    COALESCE(
-      ce.title,
-      e.title
-    ) AS exam_name
-
-  FROM certificates c
-
-  LEFT JOIN courses co
-    ON co.id = c.course_id
-
-  LEFT JOIN competitive_exams ce
-    ON ce.id = c.exam_id
-
-  LEFT JOIN exams e
-    ON e.id = c.exam_id
-
-  WHERE c.user_id = $1
-  AND c.certificate_id IS NOT NULL
-
-  ORDER BY c.certificate_id, c.issued_at DESC
-  `,
-  [candidateId]
-);
 
     const resume = result.rows[0].resume_data || {};
     const template = result.rows[0].template || "modern";
-    const certificates = certResult.rows || [];
+    const certificates = await getCandidateCertificates(candidateId);
 
     const html = generateFullResumeHTML(resume, certificates, template);
 

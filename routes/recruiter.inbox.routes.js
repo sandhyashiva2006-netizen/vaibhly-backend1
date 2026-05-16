@@ -22,37 +22,29 @@ try{
 
 const recruiterId = req.user.id;
 
-const result = await pool.query(`
+console.log("Recruiter inbox requested by:", recruiterId);
+
+const result = await pool.query(
+`
 SELECT 
-  rm.id,
-  rm.student_id,
-  rm.recruiter_id,
-  rm.message,
-  rm.type,
-  rm.created_at,
-
-  u.username AS student_name,
-  u.email AS student_email
-
+  rm.*
 FROM resume_messages rm
-
-LEFT JOIN users u
-ON u.id = rm.student_id
-
 WHERE rm.recruiter_id = $1
-
 ORDER BY rm.created_at DESC
 `,
-[recruiterId]);
+[recruiterId]
+);
 
-res.json(result.rows);
+return res.json(result.rows);
 
 }catch(err){
 
-console.error("Recruiter inbox load error:",err);
+console.error("RECRUITER INBOX DB ERROR:", err.message);
+console.error("RECRUITER INBOX FULL ERROR:", err);
 
-res.status(500).json({
-error:"Failed to load recruiter inbox"
+return res.status(500).json({
+error:"Failed to load recruiter inbox",
+details: err.message
 });
 
 }

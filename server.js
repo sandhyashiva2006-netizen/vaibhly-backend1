@@ -72,6 +72,8 @@ const leaderboardRoutes = require("./routes/leaderboard.routes");
 const instructorEarningsRoutes = require("./routes/instructorEarnings.routes");
 const authRoutes =
 require("./routes/auth.routes");
+const recruiterInboxRoutes =
+require("./routes/recruiter.inbox.routes");
 
 /* ================= MIDDLEWARE ================= */
 
@@ -217,6 +219,7 @@ app.use("/api/payments", paymentsRoutes);
 app.use("/api/wallet", require("./routes/wallet.routes"));
 app.use("/api/progress", require("./routes/reward.routes"));
 app.use("/api/recruiter", recruiterRoutes);
+app.use("/api", recruiterInboxRoutes);
 app.use("/api", jobsRoutes);
 app.use("/api", instructorRoutes);
 app.use("/api", instructorWalletRoutes);

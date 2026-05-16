@@ -174,123 +174,6 @@ router.post("/jobs/:id/save", verifyToken, async (req, res) => {
 
 });
 
-/* ================= BOOST JOB ================= */
-
-router.post("/jobs/:id/boost", verifyToken, async (req, res) => {
-
-  if (req.user.role !== "recruiter") {
-    return res.status(403).json({
-      error: "Recruiter only"
-    });
-  }
-
-  const client = await pool.connect();
-
-  try {
-
-    const recruiterId = req.user.id;
-    const jobId = req.params.id;
-    const boostCost = 100;
-
-    await client.query("BEGIN");
-
-    /* 1. Check job belongs to recruiter */
-    const jobCheck = await client.query(
-      `
-      SELECT id
-      FROM jobs
-      WHERE id = $1
-      AND recruiter_id = $2
-      `,
-      [jobId, recruiterId]
-    );
-
-    if (!jobCheck.rows.length) {
-      await client.query("ROLLBACK");
-
-      return res.status(404).json({
-        error: "Job not found"
-      });
-    }
-
-    /* 2. Check wallet balance from transactions */
-    const balanceResult = await client.query(
-      `
-      SELECT COALESCE(
-        SUM(
-          CASE
-            WHEN type = 'credit' THEN amount
-            WHEN type = 'debit' THEN -amount
-            ELSE 0
-          END
-        ), 0
-      ) AS balance
-      FROM wallet_transactions
-      WHERE recruiter_id = $1
-      `,
-      [recruiterId]
-    );
-
-    const balance =
-      Number(balanceResult.rows[0].balance || 0);
-
-    if (balance < boostCost) {
-      await client.query("ROLLBACK");
-
-      return res.status(400).json({
-        boosted: false,
-        error: "Insufficient wallet balance"
-      });
-    }
-
-    /* 3. Deduct wallet through transaction only */
-    await client.query(
-      `
-      INSERT INTO wallet_transactions
-      (recruiter_id, amount, type, purpose)
-      VALUES ($1, $2, 'debit', 'job boost')
-      `,
-      [recruiterId, boostCost]
-    );
-
-    /* 4. Boost job for 7 days */
-    await client.query(
-      `
-      UPDATE jobs
-      SET 
-        boost_until = NOW() + INTERVAL '7 days',
-        is_featured = true
-      WHERE id = $1
-      AND recruiter_id = $2
-      `,
-      [jobId, recruiterId]
-    );
-
-    await client.query("COMMIT");
-
-    return res.json({
-      boosted: true,
-      message: "Job boosted successfully"
-    });
-
-  } catch (err) {
-
-    await client.query("ROLLBACK");
-
-    console.error("BOOST JOB ERROR:", err);
-
-    return res.status(500).json({
-      boosted: false,
-      error: "Failed to boost job"
-    });
-
-  } finally {
-
-    client.release();
-
-  }
-
-});
 
 /* ================= BOOST JOB USING BOOST CREDITS ================= */
 
@@ -326,22 +209,33 @@ router.post("/jobs/:id/boost", verifyToken, async (req, res) => {
       await client.query("ROLLBACK");
 
       return res.status(404).json({
+        boosted: false,
         error: "Job not found"
       });
     }
 
-    /* 2. Check boost credits */
+    /* 2. Lock recruiter profile and check boost credits */
     const profileCheck = await client.query(
       `
       SELECT COALESCE(boost_credits, 0) AS boost_credits
       FROM recruiter_profiles
       WHERE user_id = $1
+      FOR UPDATE
       `,
       [recruiterId]
     );
 
+    if (!profileCheck.rows.length) {
+      await client.query("ROLLBACK");
+
+      return res.status(404).json({
+        boosted: false,
+        error: "Recruiter profile not found"
+      });
+    }
+
     const boostCredits =
-      Number(profileCheck.rows[0]?.boost_credits || 0);
+      Number(profileCheck.rows[0].boost_credits || 0);
 
     if (boostCredits <= 0) {
       await client.query("ROLLBACK");
@@ -352,17 +246,21 @@ router.post("/jobs/:id/boost", verifyToken, async (req, res) => {
       });
     }
 
-    /* 3. Deduct one boost credit */
-    await client.query(
+    /* 3. Deduct exactly 1 boost credit */
+    const updatedProfile = await client.query(
       `
       UPDATE recruiter_profiles
       SET boost_credits = COALESCE(boost_credits, 0) - 1
       WHERE user_id = $1
+      RETURNING boost_credits
       `,
       [recruiterId]
     );
 
-    /* 4. Boost job */
+    const remainingBoostCredits =
+      Number(updatedProfile.rows[0].boost_credits || 0);
+
+    /* 4. Boost job for 7 days */
     await client.query(
       `
       UPDATE jobs
@@ -375,7 +273,7 @@ router.post("/jobs/:id/boost", verifyToken, async (req, res) => {
       [jobId, recruiterId]
     );
 
-    /* 5. Optional log */
+    /* 5. Log boost credit usage */
     await client.query(
       `
       INSERT INTO wallet_transactions
@@ -389,7 +287,8 @@ router.post("/jobs/:id/boost", verifyToken, async (req, res) => {
 
     return res.json({
       boosted: true,
-      message: "Job boosted successfully"
+      message: "Job boosted successfully",
+      boost_credits: remainingBoostCredits
     });
 
   } catch (err) {
@@ -1360,6 +1259,44 @@ router.get("/profile", verifyToken, async (req, res) => {
   res.json(result.rows[0]);
 });
 
+/* ================= GET RECRUITER CREDITS ================= */
+
+router.get("/credits", verifyToken, async (req, res) => {
+
+  if (req.user.role !== "recruiter") {
+    return res.status(403).json({
+      error: "Recruiter only"
+    });
+  }
+
+  try {
+
+    const result = await pool.query(
+      `
+      SELECT
+        COALESCE(boost_credits, 0) AS boost_credits,
+        COALESCE(resume_credits, 0) AS resume_credits
+      FROM recruiter_profiles
+      WHERE user_id = $1
+      `,
+      [req.user.id]
+    );
+
+    res.json({
+      boost_credits: Number(result.rows[0]?.boost_credits || 0),
+      resume_credits: Number(result.rows[0]?.resume_credits || 0)
+    });
+
+  } catch (err) {
+    console.error("CREDITS ERROR:", err);
+    res.status(500).json({
+      boost_credits: 0,
+      resume_credits: 0
+    });
+  }
+
+});
+
 router.put("/profile", verifyToken, async (req, res) => {
 
   const { company_name, about_company, website } = req.body;
@@ -1589,7 +1526,7 @@ router.post("/verify-credit-payment", verifyToken, async (req, res) => {
 
       await pool.query(
         `UPDATE recruiter_profiles
-         SET boost_credits = boost_credits + 5
+         SET boost_credits = COALESCE(boost_credits, 0) + 5
          WHERE user_id = $1`,
         [req.user.id]
       );
@@ -1600,7 +1537,7 @@ router.post("/verify-credit-payment", verifyToken, async (req, res) => {
 
       await pool.query(
         `UPDATE recruiter_profiles
-         SET resume_credits = resume_credits + 10
+         SET resume_credits = COALESCE(resume_credits, 0) + 10
          WHERE user_id = $1`,
         [req.user.id]
       );

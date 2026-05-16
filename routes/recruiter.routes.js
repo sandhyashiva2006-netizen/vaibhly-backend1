@@ -455,26 +455,67 @@ router.put("/applications/:id/status", verifyToken, async (req, res) => {
 });
 
 router.post("/applications/:id/schedule", verifyToken, async (req, res) => {
+  if (req.user.role !== "recruiter") {
+    return res.status(403).json({ error: "Recruiter only" });
+  }
 
-  const { interview_date, meeting_link } = req.body;
-  const applicationId = req.params.id;
+  try {
+    const { interview_date, meeting_link } = req.body;
+    const applicationId = req.params.id;
 
-  const app = await pool.query(
-    `SELECT student_id, job_id FROM job_applications WHERE id=$1`,
-    [applicationId]
-  );
+    if (!interview_date) {
+      return res.status(400).json({ error: "Interview date is required" });
+    }
 
-  const studentId = app.rows[0].student_id;
-  const jobId = app.rows[0].job_id;
+    const app = await pool.query(
+      `
+      SELECT 
+        job_applications.student_id,
+        job_applications.job_id
+      FROM job_applications
+      JOIN jobs ON jobs.id = job_applications.job_id
+      WHERE job_applications.id = $1
+      AND jobs.recruiter_id = $2
+      `,
+      [applicationId, req.user.id]
+    );
 
-  await pool.query(
-    `INSERT INTO interviews
-     (job_id, recruiter_id, student_id, interview_date, meeting_link)
-     VALUES ($1,$2,$3,$4,$5)`,
-    [jobId, req.user.id, studentId, interview_date, meeting_link]
-  );
+    if (!app.rows.length) {
+      return res.status(404).json({ error: "Application not found" });
+    }
 
-  res.json({ scheduled: true });
+    const studentId = app.rows[0].student_id;
+    const jobId = app.rows[0].job_id;
+
+    await pool.query(
+      `
+      INSERT INTO interviews
+      (job_id, recruiter_id, student_id, interview_date, meeting_link)
+      VALUES ($1,$2,$3,$4,$5)
+      `,
+      [jobId, req.user.id, studentId, interview_date, meeting_link || null]
+    );
+
+    await pool.query(
+      `
+      INSERT INTO notifications (user_id, message)
+      VALUES ($1, $2)
+      `,
+      [
+        studentId,
+        "Your interview has been scheduled. Please check your interview section."
+      ]
+    );
+
+    res.json({ scheduled: true });
+
+  } catch (err) {
+    console.error("SCHEDULE INTERVIEW ERROR:", err);
+    res.status(500).json({
+      error: "Failed to schedule interview",
+      details: err.message
+    });
+  }
 });
 
 router.post("/messages", verifyToken, async (req, res) => {
@@ -493,210 +534,416 @@ router.post("/messages", verifyToken, async (req, res) => {
 
 
 router.get("/messages/:jobId/:userId", verifyToken, async (req, res) => {
+  try {
+    const { jobId, userId } = req.params;
 
-  const { jobId, userId } = req.params;
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM job_messages
+      WHERE job_id = $1
+      AND (
+        (sender_id = $2 AND receiver_id = $3)
+        OR
+        (sender_id = $3 AND receiver_id = $2)
+      )
+      ORDER BY created_at ASC
+      `,
+      [jobId, req.user.id, userId]
+    );
 
-  const result = await pool.query(
-    `SELECT *
-     FROM job_messages
-     WHERE job_id = $1
-     AND (sender_id = $2 OR receiver_id = $2)
-     ORDER BY created_at ASC`,
-    [jobId, userId]
-  );
+    res.json(result.rows);
 
-  res.json(result.rows);
-
+  } catch (err) {
+    console.error("MESSAGES LOAD ERROR:", err);
+    res.status(500).json({
+      error: "Failed to load messages"
+    });
+  }
 });
 
-router.get("/candidate/:id/resume", verifyToken, async (req, res) => {
+function safeParseResumeData(value) {
+  if (!value) return {};
 
+  if (typeof value === "object") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+
+  return {};
+}
+
+function escapeHTML(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function formatField(value) {
+  if (!value) return "-";
+
+  if (Array.isArray(value)) {
+    return value.length ? value.join(", ") : "-";
+  }
+
+  if (typeof value === "object") {
+    return JSON.stringify(value, null, 2);
+  }
+
+  return String(value);
+}
+
+function getResumeCSS() {
+  return `
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 35px;
+      font-family: Arial, sans-serif;
+      background: #f8f5ff;
+      color: #111827;
+    }
+
+    .resume-sheet {
+      max-width: 850px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 18px;
+      border: 1px solid #e9d5ff;
+      box-shadow: 0 12px 35px rgba(76, 29, 149, 0.10);
+    }
+
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #ede9fe;
+      padding-bottom: 22px;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      color: #4c1d95;
+      font-size: 32px;
+      line-height: 1.2;
+    }
+
+    .title {
+      margin-top: 8px;
+      color: #6d28d9;
+      font-weight: 700;
+      font-size: 17px;
+    }
+
+    .contact {
+      margin-top: 10px;
+      color: #4b5563;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .section {
+      margin-top: 24px;
+    }
+
+    .section h3 {
+      color: #4c1d95;
+      font-size: 18px;
+      margin-bottom: 8px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid #ddd6fe;
+    }
+
+    .section p {
+      color: #374151;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      margin: 0;
+    }
+
+    ul {
+      margin: 8px 0 0 20px;
+      padding: 0;
+      color: #374151;
+      line-height: 1.7;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+  `;
+}
+
+function generateFullResumeHTML(resume, certificates = [], template = "modern") {
+  const r = safeParseResumeData(resume);
+
+  const name = escapeHTML(r.name || r.full_name || "Candidate");
+  const title = escapeHTML(r.title || r.role || "");
+  const email = escapeHTML(r.email || "");
+  const phone = escapeHTML(r.phone || r.mobile || "");
+  const location = escapeHTML(r.location || r.city || "");
+
+  const summary = escapeHTML(
+    formatField(r.summary || r.about || r.profile_summary)
+  );
+
+  const skills = escapeHTML(
+    formatField(r.skills)
+  );
+
+  const experience = escapeHTML(
+    formatField(r.experience || r.work_experience)
+  );
+
+  const projects = escapeHTML(
+    formatField(r.projects)
+  );
+
+  const education = escapeHTML(
+    formatField(r.education)
+  );
+
+  const linkedin = escapeHTML(r.linkedin || "");
+  const github = escapeHTML(r.github || "");
+  const portfolio = escapeHTML(r.portfolio || "");
+
+  const certificateHTML = certificates.length
+    ? certificates.map(c => `
+        <li>
+          ${escapeHTML(c.course_name || c.title || c.name || "Certificate")}
+          ${c.issued_on ? `(${new Date(c.issued_on).toLocaleDateString()})` : ""}
+        </li>
+      `).join("")
+    : "<li>No certificates</li>";
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8" />
+      <style>${getResumeCSS()}</style>
+    </head>
+    <body>
+      <div class="resume-sheet template-${escapeHTML(template)}">
+
+        <div class="header">
+          <h1>${name}</h1>
+          ${title ? `<div class="title">${title}</div>` : ""}
+          <div class="contact">
+            ${email ? `${email}` : ""}
+            ${email && phone ? " | " : ""}
+            ${phone ? `${phone}` : ""}
+            ${(email || phone) && location ? " | " : ""}
+            ${location ? `${location}` : ""}
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Summary</h3>
+          <p>${summary}</p>
+        </div>
+
+        <div class="section">
+          <h3>Skills</h3>
+          <p>${skills}</p>
+        </div>
+
+        <div class="section">
+          <h3>Experience</h3>
+          <p>${experience}</p>
+        </div>
+
+        <div class="section">
+          <h3>Projects</h3>
+          <p>${projects}</p>
+        </div>
+
+        <div class="section">
+          <h3>Education</h3>
+          <p>${education}</p>
+        </div>
+
+        <div class="section">
+          <h3>Certificates</h3>
+          <ul>${certificateHTML}</ul>
+        </div>
+
+        <div class="section">
+          <h3>Links</h3>
+          <p>
+            ${linkedin ? `LinkedIn: ${linkedin}<br>` : ""}
+            ${github ? `GitHub: ${github}<br>` : ""}
+            ${portfolio ? `Portfolio: ${portfolio}` : ""}
+            ${!linkedin && !github && !portfolio ? "-" : ""}
+          </p>
+        </div>
+
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+router.get("/candidate/:id/resume", verifyToken, async (req, res) => {
   if (req.user.role !== "recruiter") {
     return res.status(403).json({ error: "Only recruiters allowed" });
   }
 
-  const candidateId = req.params.id;
+  try {
+    const candidateId = req.params.id;
 
-  const result = await pool.query(
-    `SELECT resume_data FROM resumes WHERE user_id = $1`,
-    [candidateId]
-  );
+    const result = await pool.query(
+      `
+      SELECT 
+        resumes.resume_data,
+        resumes.resume_file,
+        resumes.template,
+        users.name AS user_name,
+        users.email AS user_email,
+        users.username
+      FROM resumes
+      JOIN users ON users.id = resumes.user_id
+      WHERE resumes.user_id = $1
+           LIMIT 1
+      `,
+      [candidateId]
+    );
 
-  const certResult = await pool.query(
-    `
-    SELECT 
-      courses.title AS course_name,
-      certificates.issued_on
-    FROM certificates
-    JOIN courses ON courses.id = certificates.course_id
-    WHERE certificates.user_id = $1
-    ORDER BY certificates.issued_on DESC
-    `,
-    [candidateId]
-  );
+    const certResult = await pool.query(
+      `
+      SELECT 
+        courses.title AS course_name,
+        certificates.issued_on
+      FROM certificates
+      LEFT JOIN courses ON courses.id = certificates.course_id
+      WHERE certificates.user_id = $1
+      ORDER BY certificates.issued_on DESC
+      `,
+      [candidateId]
+    );
 
-  res.json({
-    resume_data: result.rows[0]?.resume_data || {},
-    certificates: certResult.rows
-  });
+    if (!result.rows.length) {
+      return res.json({
+        resume_data: {},
+        resume_file: null,
+        certificates: certResult.rows || []
+      });
+    }
+
+    const row = result.rows[0];
+
+    let resumeData = safeParseResumeData(row.resume_data);
+
+    resumeData = {
+      name: resumeData.name || resumeData.full_name || row.user_name || "",
+      email: resumeData.email || row.user_email || "",
+      phone: resumeData.phone || resumeData.mobile || "",
+      title: resumeData.title || "",
+      location: resumeData.location || resumeData.city || "",
+      summary: resumeData.summary || resumeData.about || resumeData.profile_summary || "",
+      skills: resumeData.skills || "",
+      experience: resumeData.experience || resumeData.work_experience || "",
+      projects: resumeData.projects || "",
+      education: resumeData.education || "",
+      linkedin: resumeData.linkedin || "",
+      github: resumeData.github || "",
+      portfolio: resumeData.portfolio || ""
+    };
+
+    res.json({
+      resume_data: resumeData,
+      resume_file: row.resume_file || null,
+      template: row.template || "modern",
+      certificates: certResult.rows || []
+    });
+
+  } catch (err) {
+    console.error("GET CANDIDATE RESUME ERROR:", err);
+    res.status(500).json({
+      error: "Failed to load candidate resume",
+      details: err.message
+    });
+  }
 });
 
 
-function generateResumeHTML(r) {
-  return `
-  <html>
-    <head>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          padding: 40px;
-          color: #111;
-        }
 
-        .header {
-          text-align: center;
-          margin-bottom: 30px;
-        }
-
-        .title {
-          color: #666;
-        }
-
-        .section {
-          margin-bottom: 20px;
-        }
-
-        .section h3 {
-          border-bottom: 2px solid #ddd;
-          padding-bottom: 5px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>${r.name || ""}</h1>
-        <div class="title">${r.title || ""}</div>
-        <div>${r.email || ""} | ${r.phone || ""}</div>
-      </div>
-
-      <div class="section">
-        <h3>Summary</h3>
-        <p>${r.summary || ""}</p>
-      </div>
-
-      <div class="section">
-        <h3>Skills</h3>
-        <p>${r.skills || ""}</p>
-      </div>
-
-      <div class="section">
-        <h3>Projects</h3>
-        <p>${r.projects || ""}</p>
-      </div>
-
-      <div class="section">
-        <h3>Education</h3>
-        <p>${r.education || ""}</p>
-      </div>
-    </body>
-  </html>
-  `;
-}
 
 const puppeteer = require("puppeteer");
 
-const fs = require("fs");
+
 
 
 router.get("/resume/public/:id", async (req, res) => {
+  try {
+    const candidateId = req.params.id;
 
-  const candidateId = req.params.id;
+    const result = await pool.query(
+      `
+      SELECT 
+        resume_data,
+        template
+      FROM resumes
+      WHERE user_id = $1
+      
+      LIMIT 1
+      `,
+      [candidateId]
+    );
 
-  const result = await pool.query(
-    `SELECT resume_data, template FROM resumes WHERE user_id=$1`,
-    [candidateId]
-  );
+    if (!result.rows.length) {
+      return res.status(404).send("Resume not found");
+    }
 
-  if (!result.rows.length) {
-    return res.status(404).send("Resume not found");
+    const certResult = await pool.query(
+      `
+      SELECT 
+        courses.title AS course_name,
+        certificates.issued_on
+      FROM certificates
+      LEFT JOIN courses ON courses.id = certificates.course_id
+      WHERE certificates.user_id = $1
+      ORDER BY certificates.issued_on DESC
+      `,
+      [candidateId]
+    );
+
+    const resume = result.rows[0].resume_data || {};
+    const template = result.rows[0].template || "modern";
+    const certificates = certResult.rows || [];
+
+    const html = generateFullResumeHTML(resume, certificates, template);
+
+    res.send(html);
+
+  } catch (err) {
+    console.error("PUBLIC RESUME ERROR:", err);
+    res.status(500).send("Failed to load resume");
   }
-
-  const resume = result.rows[0].resume_data || {};
-  const template = result.rows[0].template || "modern";
-
-  const certResult = await pool.query(
-    `
-    SELECT courses.title AS course_name,
-           certificates.issued_on
-    FROM certificates
-    JOIN courses ON courses.id = certificates.course_id
-    WHERE certificates.user_id = $1
-    ORDER BY certificates.issued_on DESC
-    `,
-    [candidateId]
-  );
-
-  const certificates = certResult.rows;
-
-  // 🔥 READ CSS FILE DIRECTLY
-  const cssPath = path.join(__dirname, "../../client/css/resume.css");
-  const css = fs.readFileSync(cssPath, "utf8");
-
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        ${css}
-      </style>
-    </head>
-    <body>
-      <div class="resume-sheet template-${template}">
-        <h1>${resume.name || ""}</h1>
-        <h3>${resume.title || ""}</h3>
-        <p>${resume.email || ""} | ${resume.phone || ""}</p>
-
-        <hr>
-
-        <h3>Summary</h3>
-        <p>${resume.summary || ""}</p>
-
-        <h3>Skills</h3>
-        <p>${resume.skills || ""}</p>
-
-        <h3>Projects</h3>
-        <p>${resume.projects || ""}</p>
-
-        <h3>Education</h3>
-        <p>${resume.education || ""}</p>
-
-        <h3>Certificates</h3>
-        <ul>
-          ${
-            certificates.length
-              ? certificates.map(c => `
-                  <li>
-                    ${c.course_name}
-                    (${new Date(c.issued_on).toLocaleDateString()})
-                  </li>
-                `).join("")
-              : "<li>No certificates</li>"
-          }
-        </ul>
-
-        <h3>Links</h3>
-        <p>${resume.linkedin || ""}<br>${resume.github || ""}</p>
-      </div>
-    </body>
-    </html>
-  `);
 });
 
 router.get("/candidate/:id/resume-pdf", async (req, res) => {
-  try {
+  let browser;
 
+  try {
     const token = req.query.token;
-    if (!token) return res.status(401).json({ error: "No token" });
+
+    if (!token) {
+      return res.status(401).json({ error: "No token" });
+    }
 
     const jwt = require("jsonwebtoken");
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -708,7 +955,15 @@ router.get("/candidate/:id/resume-pdf", async (req, res) => {
     const candidateId = req.params.id;
 
     const result = await pool.query(
-      `SELECT resume_data, template FROM resumes WHERE user_id=$1`,
+      `
+      SELECT 
+        resume_data,
+        template
+      FROM resumes
+      WHERE user_id = $1
+      
+      LIMIT 1
+      `,
       [candidateId]
     );
 
@@ -718,83 +973,45 @@ router.get("/candidate/:id/resume-pdf", async (req, res) => {
 
     const certResult = await pool.query(
       `
-      SELECT courses.title AS course_name, certificates.issued_on
+      SELECT 
+        courses.title AS course_name,
+        certificates.issued_on
       FROM certificates
-      JOIN courses ON courses.id = certificates.course_id
+      LEFT JOIN courses ON courses.id = certificates.course_id
       WHERE certificates.user_id = $1
       ORDER BY certificates.issued_on DESC
       `,
       [candidateId]
     );
 
-    const certificates = certResult.rows;
-
-    const r = result.rows[0].resume_data || {};
+    const resume = result.rows[0].resume_data || {};
     const template = result.rows[0].template || "modern";
+    const certificates = certResult.rows || [];
 
-    // 🔥 Load real CSS safely
-    const fs = require("fs");
-    const path = require("path");
+    const html = generateFullResumeHTML(resume, certificates, template);
 
-    const cssPath = path.join(__dirname, "../../client/css/resume.css");
-    let css = fs.readFileSync(cssPath, "utf8");
+    
 
-    // 🚫 REMOVE PRINT HIDING RULES THAT BREAK PDF
-    css = css.replace(/@media print[\s\S]*?\}\s*\}/g, "");
-
-    const html = `
-    <html>
-    <head>
-      <style>
-        ${css}
-      </style>
-    </head>
-    <body>
-      <div class="resume-sheet template-${template}">
-        <h1>${r.name || ""}</h1>
-        <p><strong>${r.title || ""}</strong></p>
-        <p>${r.email || ""} | ${r.phone || ""}</p>
-
-        <h3>Summary</h3>
-        <p>${r.summary || ""}</p>
-
-        <h3>Skills</h3>
-        <p>${r.skills || ""}</p>
-
-        <h3>Projects</h3>
-        <p>${r.projects || ""}</p>
-
-        <h3>Education</h3>
-        <p>${r.education || ""}</p>
-
-        <h3>Certificates</h3>
-        <ul>
-          ${certificates.map(c => `
-            <li>${c.course_name} (${new Date(c.issued_on).toLocaleDateString()})</li>
-          `).join("")}
-        </ul>
-
-        <h3>Links</h3>
-        <p>${r.linkedin || ""}<br>${r.github || ""}</p>
-      </div>
-    </body>
-    </html>
-    `;
-
-    const puppeteer = require("puppeteer");
-
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"]
     });
 
     const page = await browser.newPage();
 
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, {
+      waitUntil: "networkidle0"
+    });
 
     const pdf = await page.pdf({
       format: "A4",
-      printBackground: true
+      printBackground: true,
+      margin: {
+        top: "15mm",
+        right: "12mm",
+        bottom: "15mm",
+        left: "12mm"
+      }
     });
 
     await browser.close();
@@ -807,71 +1024,89 @@ router.get("/candidate/:id/resume-pdf", async (req, res) => {
     res.send(pdf);
 
   } catch (err) {
+    if (browser) {
+      await browser.close().catch(() => {});
+    }
+
     console.error("PDF ERROR:", err);
-    res.status(500).json({ error: err.message });
+
+    res.status(500).json({
+      error: "Failed to generate resume PDF",
+      details: err.message
+    });
   }
 });
 
 router.get("/resume/preview/:id", async (req, res) => {
+  try {
+    const candidateId = req.params.id;
 
-  const candidateId = req.params.id;
+    const result = await pool.query(
+      `
+      SELECT 
+        resume_data,
+        template
+      FROM resumes
+      WHERE user_id = $1
+      
+      LIMIT 1
+      `,
+      [candidateId]
+    );
 
-  const result = await pool.query(
-    `SELECT resume_data FROM resumes WHERE user_id=$1`,
-    [candidateId]
-  );
+    if (!result.rows.length) {
+      return res.status(404).send("Resume not found");
+    }
 
-  if (!result.rows.length) {
-    return res.status(404).send("Resume not found");
+    const certResult = await pool.query(
+      `
+      SELECT 
+        courses.title AS course_name,
+        certificates.issued_on
+      FROM certificates
+      LEFT JOIN courses ON courses.id = certificates.course_id
+      WHERE certificates.user_id = $1
+      ORDER BY certificates.issued_on DESC
+      `,
+      [candidateId]
+    );
+
+    const resume = result.rows[0].resume_data || {};
+    const template = result.rows[0].template || "modern";
+    const certificates = certResult.rows || [];
+
+    const html = generateFullResumeHTML(resume, certificates, template);
+
+    res.send(html);
+
+  } catch (err) {
+    console.error("RESUME PREVIEW ERROR:", err);
+    res.status(500).send("Failed to load resume preview");
   }
-
-  const r = result.rows[0].resume_data;
-
-  // 🔥 IMPORTANT:
-  // Here you must use SAME THEME HTML used in student dashboard
-
-  res.send(`
-    <html>
-      <head>
-        <link rel="stylesheet" href="/css/resume-theme.css">
-      </head>
-      <body>
-        <div class="resume-container">
-          <h1>${r.name}</h1>
-          <p>${r.title || ""}</p>
-          <p>${r.email} | ${r.phone}</p>
-
-          <h3>Summary</h3>
-          <p>${r.summary}</p>
-
-          <h3>Skills</h3>
-          <p>${r.skills}</p>
-
-          <h3>Projects</h3>
-          <p>${r.projects}</p>
-
-          <h3>Education</h3>
-          <p>${r.education}</p>
-        </div>
-      </body>
-    </html>
-  `);
 });
 
 router.get("/my-interviews", verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        jobs.title,
+        interviews.interview_date,
+        interviews.meeting_link
+      FROM interviews
+      JOIN jobs ON jobs.id = interviews.job_id
+      WHERE interviews.student_id = $1
+      ORDER BY interviews.interview_date DESC
+    `, [req.user.id]);
 
-  const result = await pool.query(`
-    SELECT jobs.title,
-           interview_schedules.interview_date,
-           interview_schedules.meeting_link
-    FROM job_applications
-    JOIN interview_schedules
-      ON interview_schedules.application_id = job_applications.id
-    JOIN jobs ON jobs.id = job_applications.job_id
-    WHERE job_applications.student_id = $1
-  `, [req.user.id]);
+    res.json(result.rows);
 
-  res.json(result.rows);
+  } catch (err) {
+    console.error("MY INTERVIEWS ERROR:", err);
+    res.status(500).json({
+      error: "Failed to load interviews",
+      details: err.message
+    });
+  }
 });
 
 router.get("/notifications", verifyToken, async (req, res) => {
@@ -1727,8 +1962,7 @@ router.get("/payments", verifyToken, async (req, res) => {
 
 router.post("/buy-credits", verifyToken, async (req, res) => {
 
-console.log("KEY:", process.env.RAZORPAY_KEY_ID);
-console.log("SECRET:", process.env.RAZORPAY_KEY_SECRET);
+
 
   if (req.user.role !== "recruiter") {
     return res.status(403).json({ error: "Recruiter only" });

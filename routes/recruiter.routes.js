@@ -4,6 +4,8 @@ const pool = require("../config/db");
 const { verifyToken } = require("../middleware/auth.middleware");
 const crypto = require("crypto");
 const razorpay = require("../config/razorpay");
+const chromium = require("@sparticuz/chromium");
+const puppeteerCore = require("puppeteer-core");
 
 /* ================= PLAN JOB LIMIT RULES ================= */
 
@@ -720,14 +722,25 @@ function generateFullResumeHTML(resume, certificates = [], template = "modern") 
   const github = escapeHTML(r.github || "");
   const portfolio = escapeHTML(r.portfolio || "");
 
-  const certificateHTML = certificates.length
-    ? certificates.map(c => `
+ const certificateHTML = certificates.length
+  ? certificates.map(c => {
+      const certName =
+        c.course_name ||
+        c.exam_name ||
+        c.exam_alt_name ||
+        c.title ||
+        c.name ||
+        c.certificate_id ||
+        "Certificate";
+
+      return `
         <li>
-          ${escapeHTML(c.course_name || c.title || c.name || "Certificate")}
+          ${escapeHTML(certName)}
           ${c.issued_on ? `(${new Date(c.issued_on).toLocaleDateString()})` : ""}
         </li>
-      `).join("")
-    : "<li>No certificates</li>";
+      `;
+    }).join("")
+  : "<li>No certificates</li>";
 
   return `
     <!DOCTYPE html>
@@ -822,18 +835,31 @@ router.get("/candidate/:id/resume", verifyToken, async (req, res) => {
       [candidateId]
     );
 
-    const certResult = await pool.query(
-      `
-      SELECT 
-        courses.title AS course_name,
-        certificates.issued_on
-      FROM certificates
-      LEFT JOIN courses ON courses.id = certificates.course_id
-      WHERE certificates.user_id = $1
-      ORDER BY certificates.issued_on DESC
-      `,
-      [candidateId]
-    );
+const certResult = await pool.query(
+  `
+  SELECT 
+    certificates.id,
+    certificates.certificate_id,
+    certificates.type,
+    certificates.issued_on,
+    certificates.course_id,
+    certificates.exam_id,
+
+    courses.title AS course_name,
+    exams.title AS exam_name
+
+  FROM certificates
+  LEFT JOIN courses 
+    ON courses.id = certificates.course_id
+
+  LEFT JOIN exams 
+    ON exams.id = certificates.exam_id
+
+  WHERE certificates.user_id = $1
+  ORDER BY certificates.issued_on DESC
+  `,
+  [candidateId]
+);
 
     if (!result.rows.length) {
       return res.json({
@@ -882,7 +908,6 @@ router.get("/candidate/:id/resume", verifyToken, async (req, res) => {
 
 
 
-const puppeteer = require("puppeteer");
 
 
 
@@ -908,18 +933,31 @@ router.get("/resume/public/:id", async (req, res) => {
       return res.status(404).send("Resume not found");
     }
 
-    const certResult = await pool.query(
-      `
-      SELECT 
-        courses.title AS course_name,
-        certificates.issued_on
-      FROM certificates
-      LEFT JOIN courses ON courses.id = certificates.course_id
-      WHERE certificates.user_id = $1
-      ORDER BY certificates.issued_on DESC
-      `,
-      [candidateId]
-    );
+const certResult = await pool.query(
+  `
+  SELECT 
+    certificates.id,
+    certificates.certificate_id,
+    certificates.type,
+    certificates.issued_on,
+    certificates.course_id,
+    certificates.exam_id,
+
+    courses.title AS course_name,
+    exams.title AS exam_name
+
+  FROM certificates
+  LEFT JOIN courses 
+    ON courses.id = certificates.course_id
+
+  LEFT JOIN exams 
+    ON exams.id = certificates.exam_id
+
+  WHERE certificates.user_id = $1
+  ORDER BY certificates.issued_on DESC
+  `,
+  [candidateId]
+);
 
     const resume = result.rows[0].resume_data || {};
     const template = result.rows[0].template || "modern";
@@ -961,7 +999,6 @@ router.get("/candidate/:id/resume-pdf", async (req, res) => {
         template
       FROM resumes
       WHERE user_id = $1
-      
       LIMIT 1
       `,
       [candidateId]
@@ -974,10 +1011,23 @@ router.get("/candidate/:id/resume-pdf", async (req, res) => {
     const certResult = await pool.query(
       `
       SELECT 
+        certificates.id,
+        certificates.certificate_id,
+        certificates.type,
+        certificates.issued_on,
+        certificates.course_id,
+        certificates.exam_id,
+
         courses.title AS course_name,
-        certificates.issued_on
+        exams.title AS exam_name
+
       FROM certificates
-      LEFT JOIN courses ON courses.id = certificates.course_id
+      LEFT JOIN courses 
+        ON courses.id = certificates.course_id
+
+      LEFT JOIN exams 
+        ON exams.id = certificates.exam_id
+
       WHERE certificates.user_id = $1
       ORDER BY certificates.issued_on DESC
       `,
@@ -990,12 +1040,12 @@ router.get("/candidate/:id/resume-pdf", async (req, res) => {
 
     const html = generateFullResumeHTML(resume, certificates, template);
 
-    
-
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
-    });
+   browser = await puppeteerCore.launch({
+  args: chromium.args,
+  defaultViewport: chromium.defaultViewport,
+  executablePath: await chromium.executablePath(),
+  headless: chromium.headless
+});
 
     const page = await browser.newPage();
 
@@ -1058,18 +1108,31 @@ router.get("/resume/preview/:id", async (req, res) => {
       return res.status(404).send("Resume not found");
     }
 
-    const certResult = await pool.query(
-      `
-      SELECT 
-        courses.title AS course_name,
-        certificates.issued_on
-      FROM certificates
-      LEFT JOIN courses ON courses.id = certificates.course_id
-      WHERE certificates.user_id = $1
-      ORDER BY certificates.issued_on DESC
-      `,
-      [candidateId]
-    );
+  const certResult = await pool.query(
+  `
+  SELECT 
+    certificates.id,
+    certificates.certificate_id,
+    certificates.type,
+    certificates.issued_on,
+    certificates.course_id,
+    certificates.exam_id,
+
+    courses.title AS course_name,
+    exams.title AS exam_name
+
+  FROM certificates
+  LEFT JOIN courses 
+    ON courses.id = certificates.course_id
+
+  LEFT JOIN exams 
+    ON exams.id = certificates.exam_id
+
+  WHERE certificates.user_id = $1
+  ORDER BY certificates.issued_on DESC
+  `,
+  [candidateId]
+);
 
     const resume = result.rows[0].resume_data || {};
     const template = result.rows[0].template || "modern";
@@ -2171,40 +2234,66 @@ await pool.query(
   }
 });
 
-router.get("/invoice/:id", verifyToken, async (req,res)=>{
+router.get("/invoice/:id", verifyToken, async (req, res) => {
+  let browser;
 
- const invoice = await pool.query(
-   `SELECT * FROM recruiter_invoices
-    WHERE id=$1 AND recruiter_id=$2`,
-   [req.params.id, req.user.id]
- );
+  try {
+    const invoice = await pool.query(
+      `
+      SELECT * FROM recruiter_invoices
+      WHERE id = $1 AND recruiter_id = $2
+      `,
+      [req.params.id, req.user.id]
+    );
 
- const data = invoice.rows[0];
+    if (!invoice.rows.length) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
 
- const browser = await require("puppeteer").launch({
-   headless:true,
-   args:["--no-sandbox"]
- });
+    const data = invoice.rows[0];
 
- const page = await browser.newPage();
+    browser = await puppeteerCore.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless
+    });
 
- await page.setContent(`
-   <h2>EduNexa Invoice</h2>
-   <p>Invoice: ${data.invoice_no}</p>
-   <p>Plan: ${data.plan_name}</p>
-   <p>Total: ₹${data.total_amount}</p>
- `);
+    const page = await browser.newPage();
 
- const pdf = await page.pdf({format:"A4"});
+    await page.setContent(`
+      <h2>EduNexa Invoice</h2>
+      <p>Invoice: ${data.invoice_no}</p>
+      <p>Plan: ${data.plan_name}</p>
+      <p>Total: ₹${data.total_amount}</p>
+    `);
 
- await browser.close();
+    const pdf = await page.pdf({
+      format: "A4",
+      printBackground: true
+    });
 
- res.set({
-   "Content-Type":"application/pdf",
-   "Content-Disposition":"attachment; filename=invoice.pdf"
- });
+    await browser.close();
 
- res.send(pdf);
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "attachment; filename=invoice.pdf"
+    });
+
+    res.send(pdf);
+
+  } catch (err) {
+    if (browser) {
+      await browser.close().catch(() => {});
+    }
+
+    console.error("INVOICE PDF ERROR:", err);
+
+    res.status(500).json({
+      error: "Failed to generate invoice PDF",
+      details: err.message
+    });
+  }
 });
 
 router.get("/admin/revenue", verifyToken, async (req,res)=>{

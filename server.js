@@ -245,6 +245,10 @@ app.get("/health", (req, res) => {
   res.json({ status: "Vaibhly Backend OK 🚀" });
 });
 
+app.get("/kids", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "kids.html"));
+});
+
 /* ================= START ================= */
 const PORT = process.env.PORT || 5000;
 

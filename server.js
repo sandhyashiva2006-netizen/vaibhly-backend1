@@ -236,6 +236,7 @@ app.use(
 authRoutes
 );
 app.use("/api/referrals", referralRoutes);
+app.use("/api/kids", require("./routes/kids"));
 
 app.use(express.static(path.join(__dirname, "..", "client")));
 

@@ -1022,4 +1022,403 @@ router.post("/courses", verifyToken, isAdmin, async (req, res) => {
   }
 });
 
+/* ======================================================
+   ADMIN: KIDS COURSE BUILDER
+====================================================== */
+
+/* CREATE KIDS COURSE */
+router.post("/kids-courses", verifyToken, isAdmin, async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      price,
+      class_level,
+      subject,
+      learning_path,
+      kids_style,
+      thumbnail_icon
+    } = req.body;
+
+    if (!title || !class_level || !subject || !learning_path) {
+      return res.status(400).json({
+        error: "title, class_level, subject and learning_path are required"
+      });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO courses
+      (
+        title,
+        description,
+        price,
+        instructor_id,
+        created_by_role,
+        is_kids,
+        audience,
+        class_level,
+        subject,
+        learning_path,
+        kids_style,
+        thumbnail_icon,
+        status
+      )
+      VALUES
+      ($1,$2,$3,$4,'admin',true,'kids',$5,$6,$7,$8,$9,'active')
+      RETURNING *
+      `,
+      [
+        title,
+        description || "",
+        Number(price) || 0,
+        req.user.id,
+        class_level,
+        subject,
+        learning_path,
+        kids_style || "story",
+        thumbnail_icon || "📚"
+      ]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Create kids course error:", err);
+    res.status(500).json({ error: "Failed to create kids course" });
+  }
+});
+
+
+/* GET ALL KIDS COURSES */
+router.get("/kids-courses", verifyToken, isAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        title,
+        description,
+        price,
+        status,
+        is_kids,
+        audience,
+        class_level,
+        subject,
+        learning_path,
+        kids_style,
+        thumbnail_icon,
+        created_at
+      FROM courses
+      WHERE is_kids = true OR audience = 'kids'
+      ORDER BY id DESC
+      `
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Get kids courses error:", err);
+    res.status(500).json({ error: "Failed to load kids courses" });
+  }
+});
+
+
+/* GET SINGLE KIDS COURSE WITH MODULES AND LESSONS */
+router.get("/kids-courses/:id", verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const courseRes = await pool.query(
+      `
+      SELECT *
+      FROM courses
+      WHERE id = $1 AND (is_kids = true OR audience = 'kids')
+      `,
+      [id]
+    );
+
+    if (!courseRes.rows.length) {
+      return res.status(404).json({ error: "Kids course not found" });
+    }
+
+    const modulesRes = await pool.query(
+      `
+      SELECT *
+      FROM course_modules
+      WHERE course_id = $1
+      ORDER BY id ASC
+      `,
+      [id]
+    );
+
+    const moduleIds = modulesRes.rows.map(m => m.id);
+
+    let lessons = [];
+
+    if (moduleIds.length) {
+      const lessonsRes = await pool.query(
+        `
+        SELECT *
+        FROM course_lessons
+        WHERE module_id = ANY($1)
+        ORDER BY id ASC
+        `,
+        [moduleIds]
+      );
+
+      lessons = lessonsRes.rows;
+    }
+
+    res.json({
+      course: courseRes.rows[0],
+      modules: modulesRes.rows,
+      lessons
+    });
+  } catch (err) {
+    console.error("Get kids course detail error:", err);
+    res.status(500).json({ error: "Failed to load kids course" });
+  }
+});
+
+
+/* UPDATE KIDS COURSE */
+router.put("/kids-courses/:id", verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      title,
+      description,
+      price,
+      class_level,
+      subject,
+      learning_path,
+      kids_style,
+      thumbnail_icon,
+      status
+    } = req.body;
+
+    const result = await pool.query(
+      `
+      UPDATE courses
+      SET
+        title = $1,
+        description = $2,
+        price = $3,
+        class_level = $4,
+        subject = $5,
+        learning_path = $6,
+        kids_style = $7,
+        thumbnail_icon = $8,
+        status = $9,
+        is_kids = true,
+        audience = 'kids'
+      WHERE id = $10
+      RETURNING *
+      `,
+      [
+        title,
+        description || "",
+        Number(price) || 0,
+        class_level,
+        subject,
+        learning_path,
+        kids_style || "story",
+        thumbnail_icon || "📚",
+        status || "active",
+        id
+      ]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Update kids course error:", err);
+    res.status(500).json({ error: "Failed to update kids course" });
+  }
+});
+
+
+/* DELETE KIDS COURSE */
+router.delete("/kids-courses/:id", verifyToken, isAdmin, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { id } = req.params;
+
+    await client.query("BEGIN");
+
+    const modulesRes = await client.query(
+      `
+      SELECT id
+      FROM course_modules
+      WHERE course_id = $1
+      `,
+      [id]
+    );
+
+    const moduleIds = modulesRes.rows.map(m => m.id);
+
+    if (moduleIds.length) {
+      await client.query(
+        `
+        DELETE FROM course_lessons
+        WHERE module_id = ANY($1)
+        `,
+        [moduleIds]
+      );
+    }
+
+    await client.query(
+      `
+      DELETE FROM course_modules
+      WHERE course_id = $1
+      `,
+      [id]
+    );
+
+    await client.query(
+      `
+      DELETE FROM courses
+      WHERE id = $1 AND (is_kids = true OR audience = 'kids')
+      `,
+      [id]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({ success: true });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Delete kids course error:", err);
+    res.status(500).json({ error: "Failed to delete kids course" });
+  } finally {
+    client.release();
+  }
+});
+
+
+/* ADD MODULE TO KIDS COURSE */
+router.post("/kids-courses/:id/modules", verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ error: "Module title required" });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO course_modules (course_id, title)
+      VALUES ($1, $2)
+      RETURNING *
+      `,
+      [id, title]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Add kids module error:", err);
+    res.status(500).json({ error: "Failed to add module" });
+  }
+});
+
+
+/* ADD LESSON TO KIDS MODULE */
+router.post("/kids-modules/:moduleId/lessons", verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { moduleId } = req.params;
+
+    const {
+      title,
+      content_type,
+      content
+    } = req.body;
+
+    if (!title || !content_type) {
+      return res.status(400).json({
+        error: "Lesson title and content_type required"
+      });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO course_lessons
+      (module_id, title, content_type, content)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+      `,
+      [
+        moduleId,
+        title,
+        content_type,
+        content || ""
+      ]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Add kids lesson error:", err);
+    res.status(500).json({ error: "Failed to add lesson" });
+  }
+});
+
+
+/* DELETE KIDS MODULE */
+router.delete("/kids-modules/:moduleId", verifyToken, isAdmin, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { moduleId } = req.params;
+
+    await client.query("BEGIN");
+
+    await client.query(
+      `
+      DELETE FROM course_lessons
+      WHERE module_id = $1
+      `,
+      [moduleId]
+    );
+
+    await client.query(
+      `
+      DELETE FROM course_modules
+      WHERE id = $1
+      `,
+      [moduleId]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({ success: true });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Delete kids module error:", err);
+    res.status(500).json({ error: "Failed to delete module" });
+  } finally {
+    client.release();
+  }
+});
+
+
+/* DELETE KIDS LESSON */
+router.delete("/kids-lessons/:lessonId", verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+
+    await pool.query(
+      `
+      DELETE FROM course_lessons
+      WHERE id = $1
+      `,
+      [lessonId]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Delete kids lesson error:", err);
+    res.status(500).json({ error: "Failed to delete lesson" });
+  }
+});
+
 module.exports = router;

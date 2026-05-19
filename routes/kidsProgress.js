@@ -10,7 +10,8 @@ const {
  * POST /api/kids/enroll
  * Enroll child in kids course
  */
-router.post("/enroll", authenticateToken, async (req, res) => {
+
+router.post("/enroll", verifyToken, async (req, res) => {
   try {
     const parentId = req.user.id;
     const { child_id, course_id } = req.body;
@@ -73,7 +74,7 @@ router.post("/enroll", authenticateToken, async (req, res) => {
  * POST /api/kids/lesson-complete
  * Mark lesson complete
  */
-router.post("/lesson-complete", authenticateToken, async (req, res) => {
+router.post("/lesson-complete", verifyToken, async (req, res) => {
   try {
     const parentId = req.user.id;
     const { child_id, course_id, lesson_id } = req.body;
@@ -174,7 +175,7 @@ router.post("/lesson-complete", authenticateToken, async (req, res) => {
 /**
  * GET /api/kids/course-lessons/:courseId?child_id=1
  */
-router.get("/course-lessons/:courseId", authenticateToken, async (req, res) => {
+router.get("/course-lessons/:courseId", verifyToken, async (req, res) => {
   try {
     const parentId = req.user.id;
     const courseId = req.params.courseId;

@@ -10,7 +10,7 @@ const {
  * GET /api/kids/parent-dashboard
  * Parent dashboard summary
  */
-router.get("/parent-dashboard", authenticateToken, async (req, res) => {
+router.get("/parent-dashboard", verifyToken, async (req, res) => {
   try {
     const parentId = req.user.id;
 
@@ -127,7 +127,7 @@ router.get("/parent-dashboard", authenticateToken, async (req, res) => {
  * GET /api/kids/dashboard?child_id=1
  * Kids dashboard
  */
-router.get("/dashboard", authenticateToken, async (req, res) => {
+router.get("/dashboard", verifyToken, async (req, res) => {
   try {
     const parentId = req.user.id;
     const childId = req.query.child_id;

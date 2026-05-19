@@ -10,7 +10,8 @@ const {
  * GET /api/kids/profiles
  * Get all child profiles of logged-in parent/user
  */
-router.get("/", authenticateToken, async (req, res) => {
+
+router.get("/", verifyToken, async (req, res) => {
   try {
     const parentId = req.user.id;
 
@@ -39,7 +40,7 @@ router.get("/", authenticateToken, async (req, res) => {
  * POST /api/kids/profiles
  * Add child profile
  */
-router.post("/", authenticateToken, async (req, res) => {
+router.post("/", verifyToken, async (req, res) => {
   try {
     const parentId = req.user.id;
     const { child_name, class_level, avatar } = req.body;
@@ -81,7 +82,7 @@ router.post("/", authenticateToken, async (req, res) => {
  * PUT /api/kids/profiles/:id
  * Update child profile
  */
-router.put("/:id", authenticateToken, async (req, res) => {
+router.put("/:id", verifyToken, async (req, res) => {
   try {
     const parentId = req.user.id;
     const profileId = req.params.id;
@@ -121,7 +122,7 @@ router.put("/:id", authenticateToken, async (req, res) => {
 /**
  * DELETE /api/kids/profiles/:id
  */
-router.delete("/:id", authenticateToken, async (req, res) => {
+router.delete("/:id", verifyToken, async (req, res) => {
   try {
     const parentId = req.user.id;
     const profileId = req.params.id;

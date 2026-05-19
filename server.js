@@ -160,11 +160,7 @@ app.get("/u/:username", (req, res) => {
   res.sendFile(path.join(CLIENT_ROOT, "public-profile.html"));
 });
 
-app.use((req, res, next) => {
-  if (req.path.startsWith("/api")) return next();
 
-  res.sendFile(path.join(CLIENT_ROOT, "index.html"));
-});
 
 
 const fs = require("fs");
@@ -283,6 +279,11 @@ app.use("/api/kids", kidsDashboardRoutes);
 app.use("/api/kids", kidsProgressRoutes);
 
 app.use(express.static(path.join(__dirname, "..", "client")));
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
+
+  res.sendFile(path.join(CLIENT_ROOT, "index.html"));
+});
 
 
 /* ================= HEALTH CHECK ================= */

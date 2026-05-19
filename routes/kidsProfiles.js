@@ -11,7 +11,10 @@ const {
  * Get all child profiles of logged-in parent/user
  */
 
+console.log("✅ kidsProfiles routes loaded");
+
 router.get("/", verifyToken, async (req, res) => {
+  console.log("✅ GET kids profiles hit");
   try {
     const parentId = req.user.id;
 
@@ -41,6 +44,8 @@ router.get("/", verifyToken, async (req, res) => {
  * Add child profile
  */
 router.post("/", verifyToken, async (req, res) => {
+  console.log("✅ POST kids profiles hit");
+
   try {
     const parentId = req.user.id;
     const { child_name, class_level, avatar } = req.body;

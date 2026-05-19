@@ -120,8 +120,6 @@ app.use(
  express.static(path.join(__dirname,"uploads"))
 );
 
-// ✅ Invoices (PDF download)
-app.use("/invoices", express.static(INVOICE_ROOT));
 
 /* ================= KIDS PAGES ================= */
 
@@ -283,15 +281,31 @@ app.get("/kids", (req, res) => {
   );
 });
 
+/* ================= STATIC ================= */
+
+app.use(
+  express.static(
+    path.join(__dirname, "..", "client")
+  )
+);
+
+/* ================= PUBLIC ROUTES ================= */
+
 app.use("/", publicRoutes);
 
-app.use(express.static(path.join(__dirname, "..", "client")));
+/* ================= SPA FALLBACK ================= */
+
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api")) return next();
 
-  res.sendFile(path.join(CLIENT_ROOT, "index.html"));
+  if (req.path.startsWith("/api")) {
+    return next();
+  }
+
+  res.sendFile(
+    path.join(CLIENT_ROOT, "index.html")
+  );
+
 });
-
 
 /* ================= HEALTH CHECK ================= */
 app.get("/health", (req, res) => {

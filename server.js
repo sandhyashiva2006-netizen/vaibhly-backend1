@@ -267,7 +267,6 @@ app.use("/api", instructorLessonRoutes);
 app.use("/api", instructorModuleRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/instructor-earnings", instructorEarningsRoutes);
-app.use("/", publicRoutes);
 app.use(
 "/api/auth",
 authRoutes
@@ -277,6 +276,14 @@ app.use("/api/referrals", referralRoutes);
 app.use("/api/kids/profiles", kidsProfilesRoutes);
 app.use("/api/kids", kidsDashboardRoutes);
 app.use("/api/kids", kidsProgressRoutes);
+
+app.get("/kids", (req, res) => {
+  res.sendFile(
+    path.join(CLIENT_ROOT, "kids.html")
+  );
+});
+
+app.use("/", publicRoutes);
 
 app.use(express.static(path.join(__dirname, "..", "client")));
 app.use((req, res, next) => {
@@ -291,11 +298,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "Vaibhly Backend OK 🚀" });
 });
 
-app.get("/kids", (req, res) => {
-  res.sendFile(
-    path.join(CLIENT_ROOT, "kids.html")
-  );
-});
+
 
 /* ================= START ================= */
 const PORT = process.env.PORT || 5000;
@@ -387,9 +390,4 @@ setInterval(async () => {
   `);
 }, 60 * 60 * 1000);
 
-app.use((req, res, next) => {
-  if (req.path.startsWith("/api")) return next();
-
-  res.sendFile(path.join(CLIENT_ROOT, "index.html"));
-});
 

@@ -270,7 +270,7 @@ app.use(
 authRoutes
 );
 app.use("/api/referrals", referralRoutes);
-app.use("/api/kids", require("./routes/kids"));
+
 app.use("/api/kids/profiles", kidsProfilesRoutes);
 app.use("/api/kids", kidsDashboardRoutes);
 app.use("/api/kids", kidsProgressRoutes);

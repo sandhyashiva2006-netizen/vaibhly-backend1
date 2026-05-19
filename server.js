@@ -75,6 +75,9 @@ require("./routes/auth.routes");
 const recruiterInboxRoutes =
 require("./routes/recruiter.inbox.routes");
 const referralRoutes = require("./routes/referral.routes");
+const kidsProfilesRoutes = require("./routes/kidsProfiles");
+const kidsDashboardRoutes = require("./routes/kidsDashboard");
+const kidsProgressRoutes = require("./routes/kidsProgress");
 
 /* ================= MIDDLEWARE ================= */
 
@@ -120,9 +123,47 @@ app.use(
 // ✅ Invoices (PDF download)
 app.use("/invoices", express.static(INVOICE_ROOT));
 
+/* ================= KIDS PAGES ================= */
+
+app.get("/parent-dashboard.html", (req, res) => {
+  res.sendFile(
+    path.join(CLIENT_ROOT, "parent-dashboard.html")
+  );
+});
+
+app.get("/kids-dashboard.html", (req, res) => {
+  res.sendFile(
+    path.join(CLIENT_ROOT, "kids-dashboard.html")
+  );
+});
+
+app.get("/kids-courses.html", (req, res) => {
+  res.sendFile(
+    path.join(CLIENT_ROOT, "kids-courses.html")
+  );
+});
+
+app.get("/kids-course-detail.html", (req, res) => {
+  res.sendFile(
+    path.join(CLIENT_ROOT, "kids-course-detail.html")
+  );
+});
+
+app.get("/kids-player.html", (req, res) => {
+  res.sendFile(
+    path.join(CLIENT_ROOT, "kids-player.html")
+  );
+});
+
 // 🌍 Public profile route
 app.get("/u/:username", (req, res) => {
   res.sendFile(path.join(CLIENT_ROOT, "public-profile.html"));
+});
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
+
+  res.sendFile(path.join(CLIENT_ROOT, "index.html"));
 });
 
 
@@ -185,7 +226,7 @@ app.post(
 );
 
 /* ================= API ROUTES ================= */
-app.use("/api/auth", require("./routes/auth.routes"));
+
 app.use("/api/courses", courseRoutes);
 app.use("/api/student", require("./routes/student.routes"));
 app.use("/api/content", require("./routes/content.routes"));
@@ -237,6 +278,9 @@ authRoutes
 );
 app.use("/api/referrals", referralRoutes);
 app.use("/api/kids", require("./routes/kids"));
+app.use("/api/kids/profiles", kidsProfilesRoutes);
+app.use("/api/kids", kidsDashboardRoutes);
+app.use("/api/kids", kidsProgressRoutes);
 
 app.use(express.static(path.join(__dirname, "..", "client")));
 
@@ -247,7 +291,9 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/kids", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "kids.html"));
+  res.sendFile(
+    path.join(CLIENT_ROOT, "kids.html")
+  );
 });
 
 /* ================= START ================= */

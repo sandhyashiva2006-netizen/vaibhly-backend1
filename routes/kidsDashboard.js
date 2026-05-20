@@ -24,6 +24,15 @@ router.get("/parent-dashboard", verifyToken, async (req, res) => {
 
     const children = profilesResult.rows;
 
+console.log(
+  "🔥 FINAL DASHBOARD DATA",
+  JSON.stringify(
+    coursesResult.rows,
+    null,
+    2
+  )
+);
+
     if (children.length === 0) {
       return res.json({
         success: true,
@@ -50,14 +59,15 @@ router.get("/parent-dashboard", verifyToken, async (req, res) => {
     const coursesResult = await pool.query(
   `
   SELECT
-    kc.id AS course_id,
+    ke.course_id,
+
     kc.title,
     kc.subject,
     kc.path,
 
-    ke.progress,
-    ke.completed_lessons,
-    ke.total_lessons
+    ke.progress::int,
+    ke.completed_lessons::int,
+    ke.total_lessons::int
 
   FROM kids_enrollments ke
 

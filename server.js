@@ -101,8 +101,20 @@ app.use(passport.initialize());
 
 /* ================= ABSOLUTE PATHS ================= */
 const SERVER_ROOT  = __dirname; // /server
-const CLIENT_ROOT = path.join(__dirname, "..", "client");
-const ADMIN_ROOT   = path.join(__dirname, "..", "admin");
+const CLIENT_ROOT =
+  path.join(
+    __dirname,
+    "..",
+    "vaibhly-frontend",
+    "client"
+  );
+const ADMIN_ROOT =
+  path.join(
+    __dirname,
+    "..",
+    "vaibhly-frontend",
+    "admin"
+  );
 const INVOICE_ROOT = path.join(__dirname, "invoices");   // ✅ server/invoices
 
 

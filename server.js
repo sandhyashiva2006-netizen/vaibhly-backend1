@@ -78,6 +78,8 @@ const referralRoutes = require("./routes/referral.routes");
 const kidsProfilesRoutes = require("./routes/kidsProfiles");
 const kidsDashboardRoutes = require("./routes/kidsDashboard");
 const kidsProgressRoutes = require("./routes/kidsProgress");
+const kidsCoursesRoutes =
+  require("./routes/kidsCourses");
 
 /* ================= MIDDLEWARE ================= */
 
@@ -274,6 +276,10 @@ app.use("/api/referrals", referralRoutes);
 app.use("/api/kids/profiles", kidsProfilesRoutes);
 app.use("/api/kids", kidsDashboardRoutes);
 app.use("/api/kids", kidsProgressRoutes);
+app.use(
+  "/api/kids",
+  kidsCoursesRoutes
+);
 
 app.get("/kids", (req, res) => {
   res.sendFile(

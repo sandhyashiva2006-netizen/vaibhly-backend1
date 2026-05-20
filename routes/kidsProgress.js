@@ -251,6 +251,8 @@ router.post(
   verifyToken,
   async (req, res) => {
 
+console.log("✅ COMPLETE LESSON API HIT");
+
     try {
 
       const {

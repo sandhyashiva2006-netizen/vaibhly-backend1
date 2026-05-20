@@ -48,31 +48,39 @@ router.get("/parent-dashboard", verifyToken, async (req, res) => {
     ) || children[0];
 
     const coursesResult = await pool.query(
-      `SELECT 
-          e.id AS enrollment_id,
-          e.progress,
-          e.enrolled_at,
-          c.id AS course_id,
-          c.title,
-          c.description,
-          c.class_level,
-          c.subject,
-          c.path,
-          c.thumbnail,
-          COUNT(l.id) AS total_lessons,
-          COUNT(lp.id) FILTER (WHERE lp.completed = true) AS completed_lessons
-       FROM kids_enrollments e
-       JOIN kids_courses c ON c.id = e.course_id
-       LEFT JOIN kids_lessons l ON l.course_id = c.id
-       LEFT JOIN kids_lesson_progress lp 
-          ON lp.lesson_id = l.id 
-         AND lp.child_id = e.child_id 
-         AND lp.completed = true
-       WHERE e.parent_id = $1 AND e.child_id = $2
-       GROUP BY e.id, c.id
-       ORDER BY e.enrolled_at DESC`,
-      [parentId, selectedChild.id]
-    );
+  `
+  SELECT
+    kc.id AS course_id,
+    kc.title,
+    kc.subject,
+    kc.path,
+
+    COALESCE(
+      ke.progress,
+      0
+    ) AS progress,
+
+    COALESCE(
+      ke.completed_lessons,
+      0
+    ) AS completed_lessons,
+
+    COALESCE(
+      ke.total_lessons,
+      2
+    ) AS total_lessons
+
+  FROM kids_enrollments ke
+
+  JOIN kids_courses kc
+    ON kc.id = ke.course_id
+
+  WHERE ke.child_id = $1
+
+  ORDER BY ke.id DESC
+  `,
+  [childId]
+);
 
     const badgesResult = await pool.query(
       `SELECT id, badge_name, badge_icon, badge_type, earned_at

@@ -320,13 +320,23 @@ app.use("/", publicRoutes);
 
 app.use((req, res, next) => {
 
+  // API routes should NEVER fallback to HTML
   if (req.path.startsWith("/api")) {
-    return next();
+
+    return res.status(404).json({
+      success: false,
+      message: "API route not found"
+    });
+
   }
 
-  res.sendFile(
-    path.join(CLIENT_ROOT, "index.html")
+  // Only frontend pages use index.html
+  const indexPath = path.join(
+    CLIENT_ROOT,
+    "index.html"
   );
+
+  return res.sendFile(indexPath);
 
 });
 

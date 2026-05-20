@@ -16,6 +16,11 @@ router.get(
   "/lessons/:courseId",
   async (req, res) => {
 
+console.log(
+      "✅ LESSON ROUTE HIT:",
+      req.params.courseId
+    );
+
     try {
 
       const courseId =

@@ -259,28 +259,33 @@ router.post(
         lesson_index
       } = req.body;
 
+      // TOTAL LESSONS = 2 FOR NOW
+      const totalLessons = 2;
+
+      const progress =
+        Math.min(
+          100,
+          Math.round(
+            (
+              lesson_index /
+              totalLessons
+            ) * 100
+          )
+        );
+
       await pool.query(
         `
         UPDATE kids_enrollments
         SET
-          completed_lessons =
-            GREATEST(
-              completed_lessons,
-              $1
-            ),
-
-          progress =
-            LEAST(
-              100,
-              ($1::float / total_lessons) * 100
-            )
-
+          completed_lessons = $1,
+          progress = $2
         WHERE
-          child_id = $2
-          AND course_id = $3
+          child_id = $3
+          AND course_id = $4
         `,
         [
           lesson_index,
+          progress,
           child_id,
           course_id
         ]
@@ -294,7 +299,10 @@ router.post(
 
     catch (err) {
 
-      console.error(err);
+      console.error(
+        "Complete lesson error:",
+        err
+      );
 
       res.status(500).json({
         success: false

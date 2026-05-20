@@ -8,9 +8,7 @@ const {
 
 /**
  * POST /api/kids/enroll
- * Enroll child in kids course
  */
-
 router.post("/enroll", verifyToken, async (req, res) => {
   try {
     const parentId = req.user.id;
@@ -23,6 +21,7 @@ router.post("/enroll", verifyToken, async (req, res) => {
       });
     }
 
+    // verify child belongs to parent
     const childCheck = await pool.query(
       `SELECT id FROM kids_profiles WHERE id = $1 AND parent_id = $2`,
       [child_id, parentId]
@@ -31,12 +30,13 @@ router.post("/enroll", verifyToken, async (req, res) => {
     if (childCheck.rows.length === 0) {
       return res.status(403).json({
         success: false,
-        message: "Invalid child profile",
+        message: "Child profile not found",
       });
     }
 
+    // verify course exists
     const courseCheck = await pool.query(
-      `SELECT id FROM kids_courses WHERE id = $1 AND status = 'active'`,
+      `SELECT id FROM kids_courses WHERE id = $1`,
       [course_id]
     );
 
@@ -47,25 +47,39 @@ router.post("/enroll", verifyToken, async (req, res) => {
       });
     }
 
+    // avoid duplicate enrollment
+    const existing = await pool.query(
+      `SELECT id FROM kids_enrollments
+       WHERE parent_id = $1 AND child_id = $2 AND course_id = $3`,
+      [parentId, child_id, course_id]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.json({
+        success: true,
+        message: "Course already added",
+        enrollment: existing.rows[0],
+      });
+    }
+
     const result = await pool.query(
-      `INSERT INTO kids_enrollments (parent_id, child_id, course_id, progress)
-       VALUES ($1, $2, $3, 0)
-       ON CONFLICT (child_id, course_id)
-       DO UPDATE SET progress = kids_enrollments.progress
+      `INSERT INTO kids_enrollments
+       (parent_id, child_id, course_id, progress, enrolled_at)
+       VALUES ($1, $2, $3, 0, NOW())
        RETURNING *`,
       [parentId, child_id, course_id]
     );
 
     res.json({
       success: true,
-      message: "Child enrolled successfully",
+      message: "Course added successfully",
       enrollment: result.rows[0],
     });
   } catch (err) {
     console.error("Kids enroll error:", err);
     res.status(500).json({
       success: false,
-      message: "Failed to enroll child",
+      message: "Failed to enroll kids course",
     });
   }
 });
@@ -231,5 +245,64 @@ router.get("/course-lessons/:courseId", verifyToken, async (req, res) => {
     });
   }
 });
+
+router.post(
+  "/complete-lesson",
+  verifyToken,
+  async (req, res) => {
+
+    try {
+
+      const {
+        child_id,
+        course_id,
+        lesson_index
+      } = req.body;
+
+      await pool.query(
+        `
+        UPDATE kids_enrollments
+        SET
+          completed_lessons =
+            GREATEST(
+              completed_lessons,
+              $1
+            ),
+
+          progress =
+            LEAST(
+              100,
+              ($1::float / total_lessons) * 100
+            )
+
+        WHERE
+          child_id = $2
+          AND course_id = $3
+        `,
+        [
+          lesson_index,
+          child_id,
+          course_id
+        ]
+      );
+
+      res.json({
+        success: true
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      res.status(500).json({
+        success: false
+      });
+
+    }
+
+  }
+);
 
 module.exports = router;

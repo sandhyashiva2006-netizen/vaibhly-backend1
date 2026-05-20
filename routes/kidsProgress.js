@@ -9,80 +9,196 @@ const {
 /**
  * POST /api/kids/enroll
  */
-router.post("/enroll", verifyToken, async (req, res) => {
-  try {
-    const parentId = req.user.id;
-    const { child_id, course_id } = req.body;
+router.post(
+  "/enroll",
+  verifyToken,
+  async (req, res) => {
 
-    if (!child_id || !course_id) {
-      return res.status(400).json({
-        success: false,
-        message: "child_id and course_id are required",
-      });
-    }
+    try {
 
-    // verify child belongs to parent
-    const childCheck = await pool.query(
-      `SELECT id FROM kids_profiles WHERE id = $1 AND parent_id = $2`,
-      [child_id, parentId]
-    );
+      const parentId =
+        req.user.id;
 
-    if (childCheck.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: "Child profile not found",
-      });
-    }
+      const {
+        child_id,
+        course_id
+      } = req.body;
 
-    // verify course exists
-    const courseCheck = await pool.query(
-      `SELECT id FROM kids_courses WHERE id = $1`,
-      [course_id]
-    );
+      console.log(
+        "🔥 ENROLL REQUEST:",
+        {
+          child_id,
+          course_id
+        }
+      );
 
-    if (courseCheck.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Kids course not found",
-      });
-    }
+      if (
+        !child_id ||
+        !course_id
+      ) {
 
-    // avoid duplicate enrollment
-    const existing = await pool.query(
-      `SELECT id FROM kids_enrollments
-       WHERE parent_id = $1 AND child_id = $2 AND course_id = $3`,
-      [parentId, child_id, course_id]
-    );
+        return res.status(400).json({
+          success: false,
+          message:
+            "child_id and course_id are required",
+        });
 
-    if (existing.rows.length > 0) {
+      }
+
+      // VERIFY CHILD
+      const childCheck =
+        await pool.query(
+          `
+          SELECT id
+          FROM kids_profiles
+          WHERE id = $1
+          AND parent_id = $2
+          `,
+          [
+            Number(child_id),
+            Number(parentId)
+          ]
+        );
+
+      if (
+        childCheck.rows.length === 0
+      ) {
+
+        return res.status(403).json({
+          success: false,
+          message:
+            "Child profile not found",
+        });
+
+      }
+
+      // VERIFY COURSE
+      const courseCheck =
+        await pool.query(
+          `
+          SELECT id, title
+          FROM kids_courses
+          WHERE id = $1
+          `,
+          [Number(course_id)]
+        );
+
+      if (
+        courseCheck.rows.length === 0
+      ) {
+
+        return res.status(404).json({
+          success: false,
+          message:
+            "Kids course not found",
+        });
+
+      }
+
+      console.log(
+        "✅ COURSE FOUND:",
+        courseCheck.rows[0]
+      );
+
+      // CHECK EXISTING
+      const existing =
+        await pool.query(
+          `
+          SELECT id
+          FROM kids_enrollments
+          WHERE
+            parent_id = $1
+            AND child_id = $2
+            AND course_id = $3
+          `,
+          [
+            Number(parentId),
+            Number(child_id),
+            Number(course_id)
+          ]
+        );
+
+      // ALREADY ENROLLED
+      if (
+        existing.rows.length > 0
+      ) {
+
+        return res.json({
+          success: true,
+          alreadyEnrolled: true,
+          message:
+            "Course already added",
+          enrollment:
+            existing.rows[0],
+        });
+
+      }
+
+      // INSERT
+      const result =
+        await pool.query(
+          `
+          INSERT INTO kids_enrollments
+          (
+            parent_id,
+            child_id,
+            course_id,
+            progress,
+            completed_lessons,
+            total_lessons,
+            enrolled_at
+          )
+          VALUES
+          (
+            $1,
+            $2,
+            $3,
+            0,
+            0,
+            2,
+            NOW()
+          )
+          RETURNING *
+          `,
+          [
+            Number(parentId),
+            Number(child_id),
+            Number(course_id)
+          ]
+        );
+
+      console.log(
+        "✅ ENROLLED:",
+        result.rows[0]
+      );
+
       return res.json({
         success: true,
-        message: "Course already added",
-        enrollment: existing.rows[0],
+        message:
+          "Course added successfully",
+        enrollment:
+          result.rows[0],
       });
+
     }
 
-    const result = await pool.query(
-      `INSERT INTO kids_enrollments
-       (parent_id, child_id, course_id, progress, enrolled_at)
-       VALUES ($1, $2, $3, 0, NOW())
-       RETURNING *`,
-      [parentId, child_id, course_id]
-    );
+    catch (err) {
 
-    res.json({
-      success: true,
-      message: "Course added successfully",
-      enrollment: result.rows[0],
-    });
-  } catch (err) {
-    console.error("Kids enroll error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Failed to enroll kids course",
-    });
+      console.error(
+        "❌ Kids enroll error:",
+        err
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to enroll kids course",
+      });
+
+    }
+
   }
-});
+);
 
 /**
  * POST /api/kids/lesson-complete

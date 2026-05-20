@@ -24,14 +24,7 @@ router.get("/parent-dashboard", verifyToken, async (req, res) => {
 
     const children = profilesResult.rows;
 
-console.log(
-  "🔥 FINAL DASHBOARD DATA",
-  JSON.stringify(
-    coursesResult.rows,
-    null,
-    2
-  )
-);
+
 
     if (children.length === 0) {
       return res.json({
@@ -65,9 +58,17 @@ console.log(
     kc.subject,
     kc.path,
 
-    ke.progress::int,
-    ke.completed_lessons::int,
-    ke.total_lessons::int
+    COALESCE(ke.progress, 0)::int AS progress,
+
+    COALESCE(
+      ke.completed_lessons,
+      0
+    )::int AS completed_lessons,
+
+    COALESCE(
+      ke.total_lessons,
+      2
+    )::int AS total_lessons
 
   FROM kids_enrollments ke
 
@@ -168,30 +169,35 @@ router.get("/dashboard", verifyToken, async (req, res) => {
     const child = childResult.rows[0];
 
     const coursesResult = await pool.query(
-      `SELECT 
-          e.id AS enrollment_id,
-          e.progress,
-          c.id AS course_id,
-          c.title,
-          c.description,
-          c.class_level,
-          c.subject,
-          c.path,
-          c.thumbnail,
-          COUNT(l.id) AS total_lessons,
-          COUNT(lp.id) FILTER (WHERE lp.completed = true) AS completed_lessons
-       FROM kids_enrollments e
-       JOIN kids_courses c ON c.id = e.course_id
-       LEFT JOIN kids_lessons l ON l.course_id = c.id
-       LEFT JOIN kids_lesson_progress lp 
-          ON lp.lesson_id = l.id 
-         AND lp.child_id = e.child_id 
-         AND lp.completed = true
-       WHERE e.parent_id = $1 AND e.child_id = $2
-       GROUP BY e.id, c.id
-       ORDER BY e.enrolled_at DESC`,
-      [parentId, childId]
-    );
+  `
+  SELECT
+    e.id AS enrollment_id,
+
+    e.progress::int,
+    e.completed_lessons::int,
+    e.total_lessons::int,
+
+    c.id AS course_id,
+    c.title,
+    c.description,
+    c.class_level,
+    c.subject,
+    c.path,
+    c.thumbnail
+
+  FROM kids_enrollments e
+
+  JOIN kids_courses c
+    ON c.id = e.course_id
+
+  WHERE
+    e.parent_id = $1
+    AND e.child_id = $2
+
+  ORDER BY e.enrolled_at DESC
+  `,
+  [parentId, childId]
+);
 
     const badgesResult = await pool.query(
       `SELECT id, badge_name, badge_icon, badge_type, earned_at

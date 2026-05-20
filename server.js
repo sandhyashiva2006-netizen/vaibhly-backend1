@@ -96,7 +96,7 @@ app.use("/api/recruiter/webhook", express.raw({ type: "*/*" }));
 app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static("uploads"));
+
 app.use(passport.initialize());
 
 /* ================= ABSOLUTE PATHS ================= */
@@ -274,17 +274,16 @@ app.use(
 authRoutes
 );
 app.use("/api/referrals", referralRoutes);
-
+app.use(
+  "/api/kids",
+  kidsLessonsRoutes
+);
 app.use("/api/kids/profiles", kidsProfilesRoutes);
 app.use("/api/kids", kidsDashboardRoutes);
 app.use("/api/kids", kidsProgressRoutes);
 app.use(
   "/api/kids",
   kidsCoursesRoutes
-);
-app.use(
-  "/api/kids",
-  kidsLessonsRoutes
 );
 
 app.get("/kids", (req, res) => {

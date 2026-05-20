@@ -259,40 +259,60 @@ router.post(
         lesson_index
       } = req.body;
 
-      // TOTAL LESSONS = 2 FOR NOW
+      // Demo total lessons
       const totalLessons = 2;
+
+      const completedLessons =
+        Number(lesson_index);
 
       const progress =
         Math.min(
           100,
           Math.round(
             (
-              lesson_index /
+              completedLessons /
               totalLessons
             ) * 100
           )
         );
 
+      // UPDATE ENROLLMENT
       await pool.query(
         `
         UPDATE kids_enrollments
         SET
           completed_lessons = $1,
-          progress = $2
+          total_lessons = $2,
+          progress = $3
         WHERE
-          child_id = $3
-          AND course_id = $4
+          child_id = $4
+          AND course_id = $5
         `,
         [
-          lesson_index,
+          completedLessons,
+          totalLessons,
           progress,
           child_id,
           course_id
         ]
       );
 
-      res.json({
-        success: true
+      // DEBUG
+      console.log(
+        "✅ Kids progress updated:",
+        {
+          child_id,
+          course_id,
+          completedLessons,
+          progress
+        }
+      );
+
+      return res.json({
+        success: true,
+        completed_lessons:
+          completedLessons,
+        progress
       });
 
     }
@@ -300,12 +320,14 @@ router.post(
     catch (err) {
 
       console.error(
-        "Complete lesson error:",
+        "❌ Complete lesson error:",
         err
       );
 
-      res.status(500).json({
-        success: false
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to save progress"
       });
 
     }

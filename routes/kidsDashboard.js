@@ -79,7 +79,7 @@ router.get("/parent-dashboard", verifyToken, async (req, res) => {
 
   ORDER BY ke.id DESC
   `,
-  [childId]
+  [selectedChild.id]
 );
 
     const badgesResult = await pool.query(

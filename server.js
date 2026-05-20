@@ -80,6 +80,8 @@ const kidsDashboardRoutes = require("./routes/kidsDashboard");
 const kidsProgressRoutes = require("./routes/kidsProgress");
 const kidsCoursesRoutes =
   require("./routes/kidsCourses");
+const kidsLessonsRoutes =
+  require("./routes/kidsLessons");
 
 /* ================= MIDDLEWARE ================= */
 
@@ -279,6 +281,10 @@ app.use("/api/kids", kidsProgressRoutes);
 app.use(
   "/api/kids",
   kidsCoursesRoutes
+);
+app.use(
+  "/api/kids",
+  kidsLessonsRoutes
 );
 
 app.get("/kids", (req, res) => {

@@ -99,7 +99,7 @@ router.get("/parent-dashboard", verifyToken, async (req, res) => {
     );
 
     const summary = {
-      courses: coursesResult.rows,
+  courses: coursesResult.rows.length,
       lessonsCompleted: lessonsCompletedResult.rows[0]?.count || 0,
       badges: badgesResult.rows.length,
       averageProgress:

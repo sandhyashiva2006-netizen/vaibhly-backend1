@@ -55,24 +55,13 @@ router.get("/parent-dashboard", verifyToken, async (req, res) => {
     kc.subject,
     kc.path,
 
-    COALESCE(
-      ke.progress,
-      0
-    ) AS progress,
-
-    COALESCE(
-      ke.completed_lessons,
-      0
-    ) AS completed_lessons,
-
-    COALESCE(
-      ke.total_lessons,
-      2
-    ) AS total_lessons
+    ke.progress,
+    ke.completed_lessons,
+    ke.total_lessons
 
   FROM kids_enrollments ke
 
-  JOIN kids_courses kc
+  INNER JOIN kids_courses kc
     ON kc.id = ke.course_id
 
   WHERE ke.child_id = $1
@@ -99,7 +88,7 @@ router.get("/parent-dashboard", verifyToken, async (req, res) => {
     );
 
     const summary = {
-      courses: coursesResult.rows.length,
+      courses: coursesResult.rows,
       lessonsCompleted: lessonsCompletedResult.rows[0]?.count || 0,
       badges: badgesResult.rows.length,
       averageProgress:
@@ -112,6 +101,11 @@ router.get("/parent-dashboard", verifyToken, async (req, res) => {
             )
           : 0,
     };
+
+console.log(
+  "🔥 DASHBOARD COURSES:",
+  coursesResult.rows
+);
 
     res.json({
       success: true,

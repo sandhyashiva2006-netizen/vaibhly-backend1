@@ -13,6 +13,37 @@ const {
   isAdmin
 } = require("../middleware/auth.middleware");
 
+const storage =
+  multer.diskStorage({
+
+    destination:
+      (req, file, cb) => {
+
+        cb(
+          null,
+          "uploads/kids-lessons"
+        );
+
+      },
+
+    filename:
+      (req, file, cb) => {
+
+        cb(
+          null,
+          Date.now() +
+          path.extname(
+            file.originalname
+          )
+        );
+
+      }
+
+  });
+
+const upload =
+  multer({ storage });
+
 /**
  * GET LESSONS BY COURSE
  */
@@ -251,35 +282,6 @@ router.delete(
   }
 );
 
-const storage =
-  multer.diskStorage({
 
-    destination:
-      (req, file, cb) => {
-
-        cb(
-          null,
-          "uploads/kids-lessons"
-        );
-
-      },
-
-    filename:
-      (req, file, cb) => {
-
-        cb(
-          null,
-          Date.now() +
-          path.extname(
-            file.originalname
-          )
-        );
-
-      }
-
-  });
-
-const upload =
-  multer({ storage });
 
 module.exports = router;

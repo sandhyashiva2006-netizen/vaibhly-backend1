@@ -79,7 +79,9 @@ console.log(
 
 router.post(
   "/admin/kids-lessons",
+
   verifyToken,
+
   upload.fields([
     {
       name: "videoFile",
@@ -90,7 +92,7 @@ router.post(
       maxCount: 1
     }
   ]),
-  isAdmin,
+
   async (req, res) => {
 
     try {
@@ -99,14 +101,15 @@ router.post(
         course_id,
         title,
         description,
-        const videoFile =
-  req.files?.videoFile?.[0];
-
-const pdfFile =
-  req.files?.pdfFile?.[0];
         notes,
         lesson_order
       } = req.body;
+
+      const videoFile =
+        req.files?.videoFile?.[0];
+
+      const pdfFile =
+        req.files?.pdfFile?.[0];
 
       if (
         !course_id ||
@@ -130,8 +133,8 @@ const pdfFile =
             title,
             description,
             video_file,
-pdf_file,
-notes,
+            pdf_file,
+            notes,
             lesson_order
           )
 
@@ -142,48 +145,63 @@ notes,
             $3,
             $4,
             $5,
-            $6
+            $6,
+            $7
           )
 
           RETURNING *
           `,
           [
+
             Number(course_id),
+
             title,
+
             description || "",
-            video_url || "",
+
+            videoFile
+            ? `/uploads/kids-lessons/${videoFile.filename}`
+            : "",
+
+            pdfFile
+            ? `/uploads/kids-lessons/${pdfFile.filename}`
+            : "",
+
             notes || "",
+
             Number(lesson_order || 1)
+
           ]
         );
 
       return res.json({
+
         success: true,
-        lesson: result.rows[0]
+
+        lesson:
+          result.rows[0]
+
       });
 
     }
 
-   catch (err) {
+    catch (err) {
 
-  console.error(
-    "❌ FULL CREATE LESSON ERROR:",
-    err
-  );
+      console.error(
+        "❌ CREATE LESSON ERROR:",
+        err
+      );
 
-  return res.status(500).json({
+      return res.status(500).json({
 
-    success: false,
+        success: false,
 
-    message:
-      err.message,
+        message:
+          err.message
 
-    error:
-      err
+      });
 
-  });
-
-}
+    }
 
   }
 );

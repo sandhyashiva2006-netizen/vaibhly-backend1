@@ -1,5 +1,10 @@
 const express = require("express");
 const router = express.Router();
+const multer =
+  require("multer");
+
+const path =
+  require("path");
 
 const pool = require("../config/db");
 
@@ -75,6 +80,16 @@ console.log(
 router.post(
   "/admin/kids-lessons",
   verifyToken,
+  upload.fields([
+    {
+      name: "videoFile",
+      maxCount: 1
+    },
+    {
+      name: "pdfFile",
+      maxCount: 1
+    }
+  ]),
   isAdmin,
   async (req, res) => {
 
@@ -84,7 +99,11 @@ router.post(
         course_id,
         title,
         description,
-        video_url,
+        const videoFile =
+  req.files?.videoFile?.[0];
+
+const pdfFile =
+  req.files?.pdfFile?.[0];
         notes,
         lesson_order
       } = req.body;
@@ -110,8 +129,9 @@ router.post(
             course_id,
             title,
             description,
-            video_url,
-            notes,
+            video_file,
+pdf_file,
+notes,
             lesson_order
           )
 
@@ -212,5 +232,36 @@ router.delete(
 
   }
 );
+
+const storage =
+  multer.diskStorage({
+
+    destination:
+      (req, file, cb) => {
+
+        cb(
+          null,
+          "uploads/kids-lessons"
+        );
+
+      },
+
+    filename:
+      (req, file, cb) => {
+
+        cb(
+          null,
+          Date.now() +
+          path.extname(
+            file.originalname
+          )
+        );
+
+      }
+
+  });
+
+const upload =
+  multer({ storage });
 
 module.exports = router;

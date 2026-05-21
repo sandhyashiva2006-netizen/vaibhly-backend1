@@ -46,18 +46,24 @@ console.log(
 
     catch (err) {
 
-      console.error(
-        "GET kids lessons error:",
-        err
-      );
+  console.error(
+    "❌ GET kids lessons FULL ERROR:",
+    err
+  );
 
-      return res.status(500).json({
-        success: false,
-        message:
-          "Failed to load lessons"
-      });
+  return res.status(500).json({
 
-    }
+    success: false,
+
+    message:
+      err.message,
+
+    error:
+      err
+
+  });
+
+}
 
   }
 );

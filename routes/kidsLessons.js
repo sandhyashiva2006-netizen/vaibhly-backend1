@@ -282,6 +282,60 @@ router.delete(
   }
 );
 
+router.put(
+  "/admin/kids-lessons/:id",
 
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const lessonId =
+        Number(req.params.id);
+
+      const {
+        title
+      } = req.body;
+
+      const result =
+        await pool.query(
+          `
+          UPDATE kids_lessons
+          SET title = $1
+          WHERE id = $2
+          RETURNING *
+          `,
+          [
+            title,
+            lessonId
+          ]
+        );
+
+      return res.json({
+
+        success: true,
+
+        lesson:
+          result.rows[0]
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+        success: false,
+        message:
+          err.message
+      });
+
+    }
+
+  }
+);
 
 module.exports = router;

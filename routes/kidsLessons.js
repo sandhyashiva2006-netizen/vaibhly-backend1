@@ -13,6 +13,17 @@ const {
   isAdmin
 } = require("../middleware/auth.middleware");
 
+const uploadDir =
+  path.join(
+    __dirname,
+    "..",
+    "uploads",
+    "kids-lessons"
+  );
+
+
+/* MULTER STORAGE */
+
 const storage =
   multer.diskStorage({
 

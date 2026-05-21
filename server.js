@@ -205,9 +205,15 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+const uploadsPath =
+  path.join(
+    __dirname,
+    "uploads"
+  );
+
 app.use(
   "/uploads",
-  express.static("uploads")
+  express.static(uploadsPath)
 );
 
 /* ===== UPLOAD ROUTE ===== */

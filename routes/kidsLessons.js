@@ -19,10 +19,23 @@ const storage =
     destination:
       (req, file, cb) => {
 
-        cb(
-          null,
-          "uploads/kids-lessons"
-        );
+        const fs = require("fs");
+
+const uploadPath =
+  "uploads/kids-lessons";
+
+if (
+  !fs.existsSync(uploadPath)
+) {
+
+  fs.mkdirSync(
+    uploadPath,
+    { recursive: true }
+  );
+
+}
+
+cb(null, uploadPath);
 
       },
 

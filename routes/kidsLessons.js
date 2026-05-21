@@ -63,9 +63,10 @@ const upload =
 
 router.get(
   "/lessons/:courseId",
+
   async (req, res) => {
 
-console.log(
+    console.log(
       "✅ LESSON ROUTE HIT:",
       req.params.courseId
     );
@@ -78,41 +79,57 @@ console.log(
       const result =
         await pool.query(
           `
-          SELECT *
+          SELECT
+            id,
+            course_id,
+            title,
+            description,
+            video_file,
+            pdf_file,
+            notes,
+            lesson_order,
+            created_at
+
           FROM kids_lessons
+
           WHERE course_id = $1
+
           ORDER BY lesson_order ASC
           `,
           [courseId]
         );
 
       return res.json({
+
         success: true,
-        lessons: result.rows
+
+        lessons:
+          result.rows
+
       });
 
     }
 
     catch (err) {
 
-  console.error(
-    "❌ GET kids lessons FULL ERROR:",
-    err
-  );
+      console.error(
+        "❌ GET kids lessons FULL ERROR:",
+        err
+      );
 
-  return res.status(500).json({
+      return res.status(500).json({
 
-    success: false,
+        success: false,
 
-    message:
-      err.message,
+        message:
+          err.message,
 
-    error:
-      err
+        error:
+          err
 
-  });
+      });
 
-}
+    }
 
   }
 );

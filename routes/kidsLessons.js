@@ -92,21 +92,23 @@ router.get(
         await pool.query(
           `
           SELECT
-            id,
-            course_id,
-            title,
-            description,
-            video_file,
-            pdf_file,
-            notes,
-            lesson_order,
-            created_at
+  l.id,
+  l.course_id,
+  l.title,
+  l.description,
+  l.video_file,
+  l.pdf_file,
+  l.notes,
+  l.lesson_order,
+  l.created_at,
 
-          FROM kids_lessons
+  false AS completed
 
-          WHERE course_id = $1
+FROM kids_lessons l
 
-          ORDER BY lesson_order ASC
+WHERE l.course_id = $1
+
+ORDER BY l.lesson_order ASC
           `,
           [courseId]
         );

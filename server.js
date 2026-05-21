@@ -307,6 +307,10 @@ app.use(
   "/api/kids",
   kidsCoursesRoutes
 );
+app.use(
+  "/api/kids-progress",
+  require("./routes/kidsLessonProgress")
+);
 
 app.get("/kids", (req, res) => {
   res.sendFile(

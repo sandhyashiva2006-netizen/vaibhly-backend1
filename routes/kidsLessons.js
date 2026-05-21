@@ -28,27 +28,28 @@ const storage =
   multer.diskStorage({
 
     destination:
-      (req, file, cb) => {
+  (req, file, cb) => {
 
-        const fs = require("fs");
+    const fs =
+      require("fs");
 
-const uploadPath =
-  "uploads/kids-lessons";
+    if (
+      !fs.existsSync(uploadDir)
+    ) {
 
-if (
-  !fs.existsSync(uploadPath)
-) {
+      fs.mkdirSync(
+        uploadDir,
+        { recursive: true }
+      );
 
-  fs.mkdirSync(
-    uploadPath,
-    { recursive: true }
-  );
+    }
 
-}
+    cb(
+      null,
+      uploadDir
+    );
 
-cb(null, uploadPath);
-
-      },
+  },
 
     filename:
       (req, file, cb) => {

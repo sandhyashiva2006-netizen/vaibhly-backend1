@@ -130,11 +130,6 @@ app.use("/admin", express.static(ADMIN_ROOT));
 app.use("/assets", express.static(path.join(CLIENT_ROOT, "assets")));
 
 
-// ✅ Uploads
-app.use(
- "/uploads",
- express.static(path.join(__dirname,"uploads"))
-);
 
 
 /* ================= KIDS PAGES ================= */
@@ -207,13 +202,15 @@ const upload = multer({ storage });
 
 const uploadsPath =
   path.join(
-    __dirname,
+    process.cwd(),
     "uploads"
   );
 
 app.use(
   "/uploads",
-  express.static(uploadsPath)
+  express.static(
+    uploadsPath
+  )
 );
 
 /* ===== UPLOAD ROUTE ===== */

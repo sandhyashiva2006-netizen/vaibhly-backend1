@@ -168,55 +168,58 @@ router.post(
 
       }
 
+console.log("VIDEO:", videoFile);
+console.log("PDF:", pdfFile);
+
       const result =
-        await pool.query(
-          `
-          INSERT INTO kids_lessons
-          (
-            course_id,
-            title,
-            description,
-            video_file,
-            pdf_file,
-            notes,
-            lesson_order
-          )
+  await pool.query(
+    `
+    INSERT INTO kids_lessons
+    (
+      course_id,
+      title,
+      description,
+      video_file,
+      pdf_file,
+      notes,
+      lesson_order
+    )
 
-          VALUES
-          (
-            $1,
-            $2,
-            $3,
-            $4,
-            $5,
-            $6,
-            $7
-          )
+    VALUES
+    (
+      $1,
+      $2,
+      $3,
+      $4,
+      $5,
+      $6,
+      $7
+    )
 
-          RETURNING *
-          `,
-          [
+    RETURNING *
+    `,
+    [
 
-            Number(course_id),
+      Number(course_id),
 
-            title,
+      title,
 
-            description || "",
+      description || "",
 
-            videoFile
-            ? `/uploads/kids-lessons/${videoFile.filename}`
-            : "",
+      videoFile
+      ? `/uploads/kids-lessons/${videoFile.filename}`
+      : null,
 
-            pdfFile
-            ? `/uploads/kids-lessons/${pdfFile.filename}`
-            : "",
+      pdfFile
+      ? `/uploads/kids-lessons/${pdfFile.filename}`
+      : null,
 
-            notes || "",
+      notes || "",
 
-            Number(lesson_order || 1)
+      Number(lesson_order || 1)
 
-          ]
-        );
+    ]
+  );
 
       return res.json({
 

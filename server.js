@@ -97,6 +97,24 @@ app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 
+const uploadsPath =
+  path.join(
+    process.cwd(),
+    "uploads"
+  );
+
+console.log(
+  "📂 Uploads folder:",
+  uploadsPath
+);
+
+app.use(
+  "/uploads",
+  express.static(
+    uploadsPath
+  )
+);
+
 app.use(passport.initialize());
 
 /* ================= ABSOLUTE PATHS ================= */
@@ -200,18 +218,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-const uploadsPath =
-  path.join(
-    process.cwd(),
-    "uploads"
-  );
 
-app.use(
-  "/uploads",
-  express.static(
-    uploadsPath
-  )
-);
 
 /* ===== UPLOAD ROUTE ===== */
 

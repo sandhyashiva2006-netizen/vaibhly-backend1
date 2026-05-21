@@ -144,20 +144,26 @@ router.post(
 
     }
 
-    catch (err) {
+   catch (err) {
 
-      console.error(
-        "CREATE lesson error:",
-        err
-      );
+  console.error(
+    "❌ FULL CREATE LESSON ERROR:",
+    err
+  );
 
-      return res.status(500).json({
-        success: false,
-        message:
-          "Failed to create lesson"
-      });
+  return res.status(500).json({
 
-    }
+    success: false,
+
+    message:
+      err.message,
+
+    error:
+      err
+
+  });
+
+}
 
   }
 );

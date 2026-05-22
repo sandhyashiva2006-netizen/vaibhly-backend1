@@ -99,7 +99,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const uploadsPath =
   path.join(
-    process.cwd(),
+    __dirname,
     "uploads"
   );
 

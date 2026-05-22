@@ -318,13 +318,7 @@ app.get("/kids", (req, res) => {
   );
 });
 
-/* ================= STATIC ================= */
 
-app.use(
-  express.static(
-    path.join(__dirname, "..", "client")
-  )
-);
 
 /* ================= PUBLIC ROUTES ================= */
 
@@ -332,9 +326,8 @@ app.use("/", publicRoutes);
 
 /* ================= SPA FALLBACK ================= */
 
-app.use((req, res, next) => {
+app.use((req, res) => {
 
-  // API routes should NEVER fallback to HTML
   if (req.path.startsWith("/api")) {
 
     return res.status(404).json({
@@ -344,13 +337,10 @@ app.use((req, res, next) => {
 
   }
 
-  // Only frontend pages use index.html
-  const indexPath = path.join(
-    CLIENT_ROOT,
-    "index.html"
-  );
-
-  return res.sendFile(indexPath);
+    return res.status(404).json({
+    success: false,
+    message: "Page not found"
+  });
 
 });
 

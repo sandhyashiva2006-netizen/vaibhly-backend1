@@ -320,9 +320,6 @@ app.get("/kids", (req, res) => {
 
 
 
-/* ================= PUBLIC ROUTES ================= */
-
-app.use("/", publicRoutes);
 
 
 
@@ -424,11 +421,27 @@ setInterval(async () => {
 }, 60 * 60 * 1000);
 
 
+/* ================= PUBLIC ROUTES ================= */
+
+app.use("/", publicRoutes);
+
 /* ================= SPA FALLBACK ================= */
 
-app.use((req, res) => {
+app.use((req, res, next) => {
 
-  if (req.path.startsWith("/api")) {
+  // Ignore uploads
+  if (
+    req.path.startsWith("/uploads")
+  ) {
+
+    return next();
+
+  }
+
+  // Ignore APIs
+  if (
+    req.path.startsWith("/api")
+  ) {
 
     return res.status(404).json({
       success: false,
@@ -437,7 +450,7 @@ app.use((req, res) => {
 
   }
 
-    return res.status(404).json({
+  return res.status(404).json({
     success: false,
     message: "Page not found"
   });

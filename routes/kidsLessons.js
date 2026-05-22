@@ -78,7 +78,7 @@ async function uploadPdfToCloudinary(
           "vaibhly-kids",
 
         resource_type:
-  "raw"
+  "raw",
 
  format:
           "pdf"

@@ -324,25 +324,7 @@ app.get("/kids", (req, res) => {
 
 app.use("/", publicRoutes);
 
-/* ================= SPA FALLBACK ================= */
 
-app.use((req, res) => {
-
-  if (req.path.startsWith("/api")) {
-
-    return res.status(404).json({
-      success: false,
-      message: "API route not found"
-    });
-
-  }
-
-    return res.status(404).json({
-    success: false,
-    message: "Page not found"
-  });
-
-});
 
 /* ================= HEALTH CHECK ================= */
 app.get("/health", (req, res) => {
@@ -442,3 +424,22 @@ setInterval(async () => {
 }, 60 * 60 * 1000);
 
 
+/* ================= SPA FALLBACK ================= */
+
+app.use((req, res) => {
+
+  if (req.path.startsWith("/api")) {
+
+    return res.status(404).json({
+      success: false,
+      message: "API route not found"
+    });
+
+  }
+
+    return res.status(404).json({
+    success: false,
+    message: "Page not found"
+  });
+
+});

@@ -3,14 +3,17 @@ const router = express.Router();
 const multer =
   require("multer");
 
+const streamifier =
+  require("streamifier");
+
 const cloudinary =
   require("../config/cloudinary");
 
-const {
-  CloudinaryStorage
-} = require(
-  "multer-storage-cloudinary"
-);
+const upload =
+  multer({
+    storage:
+      multer.memoryStorage()
+  });
 
 const pool = require("../config/db");
 
@@ -19,43 +22,47 @@ const {
   isAdmin
 } = require("../middleware/auth.middleware");
 
-const storage =
-  new CloudinaryStorage({
 
-    cloudinary,
+function uploadToCloudinary(
+  file,
+  resourceType = "auto"
+) {
 
-    params:
-      async (req, file) => {
+  return new Promise(
+    (resolve, reject) => {
 
-        const isVideo =
-          file.mimetype.startsWith(
-            "video"
-          );
+      const stream =
+        cloudinary.uploader.upload_stream(
 
-        return {
+          {
+            folder:
+              "vaibhly-kids",
 
-          folder:
-            "vaibhly-kids",
+            resource_type:
+              resourceType
+          },
 
-          resource_type:
-            isVideo
-              ? "video"
-              : "raw",
+          (error, result) => {
 
-          public_id:
-            Date.now() +
-            "-" +
-            file.originalname
-              .split(".")[0]
+            if (result)
+              resolve(result);
 
-        };
+            else
+              reject(error);
 
-      }
+          }
+        );
 
-  });
+      streamifier
+        .createReadStream(
+          file.buffer
+        )
+        .pipe(stream);
 
-const upload =
-  multer({ storage });
+    }
+  );
+
+}
 
 /**
  * GET LESSONS BY COURSE
@@ -178,6 +185,35 @@ router.post(
       const pdfFile =
         req.files?.pdfFile?.[0];
 
+let videoUrl = null;
+let pdfUrl = null;
+
+if (videoFile) {
+
+  const uploadedVideo =
+    await uploadToCloudinary(
+      videoFile,
+      "video"
+    );
+
+  videoUrl =
+    uploadedVideo.secure_url;
+
+}
+
+if (pdfFile) {
+
+  const uploadedPdf =
+    await uploadToCloudinary(
+      pdfFile,
+      "raw"
+    );
+
+  pdfUrl =
+    uploadedPdf.secure_url;
+
+}
+
       if (
         !course_id ||
         !title
@@ -229,13 +265,9 @@ console.log("PDF:", pdfFile);
 
       description || "",
 
-      videoFile
-? videoFile.path
-: null,
+      videoUrl,
 
-      pdfFile
-? pdfFile.path
-: null,
+      pdfUrl,
 
       notes || "",
 

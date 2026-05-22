@@ -1,66 +1,88 @@
 const express = require("express");
 const router = express.Router();
+
 const multer =
   require("multer");
 
-const streamifier =
-  require("streamifier");
+const path =
+  require("path");
 
 const cloudinary =
   require("../config/cloudinary");
 
-const upload =
-  multer({
-    storage:
-      multer.memoryStorage()
-  });
-
-const pool = require("../config/db");
+const pool =
+  require("../config/db");
 
 const {
   verifyToken,
   isAdmin
-} = require("../middleware/auth.middleware");
+} = require(
+  "../middleware/auth.middleware"
+);
 
+/* =====================================
+   TEMP FILE STORAGE
+===================================== */
 
-function uploadToCloudinary(
-  file,
-  resourceType = "auto"
-) {
+const storage =
+  multer.diskStorage({
 
-  return new Promise(
-    (resolve, reject) => {
+    destination:
+      (req, file, cb) => {
 
-      const stream =
-        cloudinary.uploader.upload_stream(
-
-          {
-            folder:
-              "vaibhly-kids",
-
-            resource_type:
-              resourceType
-          },
-
-          (error, result) => {
-
-            if (result)
-              resolve(result);
-
-            else
-              reject(error);
-
-          }
+        cb(
+          null,
+          "uploads/"
         );
 
-      streamifier
-        .createReadStream(
-          file.buffer
-        )
-        .pipe(stream);
+      },
 
-    }
-  );
+    filename:
+      (req, file, cb) => {
+
+        cb(
+          null,
+
+          Date.now() +
+          path.extname(
+            file.originalname
+          )
+        );
+
+      }
+
+  });
+
+const upload =
+  multer({
+    storage
+  });
+
+/* =====================================
+   CLOUDINARY PDF UPLOAD
+===================================== */
+
+async function uploadPdfToCloudinary(
+  filePath
+) {
+
+  return await cloudinary
+    .uploader
+    .upload(
+
+      filePath,
+
+      {
+
+        folder:
+          "vaibhly-kids",
+
+        resource_type:
+          "raw"
+
+      }
+
+    );
 
 }
 
@@ -157,10 +179,7 @@ router.post(
   verifyToken,
 
   upload.fields([
-    {
-      name: "videoFile",
-      maxCount: 1
-    },
+   
     {
       name: "pdfFile",
       maxCount: 1
@@ -182,34 +201,20 @@ console.log(
         lesson_order
       } = req.body;
 
-      const videoFile =
-        req.files?.videoFile?.[0];
+     const videoUrl =
+  req.body.video_file || "";
 
-      const pdfFile =
-        req.files?.pdfFile?.[0];
+const pdfFile =
+  req.files?.pdfFile?.[0];
 
-let videoUrl = null;
 let pdfUrl = null;
 
-if (videoFile) {
-
-  const uploadedVideo =
-    await uploadToCloudinary(
-      videoFile,
-      "video"
-    );
-
-  videoUrl =
-    uploadedVideo.secure_url;
-
-}
 
 if (pdfFile) {
 
   const uploadedPdf =
-    await uploadToCloudinary(
-      pdfFile,
-      "raw"
+    await uploadPdfToCloudinary(
+      pdfFile.path
     );
 
   pdfUrl =
@@ -230,7 +235,7 @@ if (pdfFile) {
 
       }
 
-console.log("VIDEO:", videoFile);
+
 console.log("PDF:", pdfFile);
 
       const result =

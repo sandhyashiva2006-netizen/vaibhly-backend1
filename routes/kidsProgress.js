@@ -237,21 +237,7 @@ router.post("/lesson-complete", verifyToken, async (req, res) => {
       [child_id, course_id, lesson_id]
     );
 
-    const totalLessonsResult = await pool.query(
-      `SELECT COUNT(*)::int AS total FROM kids_lessons WHERE course_id = $1`,
-      [course_id]
-    );
-
-    const completedLessonsResult = await pool.query(
-      `SELECT COUNT(*)::int AS completed
-       FROM kids_lesson_progress
-       WHERE child_id = $1 AND course_id = $2 AND completed = true`,
-      [child_id, course_id]
-    );
-
-    const total = totalLessonsResult.rows[0]?.total || 0;
-    const completed = completedLessonsResult.rows[0]?.completed || 0;
-    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+  
 
     const totalLessonsResult =
   await pool.query(
@@ -425,95 +411,5 @@ router.get("/course-lessons/:courseId", verifyToken, async (req, res) => {
   }
 });
 
-router.post(
-  "/complete-lesson",
-  verifyToken,
-  async (req, res) => {
-
-console.log("✅ COMPLETE LESSON API HIT");
-
-    try {
-
-      const {
-        child_id,
-        course_id,
-        lesson_index
-      } = req.body;
-
-      // Demo total lessons
-      const totalLessons = 2;
-
-      const completedLessons =
-        Number(lesson_index);
-
-      const progress =
-        Math.min(
-          100,
-          Math.round(
-            (
-              completedLessons /
-              totalLessons
-            ) * 100
-          )
-        );
-
-      // UPDATE ENROLLMENT
-      await pool.query(
-        `
-        UPDATE kids_enrollments
-        SET
-          completed_lessons = $1,
-          total_lessons = $2,
-          progress = $3
-        WHERE
-          child_id = $4
-          AND course_id = $5
-        `,
-        [
-          completedLessons,
-          totalLessons,
-          progress,
-          child_id,
-          course_id
-        ]
-      );
-
-      // DEBUG
-      console.log(
-        "✅ Kids progress updated:",
-        {
-          child_id,
-          course_id,
-          completedLessons,
-          progress
-        }
-      );
-
-      return res.json({
-        success: true,
-        completed_lessons:
-          completedLessons,
-        progress
-      });
-
-    }
-
-    catch (err) {
-
-      console.error(
-        "❌ Complete lesson error:",
-        err
-      );
-
-      return res.status(500).json({
-        success: false,
-        message:
-          "Failed to save progress"
-      });
-
-    }
-
-  }
-);
 
 module.exports = router;

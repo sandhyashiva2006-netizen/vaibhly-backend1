@@ -3,8 +3,14 @@ const router = express.Router();
 const multer =
   require("multer");
 
-const path =
-  require("path");
+const cloudinary =
+  require("../config/cloudinary");
+
+const {
+  CloudinaryStorage
+} = require(
+  "multer-storage-cloudinary"
+);
 
 const pool = require("../config/db");
 
@@ -13,54 +19,36 @@ const {
   isAdmin
 } = require("../middleware/auth.middleware");
 
-const uploadDir =
-  path.join(
-    __dirname,
-    "..",
-    "uploads",
-    "kids-lessons"
-  );
-
-
-/* MULTER STORAGE */
-
 const storage =
-  multer.diskStorage({
+  new CloudinaryStorage({
 
-    destination:
-  (req, file, cb) => {
+    cloudinary,
 
-    const fs =
-      require("fs");
+    params:
+      async (req, file) => {
 
-    if (
-      !fs.existsSync(uploadDir)
-    ) {
+        const isVideo =
+          file.mimetype.startsWith(
+            "video"
+          );
 
-      fs.mkdirSync(
-        uploadDir,
-        { recursive: true }
-      );
+        return {
 
-    }
+          folder:
+            "vaibhly-kids",
 
-    cb(
-      null,
-      uploadDir
-    );
+          resource_type:
+            isVideo
+              ? "video"
+              : "raw",
 
-  },
-
-    filename:
-      (req, file, cb) => {
-
-        cb(
-          null,
-          Date.now() +
-          path.extname(
+          public_id:
+            Date.now() +
+            "-" +
             file.originalname
-          )
-        );
+              .split(".")[0]
+
+        };
 
       }
 
@@ -242,12 +230,12 @@ console.log("PDF:", pdfFile);
       description || "",
 
       videoFile
-      ? `/uploads/kids-lessons/${videoFile.filename}`
-      : null,
+? videoFile.path
+: null,
 
       pdfFile
-      ? `/uploads/kids-lessons/${pdfFile.filename}`
-      : null,
+? pdfFile.path
+: null,
 
       notes || "",
 

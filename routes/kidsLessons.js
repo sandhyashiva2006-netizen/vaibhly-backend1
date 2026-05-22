@@ -170,7 +170,10 @@ router.post(
   async (req, res) => {
 
     try {
-
+console.log(
+  "FILES:",
+  req.files
+);
       const {
         course_id,
         title,

@@ -101,7 +101,6 @@ router.get(
   l.notes,
   l.lesson_order,
   l.created_at,
-
   false AS completed
 
 FROM kids_lessons l
@@ -112,6 +111,11 @@ ORDER BY l.lesson_order ASC
           `,
           [courseId]
         );
+
+console.log(
+  "LESSONS:",
+  result.rows
+);
 
       return res.json({
 

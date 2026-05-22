@@ -7,8 +7,7 @@ const multer =
 const path =
   require("path");
 
-const cloudinary =
-  require("../config/cloudinary");
+
 
 const pool =
   require("../config/db");
@@ -58,36 +57,6 @@ const upload =
     storage
   });
 
-/* =====================================
-   CLOUDINARY PDF UPLOAD
-===================================== */
-
-async function uploadPdfToCloudinary(
-  filePath
-) {
-
-  return await cloudinary
-    .uploader
-    .upload(
-
-      filePath,
-
-      {
-
-        folder:
-          "vaibhly-kids",
-
-        resource_type:
-  "raw",
-
- format:
-          "pdf"
-
-      }
-
-    );
-
-}
 
 /**
  * GET LESSONS BY COURSE
@@ -210,20 +179,10 @@ console.log(
 const pdfFile =
   req.files?.pdfFile?.[0];
 
-let pdfUrl = null;
-
-
-if (pdfFile) {
-
-  const uploadedPdf =
-    await uploadPdfToCloudinary(
-      pdfFile.path
-    );
-
-  pdfUrl =
-    uploadedPdf.secure_url;
-
-}
+const pdfUrl =
+  pdfFile
+    ? `/uploads/${pdfFile.filename}`
+    : null;
 
       if (
         !course_id ||

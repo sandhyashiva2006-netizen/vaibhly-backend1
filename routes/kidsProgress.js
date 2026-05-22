@@ -253,12 +253,75 @@ router.post("/lesson-complete", verifyToken, async (req, res) => {
     const completed = completedLessonsResult.rows[0]?.completed || 0;
     const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-    await pool.query(
-      `UPDATE kids_enrollments
-       SET progress = $1
-       WHERE child_id = $2 AND course_id = $3`,
-      [progress, child_id, course_id]
-    );
+    const totalLessonsResult =
+  await pool.query(
+    `
+    SELECT COUNT(*)::int AS total
+    FROM kids_lessons
+    WHERE course_id = $1
+    `,
+    [course_id]
+  );
+
+const completedLessonsResult =
+  await pool.query(
+    `
+    SELECT COUNT(*)::int AS completed
+
+    FROM kids_lesson_progress
+
+    WHERE
+      child_id = $1
+      AND course_id = $2
+      AND completed = true
+    `,
+    [
+      child_id,
+      course_id
+    ]
+  );
+
+const totalLessons =
+  totalLessonsResult.rows[0]
+    ?.total || 0;
+
+const completedLessons =
+  completedLessonsResult.rows[0]
+    ?.completed || 0;
+
+const progress =
+  totalLessons > 0
+    ? Math.round(
+        (
+          completedLessons /
+          totalLessons
+        ) * 100
+      )
+    : 0;
+
+
+
+await pool.query(
+  `
+  UPDATE kids_enrollments
+
+  SET
+    completed_lessons = $1,
+    total_lessons = $2,
+    progress = $3
+
+  WHERE
+    child_id = $4
+    AND course_id = $5
+  `,
+  [
+    completedLessons,
+    totalLessons,
+    progress,
+    child_id,
+    course_id
+  ]
+);
 
     await pool.query(
       `INSERT INTO kids_daily_activity 

@@ -1766,4 +1766,91 @@ router.post(
   }
 );
 
+// =====================================
+// COMPLETE COURSE
+// =====================================
+
+router.post(
+  "/complete-course",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const {
+        child_id,
+        course_id
+      } = req.body;
+
+      const existing =
+        await pool.query(
+          `
+          SELECT completed
+          FROM kids_enrollments
+          WHERE
+          child_id = $1
+          AND course_id = $2
+          `,
+          [
+            child_id,
+            course_id
+          ]
+        );
+
+      if (
+        existing.rows[0]
+        ?.completed
+      ) {
+
+        return res.json({
+
+          success: true,
+
+          alreadyCompleted: true
+
+        });
+
+      }
+
+      await pool.query(
+        `
+        UPDATE kids_enrollments
+
+        SET completed = true
+
+        WHERE
+        child_id = $1
+        AND course_id = $2
+        `,
+        [
+          child_id,
+          course_id
+        ]
+      );
+
+      return res.json({
+
+        success: true
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
 module.exports = router;

@@ -44,7 +44,7 @@ async function checkAndUnlockBadges(
 
   try {
 
-const newlyUnlocked = [];
+    const newlyUnlocked = [];
 
     // EXISTING BADGES
     const existingBadges =
@@ -194,47 +194,49 @@ const newlyUnlocked = [];
 
       }
 
-      const inserted =
-  await pool.query(
-    `
-    INSERT INTO kids_badges
-    (
-      child_id,
-      badge_name,
-      badge_icon,
-      badge_type,
-      earned_at
-    )
+      if (unlocked) {
 
-    VALUES
-    (
-      $1,
-      $2,
-      $3,
-      'achievement',
-      NOW()
-    )
+        const inserted =
+          await pool.query(
+            `
+            INSERT INTO kids_badges
+            (
+              child_id,
+              badge_name,
+              badge_icon,
+              badge_type,
+              earned_at
+            )
 
-    RETURNING *
-    `,
-    [
-      userId,
-      rule.badge_name,
-      rule.badge_icon
-    ]
-  );
+            VALUES
+            (
+              $1,
+              $2,
+              $3,
+              'achievement',
+              NOW()
+            )
 
-newlyUnlocked.push(
-  inserted.rows[0]
-);
+            RETURNING *
+            `,
+            [
+              userId,
+              rule.badge_name,
+              rule.badge_icon
+            ]
+          );
+
+        newlyUnlocked.push(
+          inserted.rows[0]
+        );
 
       }
 
     }
 
-  }
+    return newlyUnlocked;
 
-return newlyUnlocked;
+  }
 
   catch (err) {
 
@@ -242,6 +244,8 @@ return newlyUnlocked;
       "Badge unlock error:",
       err
     );
+
+    return [];
 
   }
 

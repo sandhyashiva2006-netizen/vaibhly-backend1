@@ -1,669 +1,1870 @@
-const express = require("express");
-const router = express.Router();
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-const pool = require("../config/db");
-const { verifyToken, isAdmin } = require("../middleware/auth.middleware");
-const { createClient } = require("@supabase/supabase-js");
+const express =
+  require("express");
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
+const router =
+  express.Router();
+
+const multer =
+  require("multer");
+
+const path =
+  require("path");
+
+const fs =
+  require("fs");
+
+const pool =
+  require("../config/db");
+
+const {
+  verifyToken,
+  isAdmin
+} = require(
+  "../middleware/auth.middleware"
 );
 
-// =====================================
-// BADGE UNLOCK HELPER
-// =====================================
+const {
+  createClient
+} = require(
+  "@supabase/supabase-js"
+);
 
-async function checkAndUnlockBadges(userId) {
+const supabase =
+  createClient(
+
+    process.env.SUPABASE_URL,
+
+    process.env.SUPABASE_KEY
+
+  );
+
+async function checkAndUnlockBadges(
+  userId
+) {
+
   try {
+
     const newlyUnlocked = [];
 
-    const existingBadges = await pool.query(
-      `SELECT badge_name FROM kids_badges WHERE child_id = $1`,
-      [userId]
-    );
-    const earned = existingBadges.rows.map((b) => b.badge_name);
+    // EXISTING BADGES
+    const existingBadges =
+      await pool.query(
+        `
+        SELECT badge_name
+        FROM kids_badges
+        WHERE child_id = $1
+        `,
+        [userId]
+      );
 
-    const lessonsResult = await pool.query(
-      `SELECT COUNT(*)::int AS total
-       FROM kids_lesson_progress
-       WHERE child_id = $1 AND completed = true`,
-      [userId]
-    );
-    const lessonsCompleted = lessonsResult.rows[0].total;
+    const earned =
+      existingBadges.rows.map(
+        b => b.badge_name
+      );
 
-    const quizResult = await pool.query(
-      `SELECT COUNT(*)::int AS total
-       FROM kids_quiz_attempts
-       WHERE user_id = $1 AND is_correct = true`,
-      [userId]
-    );
-    const quizzesCompleted = quizResult.rows[0].total;
+    // LESSON COUNT
+    const lessonsResult =
+      await pool.query(
+        `
+        SELECT COUNT(*)::int AS total
+        FROM kids_lesson_progress
+        WHERE
+        child_id = $1
+        AND completed = true
+        `,
+        [userId]
+      );
 
-    const xpResult = await pool.query(
-      `SELECT xp FROM kids_rewards WHERE user_id = $1`,
-      [userId]
-    );
-    const totalXP = Number(xpResult.rows[0]?.xp || 0);
+    const lessonsCompleted =
+      lessonsResult.rows[0].total;
 
-    const streakResult = await pool.query(
-      `SELECT streak_count FROM kids_daily_streaks WHERE user_id = $1`,
-      [userId]
-    );
-    const streak = Number(streakResult.rows[0]?.streak_count || 0);
+    // QUIZ COUNT
+    const quizResult =
+      await pool.query(
+        `
+        SELECT COUNT(*)::int AS total
+        FROM kids_quiz_attempts
+        WHERE
+        user_id = $1
+        AND is_correct = true
+        `,
+        [userId]
+      );
 
-    const rules = await pool.query(`SELECT * FROM kids_badge_rules`);
+    const quizzesCompleted =
+      quizResult.rows[0].total;
+
+    // XP
+    const xpResult =
+      await pool.query(
+        `
+        SELECT xp
+        FROM kids_rewards
+        WHERE user_id = $1
+        `,
+        [userId]
+      );
+
+    const totalXP =
+      Number(
+        xpResult.rows[0]?.xp || 0
+      );
+
+    // STREAK
+    const streakResult =
+      await pool.query(
+        `
+        SELECT streak_count
+        FROM kids_daily_streaks
+        WHERE user_id = $1
+        `,
+        [userId]
+      );
+
+    const streak =
+      Number(
+        streakResult.rows[0]
+        ?.streak_count || 0
+      );
+
+    // RULES
+    const rules =
+      await pool.query(
+        `
+        SELECT *
+        FROM kids_badge_rules
+        `
+      );
 
     for (const rule of rules.rows) {
-      if (earned.includes(rule.badge_name)) continue;
+
+      if (
+        earned.includes(
+          rule.badge_name
+        )
+      ) {
+
+        continue;
+
+      }
 
       let unlocked = false;
 
-      if (rule.trigger_type === "lessons_completed") {
-        unlocked = lessonsCompleted >= rule.trigger_value;
+      if (
+        rule.trigger_type ===
+        "lessons_completed"
+      ) {
+
+        unlocked =
+          lessonsCompleted >=
+          rule.trigger_value;
+
       }
-      if (rule.trigger_type === "quizzes_completed") {
-        unlocked = quizzesCompleted >= rule.trigger_value;
+
+      if (
+        rule.trigger_type ===
+        "quizzes_completed"
+      ) {
+
+        unlocked =
+          quizzesCompleted >=
+          rule.trigger_value;
+
       }
-      if (rule.trigger_type === "xp_earned") {
-        unlocked = totalXP >= rule.trigger_value;
+
+      if (
+        rule.trigger_type ===
+        "xp_earned"
+      ) {
+
+        unlocked =
+          totalXP >=
+          rule.trigger_value;
+
       }
-      if (rule.trigger_type === "streak_days") {
-        unlocked = streak >= rule.trigger_value;
+
+      if (
+        rule.trigger_type ===
+        "streak_days"
+      ) {
+
+        unlocked =
+          streak >=
+          rule.trigger_value;
+
       }
 
       if (unlocked) {
-        const inserted = await pool.query(
-          `INSERT INTO kids_badges
-           (child_id, badge_name, badge_icon, badge_type, earned_at)
-           VALUES ($1, $2, $3, 'achievement', NOW())
-           RETURNING *`,
-          [userId, rule.badge_name, rule.badge_icon]
+
+        const inserted =
+          await pool.query(
+            `
+            INSERT INTO kids_badges
+            (
+              child_id,
+              badge_name,
+              badge_icon,
+              badge_type,
+              earned_at
+            )
+
+            VALUES
+            (
+              $1,
+              $2,
+              $3,
+              'achievement',
+              NOW()
+            )
+
+            RETURNING *
+            `,
+            [
+              userId,
+              rule.badge_name,
+              rule.badge_icon
+            ]
+          );
+
+        newlyUnlocked.push(
+          inserted.rows[0]
         );
-        newlyUnlocked.push(inserted.rows[0]);
+
       }
+
     }
 
     return newlyUnlocked;
-  } catch (err) {
-    console.error("Badge unlock error:", err);
-    return [];
-  }
-}
 
-console.log("SUPABASE URL:", process.env.SUPABASE_URL);
-console.log("SUPABASE KEY:", process.env.SUPABASE_KEY?.slice(0, 20));
-
-// =====================================
-// MULTER + SUPABASE UPLOAD
-// =====================================
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = "uploads";
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ storage });
-
-async function uploadPdfToSupabase(file) {
-  const fileBuffer = fs.readFileSync(file.path);
-  const fileName = file.filename;
-
-  const { data, error } = await supabase.storage
-    .from("vaibhlykidspdfs")
-    .upload(fileName, fileBuffer, {
-      upsert: true,
-      contentType: "application/pdf"
-    });
-
-  console.log("SUPABASE RESULT:", data);
-  console.log("SUPABASE ERROR:", error);
-
-  if (error) {
-    console.error("SUPABASE FULL ERROR:", JSON.stringify(error, null, 2));
-    throw new Error(JSON.stringify(error));
   }
 
-  const { data: publicData } = supabase.storage
-    .from("vaibhlykidspdfs")
-    .getPublicUrl(fileName);
+  catch (err) {
 
-  fs.unlinkSync(file.path);
-  return publicData.publicUrl;
-}
-
-// =====================================
-// GET LESSONS BY COURSE
-// =====================================
-
-router.get("/lessons/:courseId", verifyToken, async (req, res) => {
-  console.log("✅ LESSON ROUTE HIT:", req.params.courseId);
-
-  try {
-    const courseId = Number(req.params.courseId);
-
-    const result = await pool.query(
-      `SELECT
-        l.id,
-        l.course_id,
-        l.title,
-        l.description,
-        l.video_file,
-        l.pdf_file,
-        l.notes,
-        l.lesson_order,
-        l.created_at,
-        COALESCE(p.completed, false) AS completed,
-        COALESCE(p.watched_seconds, 0) AS watched_seconds,
-        COALESCE(e.completed, false) AS course_completed
-       FROM kids_lessons l
-       LEFT JOIN kids_lesson_progress p
-         ON p.lesson_id = l.id
-         AND p.child_id = $2
-       LEFT JOIN kids_enrollments e
-         ON e.course_id = l.course_id
-         AND e.child_id = $2
-       WHERE l.course_id = $1
-       ORDER BY l.lesson_order ASC`,
-      [courseId, Number(req.query.child_id || 0)]
+    console.error(
+      "Badge unlock error:",
+      err
     );
 
-    console.log("LESSONS:", result.rows);
+    return [];
 
-    return res.json({ success: true, lessons: result.rows });
-  } catch (err) {
-    console.error("❌ GET kids lessons FULL ERROR:", err);
-    return res.status(500).json({ success: false, message: err.message, error: err });
   }
-});
 
-// =====================================
-// ADMIN CREATE LESSON
-// =====================================
+}
 
-router.post(
-  "/admin/kids-lessons",
-  verifyToken,
-  upload.fields([
-    { name: "video_file", maxCount: 1 },
-    { name: "pdfFile", maxCount: 1 }
-  ]),
+
+console.log(
+  "SUPABASE URL:",
+  process.env.SUPABASE_URL
+);
+
+console.log(
+  "SUPABASE KEY:",
+  process.env.SUPABASE_KEY?.slice(0, 20)
+);
+
+const storage =
+  multer.diskStorage({
+
+    destination:
+      (req, file, cb) => {
+
+        const dir =
+          "uploads";
+
+        if (
+          !fs.existsSync(dir)
+        ) {
+
+          fs.mkdirSync(
+            dir,
+            { recursive: true }
+          );
+
+        }
+
+        cb(null, dir);
+
+      },
+
+    filename:
+      (req, file, cb) => {
+
+        cb(
+
+          null,
+
+          Date.now() +
+          path.extname(
+            file.originalname
+          )
+
+        );
+
+      }
+
+  });
+
+const upload =
+  multer({
+    storage
+  });
+
+async function uploadPdfToSupabase(
+  file
+) {
+
+  const fileBuffer =
+    fs.readFileSync(
+      file.path
+    );
+
+  const fileName =
+    file.filename;
+
+  const {
+    data,
+    error
+  } = await supabase
+    .storage
+    .from("vaibhlykidspdfs")
+    .upload(
+
+      fileName,
+
+      fileBuffer,
+
+      {
+
+        upsert: true,
+
+        contentType:
+          "application/pdf"
+
+      }
+
+    );
+
+  console.log(
+    "SUPABASE RESULT:",
+    data
+  );
+
+  console.log(
+    "SUPABASE ERROR:",
+    error
+  );
+
+if (error) {
+
+  console.error(
+    "SUPABASE FULL ERROR:",
+    JSON.stringify(
+      error,
+      null,
+      2
+    )
+  );
+
+  throw new Error(
+    JSON.stringify(error)
+  );
+
+}
+
+  const {
+    data: publicData
+  } = supabase
+    .storage
+    .from("vaibhlykidspdfs")
+    .getPublicUrl(
+      fileName
+    );
+
+fs.unlinkSync(file.path);
+
+  return publicData.publicUrl;
+
+}
+
+/**
+ * GET LESSONS BY COURSE
+ */
+
+router.get(
+  "/lessons/:courseId",
+verifyToken,
   async (req, res) => {
+
+    console.log(
+      "✅ LESSON ROUTE HIT:",
+      req.params.courseId
+    );
+
     try {
-      console.log("FILES:", req.files);
 
-      const { course_id, title, description, notes, lesson_order } = req.body;
+      const courseId =
+        Number(req.params.courseId);
 
-      const videoUrl = req.body.video_file || "";
+      const result =
+  await pool.query(
+    `
+    SELECT
 
-      const pdfFile = req.files?.pdfFile?.[0];
-      let pdfUrl = null;
+      l.id,
+      l.course_id,
+      l.title,
+      l.description,
+      l.video_file,
+      l.pdf_file,
+      l.notes,
+      l.lesson_order,
+      l.created_at,
 
-      if (pdfFile) {
-        pdfUrl = await uploadPdfToSupabase(pdfFile);
-      }
+      COALESCE(
+        p.completed,
+        false
+      ) AS completed,
 
-      if (!course_id || !title) {
-        return res.status(400).json({
-          success: false,
-          message: "course_id and title required"
-        });
-      }
+      COALESCE(
+        p.watched_seconds,
+        0
+      ) AS watched_seconds,
 
-      console.log("PDF:", pdfFile);
+      COALESCE(
+        e.completed,
+        false
+      ) AS course_completed
 
-      const result = await pool.query(
-        `INSERT INTO kids_lessons
-         (course_id, title, description, video_file, pdf_file, notes, lesson_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING *`,
-        [
-          Number(course_id),
-          title,
-          description || "",
-          videoUrl,
-          pdfUrl,
-          notes || "",
-          Number(lesson_order || 1)
-        ]
+    FROM kids_lessons l
+
+    LEFT JOIN
+    kids_lesson_progress p
+
+    ON
+    p.lesson_id = l.id
+
+    AND
+    p.child_id = $2
+
+    LEFT JOIN
+    kids_enrollments e
+
+    ON
+    e.course_id = l.course_id
+
+    AND
+    e.child_id = $2
+
+    WHERE l.course_id = $1
+
+    ORDER BY l.lesson_order ASC
+    `,
+    [
+      courseId,
+      Number(req.query.child_id || 0)
+    ]
+  );
+
+console.log(
+  "LESSONS:",
+  result.rows
+);
+
+      return res.json({
+
+        success: true,
+
+        lessons:
+          result.rows
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(
+        "❌ GET kids lessons FULL ERROR:",
+        err
       );
 
-      return res.json({ success: true, lesson: result.rows[0] });
-    } catch (err) {
-      console.error("❌ CREATE LESSON ERROR:", err);
-      return res.status(500).json({ success: false, message: err.message });
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          err.message,
+
+        error:
+          err
+
+      });
+
     }
+
   }
 );
 
-// =====================================
-// ADMIN DELETE LESSON
-// =====================================
+/**
+ * ADMIN CREATE LESSON
+ */
 
-router.delete("/admin/kids-lessons/:id", verifyToken, isAdmin, async (req, res) => {
-  try {
-    const lessonId = Number(req.params.id);
-    await pool.query(`DELETE FROM kids_lessons WHERE id = $1`, [lessonId]);
-    return res.json({ success: true });
-  } catch (err) {
-    console.error("DELETE lesson error:", err);
-    return res.status(500).json({ success: false });
+router.post(
+  "/admin/kids-lessons",
+
+  verifyToken,
+
+  upload.fields([
+
+  {
+    name: "video_file",
+    maxCount: 1
+  },
+
+  {
+    name: "pdfFile",
+    maxCount: 1
   }
-});
 
-// =====================================
-// ADMIN UPDATE LESSON
-// =====================================
+]),
 
-router.put("/admin/kids-lessons/:id", verifyToken, async (req, res) => {
-  try {
-    const lessonId = Number(req.params.id);
-    const { title } = req.body;
+  async (req, res) => {
 
-    const result = await pool.query(
-      `UPDATE kids_lessons SET title = $1 WHERE id = $2 RETURNING *`,
-      [title, lessonId]
+    try {
+console.log(
+  "FILES:",
+  req.files
+);
+      const {
+        course_id,
+        title,
+        description,
+        notes,
+        lesson_order
+      } = req.body;
+
+     const videoUrl =
+  req.body.video_file || "";
+
+const pdfFile =
+  req.files?.pdfFile?.[0];
+
+let pdfUrl = null;
+
+if (pdfFile) {
+
+  pdfUrl =
+    await uploadPdfToSupabase(
+      pdfFile
     );
 
-    return res.json({ success: true, lesson: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-});
+}
 
-// =====================================
-// ✅ FIX: LESSON COMPLETE — route now matches frontend call
-// Frontend calls: POST /api/kids/lesson-complete
-// Was wrongly: /lessons/:lessonId/complete
-// =====================================
+      if (
+        !course_id ||
+        !title
+      ) {
 
-router.post("/lesson-complete", verifyToken, async (req, res) => {
-  try {
-    const { child_id, course_id, lesson_id } = req.body;
 
-    if (!child_id || !lesson_id) {
-      return res.status(400).json({ success: false, message: "child_id and lesson_id required" });
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "course_id and title required"
+        });
+
+      }
+
+
+console.log("PDF:", pdfFile);
+
+      const result =
+  await pool.query(
+    `
+    INSERT INTO kids_lessons
+    (
+      course_id,
+      title,
+      description,
+      video_file,
+      pdf_file,
+      notes,
+      lesson_order
+    )
+
+    VALUES
+    (
+      $1,
+      $2,
+      $3,
+      $4,
+      $5,
+      $6,
+      $7
+    )
+
+    RETURNING *
+    `,
+    [
+
+      Number(course_id),
+
+      title,
+
+      description || "",
+
+      videoUrl,
+
+      pdfUrl,
+
+      notes || "",
+
+      Number(lesson_order || 1)
+
+    ]
+  );
+
+      return res.json({
+
+        success: true,
+
+        lesson:
+          result.rows[0]
+
+      });
+
     }
 
-    // ✅ FIX: use child_id column (not user_id) to match the GET lessons query join
-    await pool.query(
-      `INSERT INTO kids_lesson_progress
-       (child_id, lesson_id, completed, completed_at)
-       VALUES ($1, $2, true, NOW())
-       ON CONFLICT (child_id, lesson_id)
-       DO UPDATE SET completed = true, completed_at = NOW()`,
-      [Number(child_id), Number(lesson_id)]
-    );
+    catch (err) {
 
-    // ✅ FIX: use child_id for badge check (consistent with lessons query)
-    const unlockedBadges = await checkAndUnlockBadges(Number(child_id));
-
-    return res.json({ success: true, unlockedBadges });
-  } catch (err) {
-    console.error("lesson-complete error:", err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// =====================================
-// VIDEO PROGRESS
-// =====================================
-
-router.post("/lessons/:lessonId/progress", verifyToken, async (req, res) => {
-  try {
-    const lessonId = Number(req.params.lessonId);
-    const userId = req.user.id;
-    const { watched_seconds } = req.body;
-
-    await pool.query(
-      `INSERT INTO kids_lesson_progress
-       (child_id, lesson_id, watched_seconds)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (child_id, lesson_id)
-       DO UPDATE SET watched_seconds = $3`,
-      [userId, lessonId, watched_seconds]
-    );
-
-    return res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
-  }
-});
-
-// =====================================
-// COURSE PROGRESS
-// =====================================
-
-router.get("/course-progress/:courseId", verifyToken, async (req, res) => {
-  try {
-    const courseId = Number(req.params.courseId);
-    const childId = Number(req.query.child_id || 0);
-
-    const totalLessons = await pool.query(
-      `SELECT COUNT(*) FROM kids_lessons WHERE course_id = $1`,
-      [courseId]
-    );
-
-    const completedLessons = await pool.query(
-      `SELECT COUNT(*)
-       FROM kids_lesson_progress p
-       JOIN kids_lessons l ON l.id = p.lesson_id
-       WHERE l.course_id = $1
-         AND p.child_id = $2
-         AND p.completed = true`,
-      [courseId, childId]
-    );
-
-    const total = Number(totalLessons.rows[0].count);
-    const completed = Number(completedLessons.rows[0].count);
-    const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
-
-    return res.json({ success: true, progress, completed, total });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
-  }
-});
-
-// =====================================
-// DAILY STREAK
-// =====================================
-
-router.post("/update-streak", verifyToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
-
-    const existing = await pool.query(
-      `SELECT * FROM kids_daily_streaks WHERE user_id = $1`,
-      [userId]
-    );
-
-    if (!existing.rows.length) {
-      await pool.query(
-        `INSERT INTO kids_daily_streaks (user_id, streak_count, last_activity_date)
-         VALUES ($1, 1, $2)`,
-        [userId, todayStr]
+      console.error(
+        "❌ CREATE LESSON ERROR:",
+        err
       );
-      return res.json({ success: true, streak: 1 });
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          err.message
+
+      });
+
     }
 
-    const streakData = existing.rows[0];
-    const lastDate = new Date(streakData.last_activity_date);
-    const diffDays = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
-
-    let newStreak = streakData.streak_count;
-
-    if (diffDays === 1) {
-      newStreak++;
-    } else if (diffDays > 1) {
-      newStreak = 1;
-    } else {
-      // Same day — no update needed
-      return res.json({ success: true, streak: newStreak });
-    }
-
-    await pool.query(
-      `UPDATE kids_daily_streaks
-       SET streak_count = $1, last_activity_date = $2
-       WHERE user_id = $3`,
-      [newStreak, todayStr, userId]
-    );
-
-    return res.json({ success: true, streak: newStreak });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
   }
-});
+);
 
-// =====================================
-// REWARD LESSON
-// =====================================
+/**
+ * ADMIN DELETE LESSON
+ */
 
-router.post("/reward-lesson", verifyToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { xp, coins } = req.body;
+router.delete(
+  "/admin/kids-lessons/:id",
+  verifyToken,
+  isAdmin,
+  async (req, res) => {
 
-    const existing = await pool.query(
-      `SELECT * FROM kids_rewards WHERE user_id = $1`,
-      [userId]
-    );
+    try {
 
-    if (!existing.rows.length) {
+      const lessonId =
+        Number(req.params.id);
+
       await pool.query(
-        `INSERT INTO kids_rewards (user_id, xp, coins) VALUES ($1, $2, $3)`,
-        [userId, xp, coins]
+        `
+        DELETE FROM kids_lessons
+        WHERE id = $1
+        `,
+        [lessonId]
       );
-    } else {
-      await pool.query(
-        `UPDATE kids_rewards
-         SET xp = xp + $1, coins = coins + $2, updated_at = NOW()
-         WHERE user_id = $3`,
-        [xp, coins, userId]
-      );
+
+      return res.json({
+        success: true
+      });
+
     }
 
-    const updated = await pool.query(
-      `SELECT * FROM kids_rewards WHERE user_id = $1`,
-      [userId]
-    );
+    catch (err) {
 
-    return res.json({ success: true, rewards: updated.rows[0] });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
+      console.error(
+        "DELETE lesson error:",
+        err
+      );
+
+      return res.status(500).json({
+        success: false
+      });
+
+    }
+
   }
-});
+);
+
+router.put(
+  "/admin/kids-lessons/:id",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const lessonId =
+        Number(req.params.id);
+
+      const {
+        title
+      } = req.body;
+
+      const result =
+        await pool.query(
+          `
+          UPDATE kids_lessons
+          SET title = $1
+          WHERE id = $2
+          RETURNING *
+          `,
+          [
+            title,
+            lessonId
+          ]
+        );
+
+      return res.json({
+
+        success: true,
+
+        lesson:
+          result.rows[0]
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+        success: false,
+        message:
+          err.message
+      });
+
+    }
+
+  }
+);
+
+router.post(
+  "/lessons/:lessonId/complete",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const lessonId =
+        Number(req.params.lessonId);
+
+      const userId =
+        req.user.id;
+
+      await pool.query(
+
+        `
+        INSERT INTO kids_lesson_progress
+        (
+          user_id,
+          lesson_id,
+          completed,
+          completed_at
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          true,
+          NOW()
+        )
+
+        ON CONFLICT
+        (
+          user_id,
+          lesson_id
+        )
+
+        DO UPDATE SET
+
+          completed = true,
+
+          completed_at = NOW()
+        `,
+
+        [
+          userId,
+          lessonId
+        ]
+
+      );
+
+const unlockedBadges =
+  await checkAndUnlockBadges(
+    userId
+  );
+
+      return res.json({
+
+        success: true
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+router.post(
+  "/lessons/:lessonId/progress",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const lessonId =
+        Number(req.params.lessonId);
+
+      const userId =
+        req.user.id;
+
+      const {
+        watched_seconds
+      } = req.body;
+
+      await pool.query(
+
+        `
+        INSERT INTO kids_lesson_progress
+        (
+          user_id,
+          lesson_id,
+          watched_seconds
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          $3
+        )
+
+        ON CONFLICT
+        (
+          user_id,
+          lesson_id
+        )
+
+        DO UPDATE SET
+
+          watched_seconds = $3
+        `,
+
+        [
+          userId,
+          lessonId,
+          watched_seconds
+        ]
+
+      );
+
+      return res.json({
+
+        success: true
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+router.get(
+  "/course-progress/:courseId",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const courseId =
+        Number(req.params.courseId);
+
+      const childId =
+  Number(req.query.child_id || 0);
+
+      const totalLessons =
+        await pool.query(
+
+          `
+          SELECT COUNT(*)
+
+          FROM kids_lessons
+
+          WHERE course_id = $1
+          `,
+
+          [courseId]
+
+        );
+
+      const completedLessons =
+        await pool.query(
+
+          `
+          SELECT COUNT(*)
+
+          FROM kids_lesson_progress p
+
+          JOIN kids_lessons l
+
+          ON l.id = p.lesson_id
+
+          WHERE
+          l.course_id = $1
+
+          AND
+          p.child_id = $2
+
+          AND
+          p.completed = true
+          `,
+
+          [
+  courseId,
+  childId
+]
+
+        );
+
+      const total =
+        Number(
+          totalLessons.rows[0]
+          .count
+        );
+
+      const completed =
+        Number(
+          completedLessons.rows[0]
+          .count
+        );
+
+      const progress =
+        total === 0
+          ? 0
+          : Math.round(
+              (
+                completed /
+                total
+              ) * 100
+            );
+
+      return res.json({
+
+        success: true,
+
+        progress,
+
+        completed,
+
+        total
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+router.post(
+  "/update-streak",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const userId =
+        req.user.id;
+
+      const today =
+        new Date();
+
+      const todayStr =
+        today
+        .toISOString()
+        .split("T")[0];
+
+      const existing =
+        await pool.query(
+
+          `
+          SELECT *
+
+          FROM kids_daily_streaks
+
+          WHERE user_id = $1
+          `,
+
+          [userId]
+
+        );
+
+      // FIRST TIME
+      if (
+        !existing.rows.length
+      ) {
+
+        await pool.query(
+
+          `
+          INSERT INTO
+          kids_daily_streaks
+          (
+            user_id,
+            streak_count,
+            last_activity_date
+          )
+
+          VALUES
+          (
+            $1,
+            1,
+            $2
+          )
+          `,
+
+          [
+            userId,
+            todayStr
+          ]
+
+        );
+
+        return res.json({
+
+          success: true,
+
+          streak: 1
+
+        });
+
+      }
+
+      const streakData =
+        existing.rows[0];
+
+      const lastDate =
+        new Date(
+          streakData
+          .last_activity_date
+        );
+
+      const diffDays =
+        Math.floor(
+
+          (
+            today - lastDate
+          )
+
+          /
+
+          (
+            1000 *
+            60 *
+            60 *
+            24
+          )
+
+        );
+
+      let newStreak =
+        streakData
+        .streak_count;
+
+      // NEXT DAY
+      if (diffDays === 1) {
+
+        newStreak++;
+
+      }
+
+      // MISSED DAYS
+      else if (
+        diffDays > 1
+      ) {
+
+        newStreak = 1;
+
+      }
+
+      // SAME DAY
+      else {
+
+        return res.json({
+
+          success: true,
+
+          streak:
+            newStreak
+
+        });
+
+      }
+
+      await pool.query(
+
+        `
+        UPDATE
+        kids_daily_streaks
+
+        SET
+
+          streak_count = $1,
+
+          last_activity_date = $2
+
+        WHERE user_id = $3
+        `,
+
+        [
+          newStreak,
+          todayStr,
+          userId
+        ]
+
+      );
+
+      return res.json({
+
+        success: true,
+
+        streak:
+          newStreak
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+router.post(
+  "/reward-lesson",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const userId =
+        req.user.id;
+
+      const {
+
+        xp,
+        coins
+
+      } = req.body;
+
+      const existing =
+        await pool.query(
+
+          `
+          SELECT *
+
+          FROM kids_rewards
+
+          WHERE user_id = $1
+          `,
+
+          [userId]
+
+        );
+
+      // FIRST TIME
+      if (
+        !existing.rows.length
+      ) {
+
+        await pool.query(
+
+          `
+          INSERT INTO
+          kids_rewards
+          (
+            user_id,
+            xp,
+            coins
+          )
+
+          VALUES
+          (
+            $1,
+            $2,
+            $3
+          )
+          `,
+
+          [
+            userId,
+            xp,
+            coins
+          ]
+
+        );
+
+      }
+
+      else {
+
+        await pool.query(
+
+          `
+          UPDATE kids_rewards
+
+          SET
+
+            xp = xp + $1,
+
+            coins = coins + $2,
+
+            updated_at = NOW()
+
+          WHERE user_id = $3
+          `,
+
+          [
+            xp,
+            coins,
+            userId
+          ]
+
+        );
+
+      }
+
+      const updated =
+        await pool.query(
+
+          `
+          SELECT *
+
+          FROM kids_rewards
+
+          WHERE user_id = $1
+          `,
+
+          [userId]
+
+        );
+
+      return res.json({
+
+        success: true,
+
+        rewards:
+          updated.rows[0]
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
 
 // =====================================
 // GET QUIZ BY LESSON
 // =====================================
 
-router.get("/lessons/:lessonId/quiz", verifyToken, async (req, res) => {
-  try {
-    const lessonId = Number(req.params.lessonId);
+router.get(
+  "/lessons/:lessonId/quiz",
 
-    const result = await pool.query(
-      `SELECT id, question, option_a, option_b, option_c, option_d, xp_reward, coin_reward
-       FROM kids_quizzes
-       WHERE lesson_id = $1
-       ORDER BY id ASC`,
-      [lessonId]
-    );
+  verifyToken,
 
-    return res.json({ success: true, quizzes: result.rows });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
+  async (req, res) => {
+
+    try {
+
+      const lessonId =
+        Number(req.params.lessonId);
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+            id,
+            question,
+            option_a,
+            option_b,
+            option_c,
+            option_d,
+            xp_reward,
+            coin_reward
+          FROM kids_quizzes
+          WHERE lesson_id = $1
+          ORDER BY id ASC
+          `,
+          [lessonId]
+        );
+
+      return res.json({
+
+        success: true,
+
+        quizzes:
+          result.rows
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
   }
-});
+);
 
 // =====================================
 // SUBMIT QUIZ
 // =====================================
 
-router.post("/quiz/:quizId/submit", verifyToken, async (req, res) => {
-  try {
-    const quizId = Number(req.params.quizId);
-    const userId = req.user.id;
-    const { selected_option } = req.body;
+router.post(
+  "/quiz/:quizId/submit",
 
-    const quizResult = await pool.query(
-      `SELECT * FROM kids_quizzes WHERE id = $1`,
-      [quizId]
-    );
+  verifyToken,
 
-    if (!quizResult.rows.length) {
-      return res.status(404).json({ success: false, message: "Quiz not found" });
-    }
+  async (req, res) => {
 
-    const quiz = quizResult.rows[0];
+    try {
 
-    const alreadyAttempted = await pool.query(
-      `SELECT id FROM kids_quiz_attempts WHERE user_id = $1 AND quiz_id = $2`,
-      [userId, quizId]
-    );
+      const quizId =
+        Number(req.params.quizId);
 
-    if (alreadyAttempted.rows.length) {
-      // ✅ FIX: still return unlockedBadges on already attempted
-      const unlockedBadges = await checkAndUnlockBadges(userId);
-      return res.json({ success: true, alreadyAttempted: true, unlockedBadges });
-    }
+      const userId =
+        req.user.id;
 
-    const isCorrect = selected_option === quiz.correct_option;
-    const earnedXP = isCorrect ? Number(quiz.xp_reward || 0) : 0;
-    const earnedCoins = isCorrect ? Number(quiz.coin_reward || 0) : 0;
+      const {
+        selected_option
+      } = req.body;
 
-    await pool.query(
-      `INSERT INTO kids_quiz_attempts
-       (user_id, quiz_id, selected_option, is_correct, earned_xp, earned_coins)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [userId, quizId, selected_option, isCorrect, earnedXP, earnedCoins]
-    );
+      const quizResult =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_quizzes
+          WHERE id = $1
+          `,
+          [quizId]
+        );
 
-    if (isCorrect) {
-      const existingRewards = await pool.query(
-        `SELECT * FROM kids_rewards WHERE user_id = $1`,
-        [userId]
+      if (
+        !quizResult.rows.length
+      ) {
+
+        return res.status(404).json({
+
+          success: false,
+
+          message:
+            "Quiz not found"
+
+        });
+
+      }
+
+      const quiz =
+        quizResult.rows[0];
+
+      const alreadyAttempted =
+        await pool.query(
+          `
+          SELECT id
+          FROM kids_quiz_attempts
+          WHERE
+          user_id = $1
+          AND quiz_id = $2
+          `,
+          [
+            userId,
+            quizId
+          ]
+        );
+
+      if (
+        alreadyAttempted.rows.length
+      ) {
+
+await checkAndUnlockBadges(
+  userId
+);
+
+        return res.json({
+
+          success: true,
+
+          alreadyAttempted: true
+
+        });
+
+      }
+
+      const isCorrect =
+        selected_option ===
+        quiz.correct_option;
+
+      const earnedXP =
+        isCorrect
+          ? Number(
+              quiz.xp_reward || 0
+            )
+          : 0;
+
+      const earnedCoins =
+        isCorrect
+          ? Number(
+              quiz.coin_reward || 0
+            )
+          : 0;
+
+      await pool.query(
+        `
+        INSERT INTO kids_quiz_attempts
+        (
+          user_id,
+          quiz_id,
+          selected_option,
+          is_correct,
+          earned_xp,
+          earned_coins
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6
+        )
+        `,
+        [
+          userId,
+          quizId,
+          selected_option,
+          isCorrect,
+          earnedXP,
+          earnedCoins
+        ]
       );
 
-      if (!existingRewards.rows.length) {
-        await pool.query(
-          `INSERT INTO kids_rewards (user_id, xp, coins) VALUES ($1, $2, $3)`,
-          [userId, earnedXP, earnedCoins]
-        );
-      } else {
-        await pool.query(
-          `UPDATE kids_rewards
-           SET xp = xp + $1, coins = coins + $2, updated_at = NOW()
-           WHERE user_id = $3`,
-          [earnedXP, earnedCoins, userId]
-        );
+      if (isCorrect) {
+
+        const existingRewards =
+          await pool.query(
+            `
+            SELECT *
+            FROM kids_rewards
+            WHERE user_id = $1
+            `,
+            [userId]
+          );
+
+        if (
+          !existingRewards.rows.length
+        ) {
+
+          await pool.query(
+            `
+            INSERT INTO
+            kids_rewards
+            (
+              user_id,
+              xp,
+              coins
+            )
+
+            VALUES
+            (
+              $1,
+              $2,
+              $3
+            )
+            `,
+            [
+              userId,
+              earnedXP,
+              earnedCoins
+            ]
+          );
+
+        }
+
+        else {
+
+          await pool.query(
+            `
+            UPDATE kids_rewards
+
+            SET
+
+              xp = xp + $1,
+
+              coins = coins + $2,
+
+              updated_at = NOW()
+
+            WHERE user_id = $3
+            `,
+            [
+              earnedXP,
+              earnedCoins,
+              userId
+            ]
+          );
+
+        }
+
       }
+
+      // LEVEL CHECK
+
+      const rewardsResult =
+        await pool.query(
+          `
+          SELECT xp
+          FROM kids_rewards
+          WHERE user_id = $1
+          `,
+          [userId]
+        );
+
+      const totalXP =
+        Number(
+          rewardsResult.rows[0]?.xp || 0
+        );
+
+      const levelResult =
+        await pool.query(
+          `
+          SELECT level_number
+          FROM kids_levels
+          WHERE required_xp <= $1
+          ORDER BY required_xp DESC
+          LIMIT 1
+          `,
+          [totalXP]
+        );
+
+      return res.json({
+
+        success: true,
+
+unlockedBadges,
+
+        correct:
+          isCorrect,
+
+        earnedXP,
+
+        earnedCoins,
+
+        totalXP,
+
+        level:
+          levelResult.rows[0]
+          ?.level_number || 1
+
+      });
+
     }
 
-    // LEVEL CHECK
-    const rewardsResult = await pool.query(
-      `SELECT xp FROM kids_rewards WHERE user_id = $1`,
-      [userId]
-    );
-    const totalXP = Number(rewardsResult.rows[0]?.xp || 0);
+    catch (err) {
 
-    const levelResult = await pool.query(
-      `SELECT level_number FROM kids_levels
-       WHERE required_xp <= $1
-       ORDER BY required_xp DESC
-       LIMIT 1`,
-      [totalXP]
-    );
+      console.error(err);
 
-    // ✅ FIX: unlockedBadges now properly captured before use in response
-    const unlockedBadges = await checkAndUnlockBadges(userId);
+      return res.status(500).json({
 
-    return res.json({
-      success: true,
-      unlockedBadges,
-      correct: isCorrect,
-      earnedXP,
-      earnedCoins,
-      totalXP,
-      level: levelResult.rows[0]?.level_number || 1
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
+        success: false
+
+      });
+
+    }
+
   }
-});
+);
 
 // =====================================
 // ADMIN CREATE QUIZ
 // =====================================
 
-router.post("/admin/kids-quizzes", verifyToken, async (req, res) => {
-  try {
-    const {
-      lesson_id,
-      question,
-      option_a,
-      option_b,
-      option_c,
-      option_d,
-      correct_option,
-      xp_reward,
-      coin_reward
-    } = req.body;
+router.post(
+  "/admin/kids-quizzes",
 
-    const result = await pool.query(
-      `INSERT INTO kids_quizzes
-       (lesson_id, question, option_a, option_b, option_c, option_d,
-        correct_option, xp_reward, coin_reward)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-       RETURNING *`,
-      [
-        Number(lesson_id),
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const {
+
+        lesson_id,
         question,
         option_a,
         option_b,
         option_c,
         option_d,
         correct_option,
-        Number(xp_reward || 15),
-        Number(coin_reward || 10)
-      ]
-    );
+        xp_reward,
+        coin_reward
 
-    return res.json({ success: true, quiz: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
+      } = req.body;
+
+      const result =
+        await pool.query(
+          `
+          INSERT INTO kids_quizzes
+          (
+            lesson_id,
+            question,
+            option_a,
+            option_b,
+            option_c,
+            option_d,
+            correct_option,
+            xp_reward,
+            coin_reward
+          )
+
+          VALUES
+          (
+            $1,$2,$3,$4,$5,$6,$7,$8,$9
+          )
+
+          RETURNING *
+          `,
+          [
+
+            Number(lesson_id),
+
+            question,
+
+            option_a,
+
+            option_b,
+
+            option_c,
+
+            option_d,
+
+            correct_option,
+
+            Number(xp_reward || 15),
+
+            Number(coin_reward || 10)
+
+          ]
+        );
+
+      return res.json({
+
+        success: true,
+
+        quiz:
+          result.rows[0]
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
   }
-});
+);
 
 // =====================================
 // COMPLETE COURSE
 // =====================================
 
-router.post("/complete-course", verifyToken, async (req, res) => {
-  try {
-    const { child_id, course_id } = req.body;
+router.post(
+  "/complete-course",
 
-    const existing = await pool.query(
-      `SELECT completed FROM kids_enrollments
-       WHERE child_id = $1 AND course_id = $2`,
-      [child_id, course_id]
-    );
+  verifyToken,
 
-    if (existing.rows[0]?.completed) {
-      return res.json({ success: true, alreadyCompleted: true });
+  async (req, res) => {
+
+    try {
+
+      const {
+        child_id,
+        course_id
+      } = req.body;
+
+      const existing =
+        await pool.query(
+          `
+          SELECT completed
+          FROM kids_enrollments
+          WHERE
+          child_id = $1
+          AND course_id = $2
+          `,
+          [
+            child_id,
+            course_id
+          ]
+        );
+
+      if (
+        existing.rows[0]
+        ?.completed
+      ) {
+
+        return res.json({
+
+          success: true,
+
+          alreadyCompleted: true
+
+        });
+
+      }
+
+      await pool.query(
+        `
+        UPDATE kids_enrollments
+
+        SET completed = true
+
+        WHERE
+        child_id = $1
+        AND course_id = $2
+        `,
+        [
+          child_id,
+          course_id
+        ]
+      );
+
+      return res.json({
+
+        success: true
+
+      });
+
     }
 
-    await pool.query(
-      `UPDATE kids_enrollments
-       SET completed = true
-       WHERE child_id = $1 AND course_id = $2`,
-      [child_id, course_id]
-    );
+    catch (err) {
 
-    return res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
   }
-});
+);
 
 module.exports = router;

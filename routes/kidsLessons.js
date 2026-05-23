@@ -20,81 +20,38 @@ const {
   "../middleware/auth.middleware"
 );
 
-const fs = require("fs");
-
-const PDF_DIR =
-  path.join(
-    __dirname,
-    "..",
-    "uploads",
-    "pdfs"
-  );
-
-if (
-  !fs.existsSync(PDF_DIR)
-) {
-
-  fs.mkdirSync(
-    PDF_DIR,
-    { recursive: true }
-  );
-
-}
-
-async function uploadPdfToCloudinary(
-  filePath
-) {
-
-  return await cloudinary
-    .uploader
-    .upload(
-
-      filePath,
-
-      {
-
-        folder:
-          "vaibhly-kids-pdfs",
-
-        resource_type:
-          "raw"
-
-      }
-
-    );
-
-}
+const {
+  CloudinaryStorage
+} = require(
+  "multer-storage-cloudinary"
+);
 
 /* =====================================
    TEMP FILE STORAGE
 ===================================== */
 
 const storage =
-  multer.diskStorage({
+  new CloudinaryStorage({
 
-    destination:
-  (req, file, cb) => {
+    cloudinary,
 
-    cb(
-      null,
-      PDF_DIR
-    );
+    params: async (
+      req,
+      file
+    ) => ({
 
-  },
+      folder:
+        "vaibhly-kids-pdfs",
 
-    filename:
-      (req, file, cb) => {
+      resource_type:
+        "raw",
 
-        cb(
-          null,
+      public_id:
+        Date.now() +
+        "-" +
+        file.originalname
 
-          Date.now() +
-          path.extname(
-            file.originalname
-          )
-        );
-
-      }
+    })
 
   });
 
@@ -225,19 +182,10 @@ console.log(
 const pdfFile =
   req.files?.pdfFile?.[0];
 
-let pdfUrl = null;
-
-if (pdfFile) {
-
-  const uploadedPdf =
-    await uploadPdfToCloudinary(
-      pdfFile.path
-    );
-
-  pdfUrl =
-  uploadedPdf.secure_url;
-
-}
+const pdfUrl =
+  pdfFile
+    ? pdfFile.path
+    : null;
 
       if (
         !course_id ||

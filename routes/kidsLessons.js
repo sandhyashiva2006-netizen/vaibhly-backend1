@@ -1117,4 +1117,329 @@ router.post(
   }
 );
 
+// =====================================
+// GET QUIZ BY LESSON
+// =====================================
+
+router.get(
+  "/lessons/:lessonId/quiz",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const lessonId =
+        Number(req.params.lessonId);
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+            id,
+            question,
+            option_a,
+            option_b,
+            option_c,
+            option_d,
+            xp_reward,
+            coin_reward
+          FROM kids_quizzes
+          WHERE lesson_id = $1
+          ORDER BY id ASC
+          `,
+          [lessonId]
+        );
+
+      return res.json({
+
+        success: true,
+
+        quizzes:
+          result.rows
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+// =====================================
+// SUBMIT QUIZ
+// =====================================
+
+router.post(
+  "/quiz/:quizId/submit",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const quizId =
+        Number(req.params.quizId);
+
+      const userId =
+        req.user.id;
+
+      const {
+        selected_option
+      } = req.body;
+
+      const quizResult =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_quizzes
+          WHERE id = $1
+          `,
+          [quizId]
+        );
+
+      if (
+        !quizResult.rows.length
+      ) {
+
+        return res.status(404).json({
+
+          success: false,
+
+          message:
+            "Quiz not found"
+
+        });
+
+      }
+
+      const quiz =
+        quizResult.rows[0];
+
+      const alreadyAttempted =
+        await pool.query(
+          `
+          SELECT id
+          FROM kids_quiz_attempts
+          WHERE
+          user_id = $1
+          AND quiz_id = $2
+          `,
+          [
+            userId,
+            quizId
+          ]
+        );
+
+      if (
+        alreadyAttempted.rows.length
+      ) {
+
+        return res.json({
+
+          success: true,
+
+          alreadyAttempted: true
+
+        });
+
+      }
+
+      const isCorrect =
+        selected_option ===
+        quiz.correct_option;
+
+      const earnedXP =
+        isCorrect
+          ? Number(
+              quiz.xp_reward || 0
+            )
+          : 0;
+
+      const earnedCoins =
+        isCorrect
+          ? Number(
+              quiz.coin_reward || 0
+            )
+          : 0;
+
+      await pool.query(
+        `
+        INSERT INTO kids_quiz_attempts
+        (
+          user_id,
+          quiz_id,
+          selected_option,
+          is_correct,
+          earned_xp,
+          earned_coins
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6
+        )
+        `,
+        [
+          userId,
+          quizId,
+          selected_option,
+          isCorrect,
+          earnedXP,
+          earnedCoins
+        ]
+      );
+
+      if (isCorrect) {
+
+        const existingRewards =
+          await pool.query(
+            `
+            SELECT *
+            FROM kids_rewards
+            WHERE user_id = $1
+            `,
+            [userId]
+          );
+
+        if (
+          !existingRewards.rows.length
+        ) {
+
+          await pool.query(
+            `
+            INSERT INTO
+            kids_rewards
+            (
+              user_id,
+              xp,
+              coins
+            )
+
+            VALUES
+            (
+              $1,
+              $2,
+              $3
+            )
+            `,
+            [
+              userId,
+              earnedXP,
+              earnedCoins
+            ]
+          );
+
+        }
+
+        else {
+
+          await pool.query(
+            `
+            UPDATE kids_rewards
+
+            SET
+
+              xp = xp + $1,
+
+              coins = coins + $2,
+
+              updated_at = NOW()
+
+            WHERE user_id = $3
+            `,
+            [
+              earnedXP,
+              earnedCoins,
+              userId
+            ]
+          );
+
+        }
+
+      }
+
+      // LEVEL CHECK
+
+      const rewardsResult =
+        await pool.query(
+          `
+          SELECT xp
+          FROM kids_rewards
+          WHERE user_id = $1
+          `,
+          [userId]
+        );
+
+      const totalXP =
+        Number(
+          rewardsResult.rows[0]?.xp || 0
+        );
+
+      const levelResult =
+        await pool.query(
+          `
+          SELECT level_number
+          FROM kids_levels
+          WHERE required_xp <= $1
+          ORDER BY required_xp DESC
+          LIMIT 1
+          `,
+          [totalXP]
+        );
+
+      return res.json({
+
+        success: true,
+
+        correct:
+          isCorrect,
+
+        earnedXP,
+
+        earnedCoins,
+
+        totalXP,
+
+        level:
+          levelResult.rows[0]
+          ?.level_number || 1
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
 module.exports = router;

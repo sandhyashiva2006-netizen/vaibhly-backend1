@@ -696,8 +696,8 @@ router.get(
       const courseId =
         Number(req.params.courseId);
 
-      const userId =
-        req.user.id;
+      const childId =
+  Number(req.query.child_id || 0);
 
       const totalLessons =
         await pool.query(
@@ -730,16 +730,16 @@ router.get(
           l.course_id = $1
 
           AND
-          p.user_id = $2
+          p.child_id = $2
 
           AND
           p.completed = true
           `,
 
           [
-            courseId,
-            userId
-          ]
+  courseId,
+  childId
+]
 
         );
 

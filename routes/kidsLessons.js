@@ -2467,4 +2467,171 @@ router.post(
   }
 );
 
+// =====================================
+// PARENT ANALYTICS
+// =====================================
+
+router.get(
+  "/parent-analytics/:childId",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const childId =
+        Number(
+          req.params.childId
+        );
+
+      // TOTAL XP + COINS
+      const rewards =
+        await pool.query(
+          `
+          SELECT
+            xp,
+            coins
+          FROM kids_rewards
+          WHERE user_id = $1
+          `,
+          [req.user.id]
+        );
+
+      // LESSONS COMPLETED
+      const lessons =
+        await pool.query(
+          `
+          SELECT COUNT(*) AS total
+          FROM kids_lesson_progress
+          WHERE child_id = $1
+          AND completed = true
+          `,
+          [childId]
+        );
+
+      // QUIZ ACCURACY
+      const quizzes =
+        await pool.query(
+          `
+          SELECT
+
+            COUNT(*) AS total,
+
+            SUM(
+              CASE
+                WHEN is_correct = true
+                THEN 1
+                ELSE 0
+              END
+            ) AS correct
+
+          FROM kids_quiz_attempts
+
+          WHERE child_id = $1
+          `,
+          [childId]
+        );
+
+      // WATCH TIME
+      const watchTime =
+        await pool.query(
+          `
+          SELECT
+            SUM(watched_seconds)
+            AS total_watch_time
+
+          FROM kids_lesson_progress
+
+          WHERE child_id = $1
+          `,
+          [childId]
+        );
+
+      // STREAK
+      const streak =
+        await pool.query(
+          `
+          SELECT streak_count
+          FROM kids_daily_streaks
+          WHERE user_id = $1
+          `,
+          [req.user.id]
+        );
+
+      const totalQuiz =
+        Number(
+          quizzes.rows[0]
+          ?.total || 0
+        );
+
+      const correctQuiz =
+        Number(
+          quizzes.rows[0]
+          ?.correct || 0
+        );
+
+      let accuracy = 0;
+
+      if (totalQuiz > 0) {
+
+        accuracy =
+          Math.round(
+            (
+              correctQuiz /
+              totalQuiz
+            ) * 100
+          );
+
+      }
+
+      return res.json({
+
+        success:true,
+
+        analytics: {
+
+          xp:
+            rewards.rows[0]?.xp || 0,
+
+          coins:
+            rewards.rows[0]?.coins || 0,
+
+          completedLessons:
+            lessons.rows[0]?.total || 0,
+
+          accuracy,
+
+          streak:
+            streak.rows[0]
+            ?.streak_count || 0,
+
+          watchTime:
+            watchTime.rows[0]
+            ?.total_watch_time || 0
+
+        }
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500)
+      .json({
+
+        success:false
+
+      });
+
+    }
+
+  }
+);
+
+
+
 module.exports = router;

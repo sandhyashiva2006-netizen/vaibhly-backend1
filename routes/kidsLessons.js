@@ -406,9 +406,6 @@ verifyToken,
         Number(req.params.courseId);
 
       const result =
-        await pool.query(
-          `
-          const result =
   await pool.query(
     `
     SELECT

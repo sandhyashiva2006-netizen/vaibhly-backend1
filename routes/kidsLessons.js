@@ -136,17 +136,16 @@ if (error) {
 
   console.error(
     "SUPABASE FULL ERROR:",
-    error
+    JSON.stringify(
+      error,
+      null,
+      2
+    )
   );
 
-  return res.status(500).json({
-
-    success: false,
-
-    message:
-      JSON.stringify(error)
-
-  });
+  throw new Error(
+    JSON.stringify(error)
+  );
 
 }
 

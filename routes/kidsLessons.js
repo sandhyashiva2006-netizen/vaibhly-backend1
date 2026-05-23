@@ -44,6 +44,8 @@ async function checkAndUnlockBadges(
 
   try {
 
+const newlyUnlocked = [];
+
     // EXISTING BADGES
     const existingBadges =
       await pool.query(
@@ -192,40 +194,47 @@ async function checkAndUnlockBadges(
 
       }
 
-      if (unlocked) {
+      const inserted =
+  await pool.query(
+    `
+    INSERT INTO kids_badges
+    (
+      child_id,
+      badge_name,
+      badge_icon,
+      badge_type,
+      earned_at
+    )
 
-        await pool.query(
-          `
-          INSERT INTO kids_badges
-          (
-            child_id,
-            badge_name,
-            badge_icon,
-            badge_type,
-            earned_at
-          )
+    VALUES
+    (
+      $1,
+      $2,
+      $3,
+      'achievement',
+      NOW()
+    )
 
-          VALUES
-          (
-            $1,
-            $2,
-            $3,
-            'achievement',
-            NOW()
-          )
-          `,
-          [
-            userId,
-            rule.badge_name,
-            rule.badge_icon
-          ]
-        );
+    RETURNING *
+    `,
+    [
+      userId,
+      rule.badge_name,
+      rule.badge_icon
+    ]
+  );
+
+newlyUnlocked.push(
+  inserted.rows[0]
+);
 
       }
 
     }
 
   }
+
+return newlyUnlocked;
 
   catch (err) {
 
@@ -783,9 +792,10 @@ router.post(
 
       );
 
-await checkAndUnlockBadges(
-  userId
-);
+const unlockedBadges =
+  await checkAndUnlockBadges(
+    userId
+  );
 
       return res.json({
 
@@ -1617,6 +1627,8 @@ await checkAndUnlockBadges(
       return res.json({
 
         success: true,
+
+unlockedBadges,
 
         correct:
           isCorrect,

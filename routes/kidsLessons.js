@@ -132,20 +132,23 @@ async function uploadPdfToSupabase(
     error
   );
 
-  if (error) {
+if (error) {
 
-    console.error(
-  "FULL SUPABASE ERROR:",
-  JSON.stringify(
-    error,
-    null,
-    2
-  )
-);
+  console.error(
+    "SUPABASE FULL ERROR:",
+    error
+  );
 
-throw error;
+  return res.status(500).json({
 
-  }
+    success: false,
+
+    message:
+      JSON.stringify(error)
+
+  });
+
+}
 
   const {
     data: publicData

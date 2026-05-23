@@ -507,6 +507,81 @@ router.put(
   }
 );
 
+router.post(
+  "/lessons/:lessonId/complete",
 
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const lessonId =
+        Number(req.params.lessonId);
+
+      const userId =
+        req.user.id;
+
+      await pool.query(
+
+        `
+        INSERT INTO kids_lesson_progress
+        (
+          user_id,
+          lesson_id,
+          completed,
+          completed_at
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          true,
+          NOW()
+        )
+
+        ON CONFLICT
+        (
+          user_id,
+          lesson_id
+        )
+
+        DO UPDATE SET
+
+          completed = true,
+
+          completed_at = NOW()
+        `,
+
+        [
+          userId,
+          lessonId
+        ]
+
+      );
+
+      return res.json({
+
+        success: true
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
 
 module.exports = router;

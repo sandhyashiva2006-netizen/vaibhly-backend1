@@ -40,13 +40,7 @@ if (
 
 }
 
-if (
-  !fs.existsSync(uploadDir)
-) {
 
-  fs.mkdirSync(uploadDir);
-
-}
 
 /* =====================================
    TEMP FILE STORAGE

@@ -1442,4 +1442,103 @@ router.post(
   }
 );
 
+// =====================================
+// ADMIN CREATE QUIZ
+// =====================================
+
+router.post(
+  "/admin/kids-quizzes",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const {
+
+        lesson_id,
+        question,
+        option_a,
+        option_b,
+        option_c,
+        option_d,
+        correct_option,
+        xp_reward,
+        coin_reward
+
+      } = req.body;
+
+      const result =
+        await pool.query(
+          `
+          INSERT INTO kids_quizzes
+          (
+            lesson_id,
+            question,
+            option_a,
+            option_b,
+            option_c,
+            option_d,
+            correct_option,
+            xp_reward,
+            coin_reward
+          )
+
+          VALUES
+          (
+            $1,$2,$3,$4,$5,$6,$7,$8,$9
+          )
+
+          RETURNING *
+          `,
+          [
+
+            Number(lesson_id),
+
+            question,
+
+            option_a,
+
+            option_b,
+
+            option_c,
+
+            option_d,
+
+            correct_option,
+
+            Number(xp_reward || 15),
+
+            Number(coin_reward || 10)
+
+          ]
+        );
+
+      return res.json({
+
+        success: true,
+
+        quiz:
+          result.rows[0]
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
 module.exports = router;

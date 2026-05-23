@@ -107,6 +107,29 @@ const upload =
 
   });
 
+async function uploadPdfToCloudinary(
+  filePath
+) {
+
+  return await cloudinary
+    .uploader
+    .upload(
+
+      filePath,
+
+      {
+
+        folder:
+          "vaibhly-kids-pdfs",
+
+        resource_type:
+          "raw"
+
+      }
+
+    );
+
+}
 
 /**
  * GET LESSONS BY COURSE
@@ -201,12 +224,18 @@ router.post(
   verifyToken,
 
   upload.fields([
-   
-    {
-      name: "pdfFile",
-      maxCount: 1
-    }
-  ]),
+
+  {
+    name: "video_file",
+    maxCount: 1
+  },
+
+  {
+    name: "pdfFile",
+    maxCount: 1
+  }
+
+]),
 
   async (req, res) => {
 

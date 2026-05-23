@@ -178,7 +178,7 @@ fs.unlinkSync(file.path);
 
 router.get(
   "/lessons/:courseId",
-
+verifyToken,
   async (req, res) => {
 
     console.log(
@@ -195,6 +195,7 @@ router.get(
         await pool.query(
           `
           SELECT
+
   l.id,
   l.course_id,
   l.title,
@@ -204,15 +205,36 @@ router.get(
   l.notes,
   l.lesson_order,
   l.created_at,
-  false AS completed
+
+  COALESCE(
+    p.completed,
+    false
+  ) AS completed,
+
+  COALESCE(
+    p.watched_seconds,
+    0
+  ) AS watched_seconds
 
 FROM kids_lessons l
+
+LEFT JOIN
+kids_lesson_progress p
+
+ON
+p.lesson_id = l.id
+
+AND
+p.user_id = $2
 
 WHERE l.course_id = $1
 
 ORDER BY l.lesson_order ASC
           `,
-          [courseId]
+          [
+  courseId,
+  req.user?.id || 0
+]
         );
 
 console.log(
@@ -662,5 +684,437 @@ router.post(
   }
 );
 
+router.get(
+  "/course-progress/:courseId",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const courseId =
+        Number(req.params.courseId);
+
+      const userId =
+        req.user.id;
+
+      const totalLessons =
+        await pool.query(
+
+          `
+          SELECT COUNT(*)
+
+          FROM kids_lessons
+
+          WHERE course_id = $1
+          `,
+
+          [courseId]
+
+        );
+
+      const completedLessons =
+        await pool.query(
+
+          `
+          SELECT COUNT(*)
+
+          FROM kids_lesson_progress p
+
+          JOIN kids_lessons l
+
+          ON l.id = p.lesson_id
+
+          WHERE
+          l.course_id = $1
+
+          AND
+          p.user_id = $2
+
+          AND
+          p.completed = true
+          `,
+
+          [
+            courseId,
+            userId
+          ]
+
+        );
+
+      const total =
+        Number(
+          totalLessons.rows[0]
+          .count
+        );
+
+      const completed =
+        Number(
+          completedLessons.rows[0]
+          .count
+        );
+
+      const progress =
+        total === 0
+          ? 0
+          : Math.round(
+              (
+                completed /
+                total
+              ) * 100
+            );
+
+      return res.json({
+
+        success: true,
+
+        progress,
+
+        completed,
+
+        total
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+router.post(
+  "/update-streak",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const userId =
+        req.user.id;
+
+      const today =
+        new Date();
+
+      const todayStr =
+        today
+        .toISOString()
+        .split("T")[0];
+
+      const existing =
+        await pool.query(
+
+          `
+          SELECT *
+
+          FROM kids_daily_streaks
+
+          WHERE user_id = $1
+          `,
+
+          [userId]
+
+        );
+
+      // FIRST TIME
+      if (
+        !existing.rows.length
+      ) {
+
+        await pool.query(
+
+          `
+          INSERT INTO
+          kids_daily_streaks
+          (
+            user_id,
+            streak_count,
+            last_activity_date
+          )
+
+          VALUES
+          (
+            $1,
+            1,
+            $2
+          )
+          `,
+
+          [
+            userId,
+            todayStr
+          ]
+
+        );
+
+        return res.json({
+
+          success: true,
+
+          streak: 1
+
+        });
+
+      }
+
+      const streakData =
+        existing.rows[0];
+
+      const lastDate =
+        new Date(
+          streakData
+          .last_activity_date
+        );
+
+      const diffDays =
+        Math.floor(
+
+          (
+            today - lastDate
+          )
+
+          /
+
+          (
+            1000 *
+            60 *
+            60 *
+            24
+          )
+
+        );
+
+      let newStreak =
+        streakData
+        .streak_count;
+
+      // NEXT DAY
+      if (diffDays === 1) {
+
+        newStreak++;
+
+      }
+
+      // MISSED DAYS
+      else if (
+        diffDays > 1
+      ) {
+
+        newStreak = 1;
+
+      }
+
+      // SAME DAY
+      else {
+
+        return res.json({
+
+          success: true,
+
+          streak:
+            newStreak
+
+        });
+
+      }
+
+      await pool.query(
+
+        `
+        UPDATE
+        kids_daily_streaks
+
+        SET
+
+          streak_count = $1,
+
+          last_activity_date = $2
+
+        WHERE user_id = $3
+        `,
+
+        [
+          newStreak,
+          todayStr,
+          userId
+        ]
+
+      );
+
+      return res.json({
+
+        success: true,
+
+        streak:
+          newStreak
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+router.post(
+  "/reward-lesson",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const userId =
+        req.user.id;
+
+      const {
+
+        xp,
+        coins
+
+      } = req.body;
+
+      const existing =
+        await pool.query(
+
+          `
+          SELECT *
+
+          FROM kids_rewards
+
+          WHERE user_id = $1
+          `,
+
+          [userId]
+
+        );
+
+      // FIRST TIME
+      if (
+        !existing.rows.length
+      ) {
+
+        await pool.query(
+
+          `
+          INSERT INTO
+          kids_rewards
+          (
+            user_id,
+            xp,
+            coins
+          )
+
+          VALUES
+          (
+            $1,
+            $2,
+            $3
+          )
+          `,
+
+          [
+            userId,
+            xp,
+            coins
+          ]
+
+        );
+
+      }
+
+      else {
+
+        await pool.query(
+
+          `
+          UPDATE kids_rewards
+
+          SET
+
+            xp = xp + $1,
+
+            coins = coins + $2,
+
+            updated_at = NOW()
+
+          WHERE user_id = $3
+          `,
+
+          [
+            xp,
+            coins,
+            userId
+          ]
+
+        );
+
+      }
+
+      const updated =
+        await pool.query(
+
+          `
+          SELECT *
+
+          FROM kids_rewards
+
+          WHERE user_id = $1
+          `,
+
+          [userId]
+
+        );
+
+      return res.json({
+
+        success: true,
+
+        rewards:
+          updated.rows[0]
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
 
 module.exports = router;

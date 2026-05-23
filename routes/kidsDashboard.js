@@ -224,11 +224,39 @@ router.get("/dashboard", verifyToken, async (req, res) => {
 
     const nextCourse = coursesResult.rows[0] || null;
 
+const rewardsResult =
+  await pool.query(
+
+    `
+    SELECT
+
+      xp,
+      coins
+
+    FROM kids_rewards
+
+    WHERE user_id = $1
+    `,
+
+    [req.user.id]
+
+  );
+
+const rewards =
+  rewardsResult.rows[0] || {
+
+    xp: 0,
+
+    coins: 0
+
+  };
+
     res.json({
       success: true,
       child,
       courses: coursesResult.rows,
       badges: badgesResult.rows,
+rewards,
       todayActivity,
       mission: {
         title: nextCourse ? nextCourse.title : "Start your first mission",

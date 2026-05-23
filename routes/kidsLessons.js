@@ -32,9 +32,9 @@ const {
 const supabase =
   createClient(
 
-    process.env.SUPABASE_URL,
+    "https://uhexbmeawasekskppoyb.supabase.co/rest/v1/",
 
-    process.env.SUPABASE_KEY
+    "sb_secret_PJ8WZAR5Ois8AoCuLcda7g_m7Hzp7Yq"
 
   );
 

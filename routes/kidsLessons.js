@@ -25,7 +25,8 @@ const uploadDir =
   path.join(
     __dirname,
     "..",
-    "uploads"
+    "uploads",
+    "pdfs"
   );
 
 if (
@@ -198,7 +199,7 @@ const pdfFile =
 
 const pdfUrl =
   pdfFile
-    ? `/uploads/${pdfFile.filename}`
+    ? `/uploads/pdfs/${pdfFile.filename}`
     : null;
 
       if (

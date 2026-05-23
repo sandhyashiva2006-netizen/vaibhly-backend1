@@ -424,7 +424,25 @@ setInterval(async () => {
 
 /* ================= PUBLIC ROUTES ================= */
 
-app.use("/", publicRoutes);
+app.use((req, res, next) => {
+
+  // IMPORTANT:
+  // let uploads pass through
+  if (
+    req.path.startsWith("/uploads")
+  ) {
+
+    return next();
+
+  }
+
+  return publicRoutes(
+    req,
+    res,
+    next
+  );
+
+});
 
 /* ================= SPA FALLBACK ================= */
 

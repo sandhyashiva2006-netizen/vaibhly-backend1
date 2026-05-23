@@ -1989,4 +1989,287 @@ router.get(
   }
 );
 
+// =====================================
+// LEADERBOARD
+// =====================================
+
+router.get(
+  "/leaderboard",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+
+            kp.id,
+            kp.name,
+            kp.avatar,
+
+            COALESCE(
+              kr.xp,
+              0
+            ) AS xp,
+
+            COALESCE(
+              kr.coins,
+              0
+            ) AS coins,
+
+            COALESCE(
+              ds.streak_count,
+              0
+            ) AS streak
+
+          FROM kids_profiles kp
+
+          LEFT JOIN
+          kids_rewards kr
+
+          ON kr.user_id = kp.user_id
+
+          LEFT JOIN
+          kids_daily_streaks ds
+
+          ON ds.user_id = kp.user_id
+
+          ORDER BY xp DESC
+
+          LIMIT 10
+          `
+        );
+
+      return res.json({
+
+        success: true,
+
+        leaderboard:
+          result.rows
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+// =====================================
+// SHOP ITEMS
+// =====================================
+
+router.get(
+  "/shop-items",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const result =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_shop_items
+          ORDER BY item_price ASC
+          `
+        );
+
+      return res.json({
+
+        success: true,
+
+        items:
+          result.rows
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+// =====================================
+// PURCHASE ITEM
+// =====================================
+
+router.post(
+  "/purchase-item",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const userId =
+        req.user.id;
+
+      const { item_id } =
+        req.body;
+
+      const item =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_shop_items
+          WHERE id = $1
+          `,
+          [item_id]
+        );
+
+      if (
+        !item.rows.length
+      ) {
+
+        return res.status(404)
+        .json({
+
+          success: false
+
+        });
+
+      }
+
+      const shopItem =
+        item.rows[0];
+
+      const rewards =
+        await pool.query(
+          `
+          SELECT coins
+          FROM kids_rewards
+          WHERE user_id = $1
+          `,
+          [userId]
+        );
+
+      const coins =
+        Number(
+          rewards.rows[0]?.coins || 0
+        );
+
+      if (
+        coins <
+        shopItem.item_price
+      ) {
+
+        return res.json({
+
+          success: false,
+
+          message:
+            "Not enough coins"
+
+        });
+
+      }
+
+      const existing =
+        await pool.query(
+          `
+          SELECT id
+          FROM kids_purchases
+          WHERE user_id = $1
+          AND item_id = $2
+          `,
+          [
+            userId,
+            item_id
+          ]
+        );
+
+      if (
+        existing.rows.length
+      ) {
+
+        return res.json({
+
+          success: false,
+
+          message:
+            "Already purchased"
+
+        });
+
+      }
+
+      await pool.query(
+        `
+        INSERT INTO kids_purchases
+        (user_id, item_id)
+        VALUES ($1, $2)
+        `,
+        [
+          userId,
+          item_id
+        ]
+      );
+
+      await pool.query(
+        `
+        UPDATE kids_rewards
+        SET coins =
+          coins - $1
+        WHERE user_id = $2
+        `,
+        [
+          shopItem.item_price,
+          userId
+        ]
+      );
+
+      return res.json({
+
+        success: true
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500)
+      .json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
 module.exports = router;

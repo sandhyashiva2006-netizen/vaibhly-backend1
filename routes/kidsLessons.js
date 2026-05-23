@@ -584,4 +584,83 @@ router.post(
   }
 );
 
+router.post(
+  "/lessons/:lessonId/progress",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const lessonId =
+        Number(req.params.lessonId);
+
+      const userId =
+        req.user.id;
+
+      const {
+        watched_seconds
+      } = req.body;
+
+      await pool.query(
+
+        `
+        INSERT INTO kids_lesson_progress
+        (
+          user_id,
+          lesson_id,
+          watched_seconds
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          $3
+        )
+
+        ON CONFLICT
+        (
+          user_id,
+          lesson_id
+        )
+
+        DO UPDATE SET
+
+          watched_seconds = $3
+        `,
+
+        [
+          userId,
+          lessonId,
+          watched_seconds
+        ]
+
+      );
+
+      return res.json({
+
+        success: true
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+
 module.exports = router;

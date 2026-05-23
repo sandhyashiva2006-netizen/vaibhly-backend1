@@ -159,4 +159,172 @@ router.delete("/:id", verifyToken, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/kids/profiles/parent-analytics/:childId
+ */
+
+router.get(
+
+  "/parent-analytics/:childId",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const childId =
+        Number(
+          req.params.childId
+        );
+
+      // XP + COINS
+      const rewards =
+        await pool.query(
+          `
+          SELECT
+            xp,
+            coins
+          FROM kids_rewards
+          WHERE user_id = $1
+          `,
+          [req.user.id]
+        );
+
+      // STREAK
+      const streak =
+        await pool.query(
+          `
+          SELECT
+            streak_count
+          FROM kids_daily_streaks
+          WHERE user_id = $1
+          `,
+          [req.user.id]
+        );
+
+      // WATCH TIME
+      const watchTime =
+        await pool.query(
+          `
+          SELECT
+
+            SUM(
+              watched_seconds
+            ) AS total
+
+          FROM kids_lesson_progress
+
+          WHERE child_id = $1
+          `,
+          [childId]
+        );
+
+      // QUIZ ACCURACY
+      const quizStats =
+        await pool.query(
+          `
+          SELECT
+
+            COUNT(*) AS total,
+
+            SUM(
+
+              CASE
+
+                WHEN is_correct = true
+
+                THEN 1
+
+                ELSE 0
+
+              END
+
+            ) AS correct
+
+          FROM kids_quiz_attempts
+
+          WHERE child_id = $1
+          `,
+          [childId]
+        );
+
+      const totalQuiz =
+        Number(
+          quizStats.rows[0]
+          ?.total || 0
+        );
+
+      const correctQuiz =
+        Number(
+          quizStats.rows[0]
+          ?.correct || 0
+        );
+
+      let quizAccuracy = 0;
+
+      if (totalQuiz > 0) {
+
+        quizAccuracy =
+          Math.round(
+
+            (
+              correctQuiz /
+              totalQuiz
+            ) * 100
+
+          );
+
+      }
+
+      return res.json({
+
+        success: true,
+
+        analytics: {
+
+          totalXP:
+            rewards.rows[0]
+            ?.xp || 0,
+
+          totalCoins:
+            rewards.rows[0]
+            ?.coins || 0,
+
+          streak:
+            streak.rows[0]
+            ?.streak_count || 0,
+
+          watchTime:
+            watchTime.rows[0]
+            ?.total || 0,
+
+          quizAccuracy
+
+        }
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(
+        "Parent analytics error:",
+        err
+      );
+
+      return res.status(500)
+      .json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+
 module.exports = router;

@@ -38,6 +38,206 @@ const supabase =
 
   );
 
+async function checkAndUnlockBadges(
+  userId
+) {
+
+  try {
+
+    // EXISTING BADGES
+    const existingBadges =
+      await pool.query(
+        `
+        SELECT badge_name
+        FROM kids_badges
+        WHERE child_id = $1
+        `,
+        [userId]
+      );
+
+    const earned =
+      existingBadges.rows.map(
+        b => b.badge_name
+      );
+
+    // LESSON COUNT
+    const lessonsResult =
+      await pool.query(
+        `
+        SELECT COUNT(*)::int AS total
+        FROM kids_lesson_progress
+        WHERE
+        child_id = $1
+        AND completed = true
+        `,
+        [userId]
+      );
+
+    const lessonsCompleted =
+      lessonsResult.rows[0].total;
+
+    // QUIZ COUNT
+    const quizResult =
+      await pool.query(
+        `
+        SELECT COUNT(*)::int AS total
+        FROM kids_quiz_attempts
+        WHERE
+        user_id = $1
+        AND is_correct = true
+        `,
+        [userId]
+      );
+
+    const quizzesCompleted =
+      quizResult.rows[0].total;
+
+    // XP
+    const xpResult =
+      await pool.query(
+        `
+        SELECT xp
+        FROM kids_rewards
+        WHERE user_id = $1
+        `,
+        [userId]
+      );
+
+    const totalXP =
+      Number(
+        xpResult.rows[0]?.xp || 0
+      );
+
+    // STREAK
+    const streakResult =
+      await pool.query(
+        `
+        SELECT streak_count
+        FROM kids_daily_streaks
+        WHERE user_id = $1
+        `,
+        [userId]
+      );
+
+    const streak =
+      Number(
+        streakResult.rows[0]
+        ?.streak_count || 0
+      );
+
+    // RULES
+    const rules =
+      await pool.query(
+        `
+        SELECT *
+        FROM kids_badge_rules
+        `
+      );
+
+    for (const rule of rules.rows) {
+
+      if (
+        earned.includes(
+          rule.badge_name
+        )
+      ) {
+
+        continue;
+
+      }
+
+      let unlocked = false;
+
+      if (
+        rule.trigger_type ===
+        "lessons_completed"
+      ) {
+
+        unlocked =
+          lessonsCompleted >=
+          rule.trigger_value;
+
+      }
+
+      if (
+        rule.trigger_type ===
+        "quizzes_completed"
+      ) {
+
+        unlocked =
+          quizzesCompleted >=
+          rule.trigger_value;
+
+      }
+
+      if (
+        rule.trigger_type ===
+        "xp_earned"
+      ) {
+
+        unlocked =
+          totalXP >=
+          rule.trigger_value;
+
+      }
+
+      if (
+        rule.trigger_type ===
+        "streak_days"
+      ) {
+
+        unlocked =
+          streak >=
+          rule.trigger_value;
+
+      }
+
+      if (unlocked) {
+
+        await pool.query(
+          `
+          INSERT INTO kids_badges
+          (
+            child_id,
+            badge_name,
+            badge_icon,
+            badge_type,
+            earned_at
+          )
+
+          VALUES
+          (
+            $1,
+            $2,
+            $3,
+            'achievement',
+            NOW()
+          )
+          `,
+          [
+            userId,
+            rule.badge_name,
+            rule.badge_icon
+          ]
+        );
+
+      }
+
+    }
+
+  }
+
+  catch (err) {
+
+    console.error(
+      "Badge unlock error:",
+      err
+    );
+
+  }
+
+}
+
 console.log(
   "SUPABASE URL:",
   process.env.SUPABASE_URL
@@ -582,6 +782,10 @@ router.post(
         ]
 
       );
+
+await checkAndUnlockBadges(
+  userId
+);
 
       return res.json({
 
@@ -1247,6 +1451,10 @@ router.post(
       if (
         alreadyAttempted.rows.length
       ) {
+
+await checkAndUnlockBadges(
+  userId
+);
 
         return res.json({
 

@@ -225,7 +225,7 @@ ON
 p.lesson_id = l.id
 
 AND
-p.user_id = $2
+p.child_id = $2
 
 WHERE l.course_id = $1
 
@@ -233,7 +233,7 @@ ORDER BY l.lesson_order ASC
           `,
           [
   courseId,
-  req.user?.id || 0
+  Number(req.query.child_id || 0)
 ]
         );
 

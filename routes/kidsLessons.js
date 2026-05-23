@@ -20,38 +20,38 @@ const {
   "../middleware/auth.middleware"
 );
 
-const {
-  CloudinaryStorage
-} = require(
-  "multer-storage-cloudinary"
-);
+
 
 /* =====================================
    TEMP FILE STORAGE
 ===================================== */
 
 const storage =
-  new CloudinaryStorage({
+  multer.diskStorage({
 
-    cloudinary,
+    destination:
+      (req, file, cb) => {
 
-    params: async (
-      req,
-      file
-    ) => ({
+        cb(
+          null,
+          "uploads/"
+        );
 
-      folder:
-        "vaibhly-kids-pdfs",
+      },
 
-      resource_type:
-        "raw",
+    filename:
+      (req, file, cb) => {
 
-      public_id:
-        Date.now() +
-        "-" +
-        file.originalname
+        cb(
+          null,
 
-    })
+          Date.now() +
+          path.extname(
+            file.originalname
+          )
+        );
+
+      }
 
   });
 

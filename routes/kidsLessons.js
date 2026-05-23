@@ -19,6 +19,23 @@ const {
   "../middleware/auth.middleware"
 );
 
+const fs = require("fs");
+
+const uploadDir =
+  path.join(
+    __dirname,
+    "..",
+    "uploads"
+  );
+
+if (
+  !fs.existsSync(uploadDir)
+) {
+
+  fs.mkdirSync(uploadDir);
+
+}
+
 /* =====================================
    TEMP FILE STORAGE
 ===================================== */
@@ -31,12 +48,7 @@ const storage =
 
     cb(
       null,
-
-      path.join(
-        __dirname,
-        "..",
-        "uploads"
-      )
+      uploadDir
     );
 
   },

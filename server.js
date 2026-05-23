@@ -320,32 +320,7 @@ app.get("/kids", (req, res) => {
 });
 
 
-const fs = require("fs");
 
-app.get(
-  "/debug-upload/:name",
-
-  (req, res) => {
-
-    const filePath =
-      path.join(
-        __dirname,
-        "uploads",
-        req.params.name
-      );
-
-    return res.json({
-
-      exists:
-        fs.existsSync(filePath),
-
-      path:
-        filePath
-
-    });
-
-  }
-);
 
 
 

@@ -408,61 +408,65 @@ verifyToken,
       const result =
         await pool.query(
           `
-          SELECT
+          const result =
+  await pool.query(
+    `
+    SELECT
 
-  l.id,
-  l.course_id,
-  l.title,
-  l.description,
-  l.video_file,
-  l.pdf_file,
-  l.notes,
-  l.lesson_order,
-  l.created_at,
+      l.id,
+      l.course_id,
+      l.title,
+      l.description,
+      l.video_file,
+      l.pdf_file,
+      l.notes,
+      l.lesson_order,
+      l.created_at,
 
-  COALESCE(
-    p.completed,
-    false
-  ) AS completed,
+      COALESCE(
+        p.completed,
+        false
+      ) AS completed,
 
-  COALESCE(
-    p.watched_seconds,
-    0
-  ) AS watched_seconds,
+      COALESCE(
+        p.watched_seconds,
+        0
+      ) AS watched_seconds,
 
-COALESCE(
-  e.completed,
-  false
-) AS course_completed,
+      COALESCE(
+        e.completed,
+        false
+      ) AS course_completed
 
-LEFT JOIN kids_enrollments e
+    FROM kids_lessons l
 
-ON
-e.course_id = l.course_id
+    LEFT JOIN
+    kids_lesson_progress p
 
-AND
-e.child_id = $2
+    ON
+    p.lesson_id = l.id
 
-FROM kids_lessons l
+    AND
+    p.child_id = $2
 
-LEFT JOIN
-kids_lesson_progress p
+    LEFT JOIN
+    kids_enrollments e
 
-ON
-p.lesson_id = l.id
+    ON
+    e.course_id = l.course_id
 
-AND
-p.child_id = $2
+    AND
+    e.child_id = $2
 
-WHERE l.course_id = $1
+    WHERE l.course_id = $1
 
-ORDER BY l.lesson_order ASC
-          `,
-          [
-  courseId,
-  Number(req.query.child_id || 0)
-]
-        );
+    ORDER BY l.lesson_order ASC
+    `,
+    [
+      courseId,
+      Number(req.query.child_id || 0)
+    ]
+  );
 
 console.log(
   "LESSONS:",

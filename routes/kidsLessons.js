@@ -57,7 +57,54 @@ const storage =
 
 const upload =
   multer({
-    storage
+
+    storage,
+
+    limits: {
+
+      fileSize:
+        200 * 1024 * 1024
+
+    },
+
+    fileFilter:
+      (
+        req,
+        file,
+        cb
+      ) => {
+
+        if (
+
+          file.fieldname ===
+          "pdf_file"
+
+        ) {
+
+          if (
+
+            file.mimetype !==
+            "application/pdf"
+
+          ) {
+
+            return cb(
+              new Error(
+                "Only PDF allowed"
+              )
+            );
+
+          }
+
+        }
+
+        cb(
+          null,
+          true
+        );
+
+      }
+
   });
 
 

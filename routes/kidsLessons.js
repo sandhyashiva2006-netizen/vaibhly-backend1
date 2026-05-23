@@ -2472,6 +2472,7 @@ router.post(
 // =====================================
 
 router.get(
+
   "/parent-analytics/:childId",
 
   verifyToken,
@@ -2485,130 +2486,196 @@ router.get(
           req.params.childId
         );
 
-      // TOTAL XP + COINS
-      const rewards =
-        await pool.query(
-          `
-          SELECT
-            xp,
-            coins
-          FROM kids_rewards
-          WHERE user_id = $1
-          `,
-          [req.user.id]
+      let totalXP = 0;
+      let totalCoins = 0;
+      let streak = 0;
+      let watchTime = 0;
+      let quizAccuracy = 0;
+
+      // XP + COINS
+      try {
+
+        const rewards =
+          await pool.query(
+            `
+            SELECT
+              xp,
+              coins
+            FROM kids_rewards
+            WHERE user_id = $1
+            `,
+            [req.user.id]
+          );
+
+        totalXP =
+          Number(
+            rewards.rows[0]
+            ?.xp || 0
+          );
+
+        totalCoins =
+          Number(
+            rewards.rows[0]
+            ?.coins || 0
+          );
+
+      }
+
+      catch (err) {
+
+        console.log(
+          "Rewards table missing"
         );
 
-      // LESSONS COMPLETED
-      const lessons =
-        await pool.query(
-          `
-          SELECT COUNT(*) AS total
-          FROM kids_lesson_progress
-          WHERE child_id = $1
-          AND completed = true
-          `,
-          [childId]
-        );
-
-      // QUIZ ACCURACY
-      const quizzes =
-        await pool.query(
-          `
-          SELECT
-
-            COUNT(*) AS total,
-
-            SUM(
-              CASE
-                WHEN is_correct = true
-                THEN 1
-                ELSE 0
-              END
-            ) AS correct
-
-          FROM kids_quiz_attempts
-
-          WHERE child_id = $1
-          `,
-          [childId]
-        );
-
-      // WATCH TIME
-      const watchTime =
-        await pool.query(
-          `
-          SELECT
-            SUM(watched_seconds)
-            AS total_watch_time
-
-          FROM kids_lesson_progress
-
-          WHERE child_id = $1
-          `,
-          [childId]
-        );
+      }
 
       // STREAK
-      const streak =
-        await pool.query(
-          `
-          SELECT streak_count
-          FROM kids_daily_streaks
-          WHERE user_id = $1
-          `,
-          [req.user.id]
-        );
+      try {
 
-      const totalQuiz =
-        Number(
-          quizzes.rows[0]
-          ?.total || 0
-        );
-
-      const correctQuiz =
-        Number(
-          quizzes.rows[0]
-          ?.correct || 0
-        );
-
-      let accuracy = 0;
-
-      if (totalQuiz > 0) {
-
-        accuracy =
-          Math.round(
-            (
-              correctQuiz /
-              totalQuiz
-            ) * 100
+        const streakResult =
+          await pool.query(
+            `
+            SELECT
+              streak_count
+            FROM kids_daily_streaks
+            WHERE user_id = $1
+            `,
+            [req.user.id]
           );
+
+        streak =
+          Number(
+            streakResult.rows[0]
+            ?.streak_count || 0
+          );
+
+      }
+
+      catch (err) {
+
+        console.log(
+          "Streak table missing"
+        );
+
+      }
+
+      // WATCH TIME
+      try {
+
+        const watchResult =
+          await pool.query(
+            `
+            SELECT
+
+              SUM(
+                watched_seconds
+              ) AS total
+
+            FROM kids_lesson_progress
+
+            WHERE child_id = $1
+            `,
+            [childId]
+          );
+
+        watchTime =
+          Number(
+            watchResult.rows[0]
+            ?.total || 0
+          );
+
+      }
+
+      catch (err) {
+
+        console.log(
+          "Watch time failed"
+        );
+
+      }
+
+      // QUIZ ACCURACY
+      try {
+
+        const quizResult =
+          await pool.query(
+            `
+            SELECT
+
+              COUNT(*) AS total,
+
+              SUM(
+
+                CASE
+
+                  WHEN is_correct = true
+
+                  THEN 1
+
+                  ELSE 0
+
+                END
+
+              ) AS correct
+
+            FROM kids_quiz_attempts
+
+            WHERE child_id = $1
+            `,
+            [childId]
+          );
+
+        const totalQuiz =
+          Number(
+            quizResult.rows[0]
+            ?.total || 0
+          );
+
+        const correctQuiz =
+          Number(
+            quizResult.rows[0]
+            ?.correct || 0
+          );
+
+        if (totalQuiz > 0) {
+
+          quizAccuracy =
+            Math.round(
+
+              (
+                correctQuiz /
+                totalQuiz
+              ) * 100
+
+            );
+
+        }
+
+      }
+
+      catch (err) {
+
+        console.log(
+          "Quiz stats failed"
+        );
 
       }
 
       return res.json({
 
-        success:true,
+        success: true,
 
         analytics: {
 
-          xp:
-            rewards.rows[0]?.xp || 0,
+          totalXP,
 
-          coins:
-            rewards.rows[0]?.coins || 0,
+          totalCoins,
 
-          completedLessons:
-            lessons.rows[0]?.total || 0,
+          streak,
 
-          accuracy,
+          watchTime,
 
-          streak:
-            streak.rows[0]
-            ?.streak_count || 0,
-
-          watchTime:
-            watchTime.rows[0]
-            ?.total_watch_time || 0
+          quizAccuracy
 
         }
 
@@ -2618,12 +2685,18 @@ router.get(
 
     catch (err) {
 
-      console.error(err);
+      console.error(
+        "Parent analytics error:",
+        err
+      );
 
       return res.status(500)
       .json({
 
-        success:false
+        success: false,
+
+        error:
+          err.message
 
       });
 
@@ -2631,7 +2704,6 @@ router.get(
 
   }
 );
-
 
 
 module.exports = router;

@@ -467,6 +467,9 @@ router.put(
   }
 );
 
+const https =
+  require("https");
+
 router.get(
   "/pdf-download",
 
@@ -477,33 +480,41 @@ router.get(
       const fileUrl =
         req.query.url;
 
-      const response =
-        await fetch(fileUrl);
+      https.get(
+        fileUrl,
 
-      const buffer =
-        await response.arrayBuffer();
+        (response) => {
 
-      res.setHeader(
-        "Content-Type",
-        "application/pdf"
+          res.setHeader(
+            "Content-Type",
+            "application/pdf"
+          );
+
+          res.setHeader(
+            "Content-Disposition",
+            "inline; filename=lesson.pdf"
+          );
+
+          response.pipe(res);
+
+        }
       );
 
-      res.setHeader(
-        "Content-Disposition",
-        "attachment; filename=lesson.pdf"
-      );
+    }
 
-      res.send(
-        Buffer.from(buffer)
-      );
+    catch (err) {
 
-    } catch (err) {
+      console.error(err);
 
-      res
+      return res
         .status(500)
         .json({
-          error:
-            "PDF download failed"
+
+          success: false,
+
+          message:
+            "PDF stream failed"
+
         });
 
     }

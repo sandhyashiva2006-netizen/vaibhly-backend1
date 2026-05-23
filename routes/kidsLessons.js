@@ -20,7 +20,22 @@ const {
   "../middleware/auth.middleware"
 );
 
+const fs = require("fs");
 
+const {
+  createClient
+} = require(
+  "@supabase/supabase-js"
+);
+
+const supabase =
+  createClient(
+
+    process.env.SUPABASE_URL,
+
+    process.env.SUPABASE_KEY
+
+  );
 
 /* =====================================
    TEMP FILE STORAGE
@@ -107,33 +122,56 @@ const upload =
 
   });
 
-async function uploadPdfToCloudinary(
-  filePath
+async function uploadPdfToSupabase(
+  file
 ) {
 
-  return await cloudinary
-    .uploader
+  const fileBuffer =
+    fs.readFileSync(
+      file.path
+    );
+
+  const fileName =
+    Date.now() +
+    "-" +
+    file.originalname;
+
+  const {
+    error
+  } = await supabase
+    .storage
+    .from("kids-pdfs")
     .upload(
 
-      filePath,
+      fileName,
+
+      fileBuffer,
 
       {
 
-        folder:
-          "vaibhly-kids-pdfs",
-
-        resource_type:
-          "image",
-
-format:
-          "pdf",
-
-        access_mode:
-          "public"
+        contentType:
+          "application/pdf"
 
       }
 
     );
+
+  if (error) {
+
+    throw error;
+
+  }
+
+  const {
+    data
+  } = supabase
+    .storage
+    .from("kids-pdfs")
+    .getPublicUrl(
+      fileName
+    );
+
+  return data.publicUrl;
 
 }
 
@@ -268,13 +306,10 @@ let pdfUrl = null;
 
 if (pdfFile) {
 
-  const uploadedPdf =
-    await uploadPdfToCloudinary(
-      pdfFile.path
-    );
-
   pdfUrl =
-    uploadedPdf.secure_url;
+    await uploadPdfToSupabase(
+      pdfFile
+    );
 
 }
 

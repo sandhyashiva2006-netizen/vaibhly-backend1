@@ -57,7 +57,7 @@ async function uploadPdfToCloudinary(
           "vaibhly-kids-pdfs",
 
         resource_type:
-  "image"
+          "raw"
 
       }
 
@@ -235,7 +235,11 @@ if (pdfFile) {
     );
 
   pdfUrl =
-    uploadedPdf.secure_url;
+  uploadedPdf.secure_url
+    .replace(
+      "/upload/",
+      "/upload/fl_attachment/"
+    );
 
 }
 

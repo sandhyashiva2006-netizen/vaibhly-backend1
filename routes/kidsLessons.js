@@ -473,59 +473,6 @@ router.put(
   }
 );
 
-const https =
-  require("https");
 
-router.get(
-  "/pdf-download",
-
-  async (req, res) => {
-
-    try {
-
-      const fileUrl =
-        req.query.url;
-
-      https.get(
-        fileUrl,
-
-        (response) => {
-
-          res.setHeader(
-            "Content-Type",
-            "application/pdf"
-          );
-
-          res.setHeader(
-            "Content-Disposition",
-            "inline; filename=lesson.pdf"
-          );
-
-          response.pipe(res);
-
-        }
-      );
-
-    }
-
-    catch (err) {
-
-      console.error(err);
-
-      return res
-        .status(500)
-        .json({
-
-          success: false,
-
-          message:
-            "PDF stream failed"
-
-        });
-
-    }
-
-  }
-);
 
 module.exports = router;

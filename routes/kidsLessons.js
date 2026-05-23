@@ -3,10 +3,8 @@ const router = express.Router();
 
 const {
   verifyToken,
-  isAdmin
-} = require(
-  "../middleware/auth"
-);
+isAdmin
+} = require("../middleware/auth.middleware");
 
 const {
   createClient

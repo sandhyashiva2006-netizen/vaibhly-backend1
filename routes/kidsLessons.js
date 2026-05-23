@@ -123,7 +123,10 @@ async function uploadPdfToCloudinary(
           "vaibhly-kids-pdfs",
 
         resource_type:
-          "raw"
+          "raw",
+
+        access_mode:
+          "public"
 
       }
 

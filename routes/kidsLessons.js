@@ -1,27 +1,6 @@
 const express = require("express");
 const router = express.Router();
 
-const multer =
-  require("multer");
-
-const path =
-  require("path");
-
-const cloudinary =
-  require("../config/cloudinary");
-
-const pool =
-  require("../config/db");
-
-const {
-  verifyToken,
-  isAdmin
-} = require(
-  "../middleware/auth.middleware"
-);
-
-const fs = require("fs");
-
 const {
   createClient
 } = require(
@@ -37,9 +16,14 @@ const supabase =
 
   );
 
-/* =====================================
-   TEMP FILE STORAGE
-===================================== */
+const multer =
+  require("multer");
+
+const path =
+  require("path");
+
+const fs =
+  require("fs");
 
 const storage =
   multer.diskStorage({
@@ -47,10 +31,21 @@ const storage =
     destination:
       (req, file, cb) => {
 
-        cb(
-          null,
-          "uploads/"
-        );
+        const dir =
+          "uploads";
+
+        if (
+          !fs.existsSync(dir)
+        ) {
+
+          fs.mkdirSync(
+            dir,
+            { recursive: true }
+          );
+
+        }
+
+        cb(null, dir);
 
       },
 
@@ -58,12 +53,14 @@ const storage =
       (req, file, cb) => {
 
         cb(
+
           null,
 
           Date.now() +
           path.extname(
             file.originalname
           )
+
         );
 
       }
@@ -72,54 +69,7 @@ const storage =
 
 const upload =
   multer({
-
-    storage,
-
-    limits: {
-
-      fileSize:
-        200 * 1024 * 1024
-
-    },
-
-    fileFilter:
-      (
-        req,
-        file,
-        cb
-      ) => {
-
-        if (
-
-          file.fieldname ===
-          "pdf_file"
-
-        ) {
-
-          if (
-
-            file.mimetype !==
-            "application/pdf"
-
-          ) {
-
-            return cb(
-              new Error(
-                "Only PDF allowed"
-              )
-            );
-
-          }
-
-        }
-
-        cb(
-          null,
-          true
-        );
-
-      }
-
+    storage
   });
 
 async function uploadPdfToSupabase(
@@ -132,11 +82,10 @@ async function uploadPdfToSupabase(
     );
 
   const fileName =
-    Date.now() +
-    "-" +
-    file.originalname;
+    file.filename;
 
   const {
+    data,
     error
   } = await supabase
     .storage
@@ -149,12 +98,24 @@ async function uploadPdfToSupabase(
 
       {
 
+        upsert: true,
+
         contentType:
           "application/pdf"
 
       }
 
     );
+
+  console.log(
+    "SUPABASE RESULT:",
+    data
+  );
+
+  console.log(
+    "SUPABASE ERROR:",
+    error
+  );
 
   if (error) {
 
@@ -163,7 +124,7 @@ async function uploadPdfToSupabase(
   }
 
   const {
-    data
+    data: publicData
   } = supabase
     .storage
     .from("kids-pdfs")
@@ -171,7 +132,9 @@ async function uploadPdfToSupabase(
       fileName
     );
 
-  return data.publicUrl;
+fs.unlinkSync(file.path);
+
+  return publicData.publicUrl;
 
 }
 
@@ -317,6 +280,8 @@ if (pdfFile) {
         !course_id ||
         !title
       ) {
+
+
 
         return res.status(400).json({
           success: false,

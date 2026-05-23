@@ -1867,4 +1867,126 @@ router.post(
   }
 );
 
+// =====================================
+// GET LEVEL DATA
+// =====================================
+
+router.get(
+  "/level-data",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const userId =
+        req.user.id;
+
+      const rewards =
+        await pool.query(
+          `
+          SELECT xp
+          FROM kids_rewards
+          WHERE user_id = $1
+          `,
+          [userId]
+        );
+
+      const totalXP =
+        Number(
+          rewards.rows[0]?.xp || 0
+        );
+
+      const currentLevel =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_levels
+          WHERE required_xp <= $1
+          ORDER BY required_xp DESC
+          LIMIT 1
+          `,
+          [totalXP]
+        );
+
+      const nextLevel =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_levels
+          WHERE required_xp > $1
+          ORDER BY required_xp ASC
+          LIMIT 1
+          `,
+          [totalXP]
+        );
+
+      const level =
+        currentLevel.rows[0];
+
+      const next =
+        nextLevel.rows[0];
+
+      let progress = 100;
+
+      if (next) {
+
+        const currentXP =
+          totalXP -
+          level.required_xp;
+
+        const neededXP =
+          next.required_xp -
+          level.required_xp;
+
+        progress =
+          Math.round(
+            (
+              currentXP /
+              neededXP
+            ) * 100
+          );
+
+      }
+
+      return res.json({
+
+        success: true,
+
+        xp: totalXP,
+
+        currentLevel:
+          level.level_number,
+
+        currentLevelXP:
+          level.required_xp,
+
+        nextLevel:
+          next?.level_number || null,
+
+        nextLevelXP:
+          next?.required_xp || null,
+
+        progress
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
 module.exports = router;

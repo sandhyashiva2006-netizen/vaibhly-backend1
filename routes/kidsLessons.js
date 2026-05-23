@@ -7,7 +7,8 @@ const multer =
 const path =
   require("path");
 
-
+const cloudinary =
+  require("../config/cloudinary");
 
 const pool =
   require("../config/db");
@@ -40,7 +41,29 @@ if (
 
 }
 
+async function uploadPdfToCloudinary(
+  filePath
+) {
 
+  return await cloudinary
+    .uploader
+    .upload(
+
+      filePath,
+
+      {
+
+        folder:
+          "vaibhly-kids-pdfs",
+
+        resource_type:
+          "raw"
+
+      }
+
+    );
+
+}
 
 /* =====================================
    TEMP FILE STORAGE
@@ -202,10 +225,19 @@ console.log(
 const pdfFile =
   req.files?.pdfFile?.[0];
 
-const pdfUrl =
-  pdfFile
-    ? `/uploads/pdfs/${pdfFile.filename}`
-    : null;
+let pdfUrl = null;
+
+if (pdfFile) {
+
+  const uploadedPdf =
+    await uploadPdfToCloudinary(
+      pdfFile.path
+    );
+
+  pdfUrl =
+    uploadedPdf.secure_url;
+
+}
 
       if (
         !course_id ||

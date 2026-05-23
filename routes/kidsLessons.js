@@ -21,13 +21,24 @@ const {
 
 const fs = require("fs");
 
-const uploadDir =
+const PDF_DIR =
   path.join(
     __dirname,
     "..",
     "uploads",
     "pdfs"
   );
+
+if (
+  !fs.existsSync(PDF_DIR)
+) {
+
+  fs.mkdirSync(
+    PDF_DIR,
+    { recursive: true }
+  );
+
+}
 
 if (
   !fs.existsSync(uploadDir)
@@ -49,7 +60,7 @@ const storage =
 
     cb(
       null,
-      uploadDir
+      PDF_DIR
     );
 
   },

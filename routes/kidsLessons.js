@@ -382,4 +382,48 @@ router.put(
   }
 );
 
+router.get(
+  "/pdf-download",
+
+  async (req, res) => {
+
+    try {
+
+      const fileUrl =
+        req.query.url;
+
+      const response =
+        await fetch(fileUrl);
+
+      const buffer =
+        await response.arrayBuffer();
+
+      res.setHeader(
+        "Content-Type",
+        "application/pdf"
+      );
+
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=lesson.pdf"
+      );
+
+      res.send(
+        Buffer.from(buffer)
+      );
+
+    } catch (err) {
+
+      res
+        .status(500)
+        .json({
+          error:
+            "PDF download failed"
+        });
+
+    }
+
+  }
+);
+
 module.exports = router;

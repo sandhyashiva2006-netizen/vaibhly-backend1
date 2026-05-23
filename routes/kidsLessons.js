@@ -2272,4 +2272,199 @@ router.post(
   }
 );
 
+// =====================================
+// GET ACTIVE CUSTOMIZATION
+// =====================================
+
+router.get(
+  "/active-items",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const userId =
+        req.user.id;
+
+      const result =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_active_items
+          WHERE user_id = $1
+          `,
+          [userId]
+        );
+
+      return res.json({
+
+        success: true,
+
+        active:
+          result.rows[0] || null
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500)
+      .json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+// =====================================
+// APPLY SHOP ITEM
+// =====================================
+
+router.post(
+  "/apply-item",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const userId =
+        req.user.id;
+
+      const { item_id } =
+        req.body;
+
+      const item =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_shop_items
+          WHERE id = $1
+          `,
+          [item_id]
+        );
+
+      if (
+        !item.rows.length
+      ) {
+
+        return res.status(404)
+        .json({
+
+          success:false
+
+        });
+
+      }
+
+      const shopItem =
+        item.rows[0];
+
+      const purchased =
+        await pool.query(
+          `
+          SELECT id
+          FROM kids_purchases
+          WHERE user_id = $1
+          AND item_id = $2
+          `,
+          [
+            userId,
+            item_id
+          ]
+        );
+
+      if (
+        !purchased.rows.length
+      ) {
+
+        return res.json({
+
+          success:false,
+
+          message:
+            "Purchase item first"
+
+        });
+
+      }
+
+      let field =
+        "active_theme";
+
+      if (
+        shopItem.item_type ===
+        "avatar_frame"
+      ) {
+
+        field =
+          "active_frame";
+
+      }
+
+      if (
+        shopItem.item_type ===
+        "pet"
+      ) {
+
+        field =
+          "active_pet";
+
+      }
+
+      await pool.query(
+        `
+        INSERT INTO kids_active_items
+        (user_id, ${field})
+
+        VALUES ($1, $2)
+
+        ON CONFLICT (user_id)
+
+        DO UPDATE SET
+
+        ${field} = $2,
+
+        updated_at = NOW()
+        `,
+        [
+          userId,
+          shopItem.item_value
+        ]
+      );
+
+      return res.json({
+
+        success:true
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500)
+      .json({
+
+        success:false
+
+      });
+
+    }
+
+  }
+);
+
 module.exports = router;

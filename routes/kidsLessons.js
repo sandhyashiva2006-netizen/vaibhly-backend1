@@ -235,11 +235,7 @@ if (pdfFile) {
     );
 
   pdfUrl =
-  uploadedPdf.secure_url
-    .replace(
-      "/upload/",
-      "/upload/fl_attachment/"
-    );
+  uploadedPdf.secure_url;
 
 }
 

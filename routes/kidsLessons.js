@@ -229,10 +229,19 @@ console.log(
 const pdfFile =
   req.files?.pdfFile?.[0];
 
-const pdfUrl =
-  pdfFile
-    ? pdfFile.path
-    : null;
+let pdfUrl = null;
+
+if (pdfFile) {
+
+  const uploadedPdf =
+    await uploadPdfToCloudinary(
+      pdfFile.path
+    );
+
+  pdfUrl =
+    uploadedPdf.secure_url;
+
+}
 
       if (
         !course_id ||

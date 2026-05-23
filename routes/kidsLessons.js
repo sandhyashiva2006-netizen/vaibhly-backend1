@@ -1,10 +1,27 @@
-const express = require("express");
-const router = express.Router();
+const express =
+  require("express");
+
+const router =
+  express.Router();
+
+const multer =
+  require("multer");
+
+const path =
+  require("path");
+
+const fs =
+  require("fs");
+
+const pool =
+  require("../config/db");
 
 const {
   verifyToken,
-isAdmin
-} = require("../middleware/auth.middleware");
+  isAdmin
+} = require(
+  "../middleware/auth.middleware"
+);
 
 const {
   createClient
@@ -21,14 +38,7 @@ const supabase =
 
   );
 
-const multer =
-  require("multer");
 
-const path =
-  require("path");
-
-const fs =
-  require("fs");
 
 const storage =
   multer.diskStorage({
@@ -124,7 +134,16 @@ async function uploadPdfToSupabase(
 
   if (error) {
 
-    throw error;
+    console.error(
+  "FULL SUPABASE ERROR:",
+  JSON.stringify(
+    error,
+    null,
+    2
+  )
+);
+
+throw error;
 
   }
 

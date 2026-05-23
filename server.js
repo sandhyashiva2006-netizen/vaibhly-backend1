@@ -14,32 +14,6 @@ const http = require("http");
 const { Server } = require("socket.io");
 require("./cron/subscription.cron");
 
-const fs = require("fs");
-
-app.get(
-  "/debug-upload/:name",
-
-  (req, res) => {
-
-    const filePath =
-      path.join(
-        __dirname,
-        "uploads",
-        req.params.name
-      );
-
-    return res.json({
-
-      exists:
-        fs.existsSync(filePath),
-
-      path:
-        filePath
-
-    });
-
-  }
-);
 
 app.use((req,res,next)=>{
 
@@ -483,3 +457,30 @@ app.use((req, res, next) => {
   });
 
 });
+
+const fs = require("fs");
+
+app.get(
+  "/debug-upload/:name",
+
+  (req, res) => {
+
+    const filePath =
+      path.join(
+        __dirname,
+        "uploads",
+        req.params.name
+      );
+
+    return res.json({
+
+      exists:
+        fs.existsSync(filePath),
+
+      path:
+        filePath
+
+    });
+
+  }
+);

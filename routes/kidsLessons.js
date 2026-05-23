@@ -428,7 +428,20 @@ verifyToken,
   COALESCE(
     p.watched_seconds,
     0
-  ) AS watched_seconds
+  ) AS watched_seconds,
+
+COALESCE(
+  e.completed,
+  false
+) AS course_completed,
+
+LEFT JOIN kids_enrollments e
+
+ON
+e.course_id = l.course_id
+
+AND
+e.child_id = $2
 
 FROM kids_lessons l
 

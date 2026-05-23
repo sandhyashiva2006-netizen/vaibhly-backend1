@@ -112,7 +112,7 @@ async function uploadPdfToSupabase(
     error
   } = await supabase
     .storage
-    .from("kids-pdfs")
+    .from("vaibhlykidspdfs")
     .upload(
 
       fileName,
@@ -161,7 +161,7 @@ if (error) {
     data: publicData
   } = supabase
     .storage
-    .from("kids-pdfs")
+    .from("vaibhlykidspdfs")
     .getPublicUrl(
       fileName
     );

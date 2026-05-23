@@ -32,13 +32,21 @@ const {
 const supabase =
   createClient(
 
-    "https://uhexbmeawasekskppoyb.supabase.co/rest/v1/",
+    process.env.SUPABASE_URL,
 
-    "sb_secret_PJ8WZAR5Ois8AoCuLcda7g_m7Hzp7Yq"
+    process.env.SUPABASE_KEY
 
   );
 
+console.log(
+  "SUPABASE URL:",
+  process.env.SUPABASE_URL
+);
 
+console.log(
+  "SUPABASE KEY:",
+  process.env.SUPABASE_KEY?.slice(0, 20)
+);
 
 const storage =
   multer.diskStorage({

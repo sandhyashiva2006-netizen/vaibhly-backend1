@@ -2716,6 +2716,91 @@ router.get(
   }
 );
 
+// =====================================
+// CONTINUE WATCHING
+// =====================================
+
+router.get(
+
+  "/continue-watching/:childId",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const childId =
+        Number(
+          req.params.childId
+        );
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+
+            lp.lesson_id,
+
+            lp.watched_seconds,
+
+            l.title
+              AS lesson_title,
+
+            l.video_file,
+
+            c.id
+              AS course_id,
+
+            c.title
+              AS course_title
+
+          FROM kids_lesson_progress lp
+
+          JOIN kids_lessons l
+
+          ON l.id = lp.lesson_id
+
+          JOIN kids_courses c
+
+          ON c.id = l.course_id
+
+          WHERE lp.child_id = $1
+
+          ORDER BY lp.updated_at DESC
+
+          LIMIT 1
+          `,
+          [childId]
+        );
+
+      return res.json({
+
+        success: true,
+
+        item:
+          result.rows[0] || null
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500)
+      .json({
+
+        success:false
+
+      });
+
+    }
+
+  }
+);
+
 
 
 module.exports = router;

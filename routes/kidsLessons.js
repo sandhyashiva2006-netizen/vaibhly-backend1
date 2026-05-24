@@ -3034,10 +3034,37 @@ router.get(
               0
             ) AS progress
 
-          FROM kids_courses c
+          SELECT
 
-          LEFT JOIN
-          kids_course_progress cp
+  c.id,
+  c.title,
+  c.thumbnail,
+  c.description,
+
+  COALESCE(
+    e.completed,
+    false
+  ) AS completed
+
+FROM kids_courses c
+
+LEFT JOIN
+kids_enrollments e
+
+ON e.course_id = c.id
+
+AND e.child_id = $1
+
+ORDER BY
+
+  COALESCE(
+    e.completed,
+    false
+  ) ASC,
+
+  c.id DESC
+
+LIMIT 6
 
           ON cp.course_id = c.id
 

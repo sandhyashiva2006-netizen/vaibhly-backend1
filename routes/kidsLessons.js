@@ -1682,6 +1682,196 @@ unlockedBadges,
 );
 
 // =====================================
+// UPDATE LEARNING PROFILE
+// =====================================
+
+const profile =
+  await pool.query(
+    `
+    SELECT *
+    FROM kids_learning_profile
+    WHERE child_id = $1
+    `,
+    [childId]
+  );
+
+let totalCorrect = 0;
+let totalWrong = 0;
+
+if (profile.rows.length) {
+
+  totalCorrect =
+    Number(
+      profile.rows[0]
+      .total_correct || 0
+    );
+
+  totalWrong =
+    Number(
+      profile.rows[0]
+      .total_wrong || 0
+    );
+
+}
+
+if (isCorrect) {
+
+  totalCorrect++;
+
+}
+
+else {
+
+  totalWrong++;
+
+}
+
+const totalAnswered =
+  totalCorrect +
+  totalWrong;
+
+let accuracy = 0;
+
+if (totalAnswered > 0) {
+
+  accuracy =
+    Math.round(
+
+      (
+        totalCorrect /
+        totalAnswered
+      ) * 100
+
+    );
+
+}
+
+let skillLevel =
+  "beginner";
+
+if (accuracy >= 80) {
+
+  skillLevel =
+    "advanced";
+
+}
+
+else if (accuracy >= 50) {
+
+  skillLevel =
+    "intermediate";
+
+}
+
+await pool.query(
+  `
+  INSERT INTO
+  kids_learning_profile
+  (
+
+    child_id,
+    skill_level,
+    total_correct,
+    total_wrong,
+    accuracy_percent
+
+  )
+
+  VALUES
+  (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5
+  )
+
+  ON CONFLICT (child_id)
+
+  DO UPDATE SET
+
+    skill_level = $2,
+
+    total_correct = $3,
+
+    total_wrong = $4,
+
+    accuracy_percent = $5,
+
+    updated_at = NOW()
+  `,
+  [
+
+    childId,
+
+    skillLevel,
+
+    totalCorrect,
+
+    totalWrong,
+
+    accuracy
+
+  ]
+);
+
+// =====================================
+// LEARNING PROFILE
+// =====================================
+
+router.get(
+
+  "/learning-profile/:childId",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const childId =
+        Number(
+          req.params.childId
+        );
+
+      const result =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_learning_profile
+          WHERE child_id = $1
+          `,
+          [childId]
+        );
+
+      return res.json({
+
+        success: true,
+
+        profile:
+          result.rows[0] || null
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500)
+      .json({
+
+        success:false
+
+      });
+
+    }
+
+  }
+);
+
+// =====================================
 // ADMIN CREATE QUIZ
 // =====================================
 
@@ -2780,6 +2970,104 @@ router.get(
 
         item:
           result.rows[0] || null
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500)
+      .json({
+
+        success:false
+
+      });
+
+    }
+
+  }
+);
+
+// =====================================
+// SMART RECOMMENDATIONS
+// =====================================
+
+router.get(
+
+  "/recommended-courses/:childId",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const childId =
+        Number(
+          req.params.childId
+        );
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+
+            c.id,
+            c.title,
+            c.thumbnail,
+            c.description,
+
+            COALESCE(
+              cp.progress_percent,
+              0
+            ) AS progress
+
+          FROM kids_courses c
+
+          LEFT JOIN
+          kids_course_progress cp
+
+          ON cp.course_id = c.id
+
+          AND cp.child_id = $1
+
+          ORDER BY
+
+            CASE
+
+              WHEN
+                COALESCE(
+                  cp.progress_percent,
+                  0
+                ) >= 100
+
+              THEN 1
+
+              ELSE 0
+
+            END,
+
+            COALESCE(
+              cp.progress_percent,
+              0
+            ) ASC,
+
+            c.id DESC
+
+          LIMIT 6
+          `,
+          [childId]
+        );
+
+      return res.json({
+
+        success: true,
+
+        courses:
+          result.rows
 
       });
 

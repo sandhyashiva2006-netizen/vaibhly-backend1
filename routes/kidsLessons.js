@@ -1431,8 +1431,12 @@ router.post(
         req.user.id;
 
       const {
-        selected_option
-      } = req.body;
+
+  selected_option,
+
+  child_id
+
+} = req.body;
 
       const quizResult =
         await pool.query(
@@ -1517,32 +1521,35 @@ await checkAndUnlockBadges(
         `
         INSERT INTO kids_quiz_attempts
         (
-          user_id,
-          quiz_id,
-          selected_option,
-          is_correct,
-          earned_xp,
-          earned_coins
-        )
+  user_id,
+  child_id,
+  quiz_id,
+  selected_option,
+  is_correct,
+  earned_xp,
+  earned_coins
+)
 
         VALUES
-        (
-          $1,
-          $2,
-          $3,
-          $4,
-          $5,
-          $6
-        )
+(
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7
+)
         `,
         [
-          userId,
-          quizId,
-          selected_option,
-          isCorrect,
-          earnedXP,
-          earnedCoins
-        ]
+  userId,
+  child_id,
+  quizId,
+  selected_option,
+  isCorrect,
+  earnedXP,
+  earnedCoins
+]
       );
 
       if (isCorrect) {
@@ -1614,73 +1621,6 @@ await checkAndUnlockBadges(
 
       }
 
-      // LEVEL CHECK
-
-      const rewardsResult =
-        await pool.query(
-          `
-          SELECT xp
-          FROM kids_rewards
-          WHERE user_id = $1
-          `,
-          [userId]
-        );
-
-      const totalXP =
-        Number(
-          rewardsResult.rows[0]?.xp || 0
-        );
-
-      const levelResult =
-        await pool.query(
-          `
-          SELECT level_number
-          FROM kids_levels
-          WHERE required_xp <= $1
-          ORDER BY required_xp DESC
-          LIMIT 1
-          `,
-          [totalXP]
-        );
-
-      return res.json({
-
-        success: true,
-
-unlockedBadges,
-
-        correct:
-          isCorrect,
-
-        earnedXP,
-
-        earnedCoins,
-
-        totalXP,
-
-        level:
-          levelResult.rows[0]
-          ?.level_number || 1
-
-      });
-
-    }
-
-    catch (err) {
-
-      console.error(err);
-
-      return res.status(500).json({
-
-        success: false
-
-      });
-
-    }
-
-  }
-);
-
 // =====================================
 // UPDATE LEARNING PROFILE
 // =====================================
@@ -1692,7 +1632,7 @@ const profile =
     FROM kids_learning_profile
     WHERE child_id = $1
     `,
-    [childId]
+    [child_id]
   );
 
 let totalCorrect = 0;
@@ -1802,7 +1742,7 @@ await pool.query(
   `,
   [
 
-    childId,
+    child_id,
 
     skillLevel,
 
@@ -1814,6 +1754,75 @@ await pool.query(
 
   ]
 );
+
+      // LEVEL CHECK
+
+      const rewardsResult =
+        await pool.query(
+          `
+          SELECT xp
+          FROM kids_rewards
+          WHERE user_id = $1
+          `,
+          [userId]
+        );
+
+      const totalXP =
+        Number(
+          rewardsResult.rows[0]?.xp || 0
+        );
+
+      const levelResult =
+        await pool.query(
+          `
+          SELECT level_number
+          FROM kids_levels
+          WHERE required_xp <= $1
+          ORDER BY required_xp DESC
+          LIMIT 1
+          `,
+          [totalXP]
+        );
+
+      return res.json({
+
+        success: true,
+
+unlockedBadges,
+
+        correct:
+          isCorrect,
+
+        earnedXP,
+
+        earnedCoins,
+
+        totalXP,
+
+        level:
+          levelResult.rows[0]
+          ?.level_number || 1
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
+
 
 // =====================================
 // LEARNING PROFILE
@@ -1840,8 +1849,8 @@ router.get(
           SELECT *
           FROM kids_learning_profile
           WHERE child_id = $1
-          `,
-          [childId]
+`,
+[childId]
         );
 
       return res.json({
@@ -2198,7 +2207,7 @@ router.get(
           SELECT
 
             kp.id,
-            kp.name,
+            kp.child_name AS name,
             kp.avatar,
 
             COALESCE(
@@ -2221,12 +2230,12 @@ router.get(
           LEFT JOIN
           kids_rewards kr
 
-          ON kr.user_id = kp.user_id
+          ON kr.user_id = kp.parent_id
 
           LEFT JOIN
           kids_daily_streaks ds
 
-          ON ds.user_id = kp.user_id
+          ON ds.user_id = kp.parent_id
 
           ORDER BY xp DESC
 

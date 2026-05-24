@@ -799,7 +799,9 @@ router.post(
 
         DO UPDATE SET
 
-          completed = true,
+completed = true,
+
+updated_at = NOW()
 
           completed_at = NOW()
         `,
@@ -883,7 +885,11 @@ router.post(
 
         DO UPDATE SET
 
-          watched_seconds = $3
+watched_seconds = $3,
+
+completed = $4,
+
+updated_at = NOW()
         `,
 
         [
@@ -3026,68 +3032,37 @@ router.get(
 
             c.id,
             c.title,
-            c.thumbnail,
-            c.description,
 
-            COALESCE(
-              cp.progress_percent,
-              0
-            ) AS progress
+            CASE
 
-          SELECT
+              WHEN e.id IS NOT NULL
 
-  c.id,
-  c.title,
+              THEN true
 
-  COALESCE(
-    e.completed,
-    false
-  ) AS completed
+              ELSE false
 
-FROM kids_courses c
+            END AS enrolled
 
-LEFT JOIN
-kids_enrollments e
+          FROM kids_courses c
 
-ON e.course_id = c.id
+          LEFT JOIN
+          kids_enrollments e
 
-AND e.child_id = $1
+          ON e.course_id = c.id
 
-ORDER BY
-
-  COALESCE(
-    e.completed,
-    false
-  ) ASC,
-
-  c.id DESC
-
-LIMIT 6
-
-          ON cp.course_id = c.id
-
-          AND cp.child_id = $1
+          AND e.child_id = $1
 
           ORDER BY
 
             CASE
 
-              WHEN
-                COALESCE(
-                  cp.progress_percent,
-                  0
-                ) >= 100
+              WHEN e.id IS NOT NULL
 
-              THEN 1
+              THEN 0
 
-              ELSE 0
+              ELSE 1
 
             END,
-
-            COALESCE(
-              cp.progress_percent,
-              0
-            ) ASC,
 
             c.id DESC
 

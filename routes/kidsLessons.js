@@ -2632,6 +2632,90 @@ router.get(
   }
 );
 
+// =====================================
+// DAILY QUESTS
+// =====================================
+
+router.get(
+
+  "/daily-quests",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const userId =
+        req.user.id;
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+
+            q.*,
+
+            COALESCE(
+              uq.progress_count,
+              0
+            ) AS progress_count,
+
+            COALESCE(
+              uq.completed,
+              false
+            ) AS completed,
+
+            COALESCE(
+              uq.claimed,
+              false
+            ) AS claimed
+
+          FROM kids_daily_quests q
+
+          LEFT JOIN
+          kids_user_quests uq
+
+          ON uq.quest_id = q.id
+
+          AND uq.user_id = $1
+
+          AND uq.created_date = CURRENT_DATE
+
+          WHERE q.is_active = true
+
+          ORDER BY q.id ASC
+          `,
+          [userId]
+        );
+
+      return res.json({
+
+        success: true,
+
+        quests:
+          result.rows
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500)
+      .json({
+
+        success: false
+
+      });
+
+    }
+
+  }
+);
+
 
 
 module.exports = router;

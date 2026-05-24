@@ -3038,8 +3038,6 @@ router.get(
 
   c.id,
   c.title,
-  c.thumbnail,
-  c.description,
 
   COALESCE(
     e.completed,

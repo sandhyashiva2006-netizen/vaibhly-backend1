@@ -39,7 +39,7 @@ const supabase =
   );
 
 async function checkAndUnlockBadges(
-  userId
+  child_id
 ) {
 
   try {
@@ -54,7 +54,7 @@ async function checkAndUnlockBadges(
         FROM kids_badges
         WHERE child_id = $1
         `,
-        [userId]
+        [child_id]
       );
 
     const earned =
@@ -72,7 +72,7 @@ async function checkAndUnlockBadges(
         child_id = $1
         AND completed = true
         `,
-        [userId]
+        [child_id]
       );
 
     const lessonsCompleted =
@@ -85,10 +85,10 @@ async function checkAndUnlockBadges(
         SELECT COUNT(*)::int AS total
         FROM kids_quiz_attempts
         WHERE
-        user_id = $1
+        child_id = $1
         AND is_correct = true
         `,
-        [userId]
+        [child_id]
       );
 
     const quizzesCompleted =
@@ -100,9 +100,9 @@ async function checkAndUnlockBadges(
         `
         SELECT xp
         FROM kids_rewards
-        WHERE user_id = $1
+WHERE child_id = $1
         `,
-        [userId]
+        [child_id]
       );
 
     const totalXP =
@@ -116,9 +116,9 @@ async function checkAndUnlockBadges(
         `
         SELECT streak_count
         FROM kids_daily_streaks
-        WHERE user_id = $1
+        WHERE child_id = $1
         `,
-        [userId]
+        [child_id]
       );
 
     const streak =
@@ -220,10 +220,10 @@ async function checkAndUnlockBadges(
             RETURNING *
             `,
             [
-              userId,
-              rule.badge_name,
-              rule.badge_icon
-            ]
+  child_id,
+  rule.badge_name,
+  rule.badge_icon
+]
           );
 
         newlyUnlocked.push(
@@ -779,41 +779,38 @@ const {
       await pool.query(
 
         `
-        INSERT INTO kids_lesson_progress
+       INSERT INTO kids_lesson_progress
 (
-  user_id,
   child_id,
   lesson_id,
-          completed,
-          completed_at
-        )
+  completed,
+  completed_at
+)
 
-        VALUES
-        (
-          $1,
-          $2,
-	  $3,
-          true,
-          NOW()
-        )
+VALUES
+(
+  $1,
+  $2,
+  true,
+  NOW()
+)
 
-        ON CONFLICT
-        (
-          user_id,
-          lesson_id
-        )
+ON CONFLICT
+(
+  child_id,
+  lesson_id
+)
 
-        DO UPDATE SET
+DO UPDATE SET
 
-completed = true,
+  completed = true,
 
-updated_at = NOW()
+  completed_at = NOW(),
 
-          completed_at = NOW()
+  updated_at = NOW()
         `,
 
-        [
-  userId,
+   [
   child_id,
   lessonId
 ]
@@ -822,14 +819,16 @@ updated_at = NOW()
 
 const unlockedBadges =
   await checkAndUnlockBadges(
-    userId
+    child_id
   );
 
       return res.json({
 
-        success: true
+  success: true,
 
-      });
+  unlockedBadges
+
+});
 
     }
 
@@ -874,37 +873,34 @@ const {
       await pool.query(
 
         `
-        INSERT INTO kids_lesson_progress
-        (
-          user_id,
-          lesson_id,
-          watched_seconds
-        )
+      INSERT INTO kids_lesson_progress
+(
+  child_id,
+  lesson_id,
+  watched_seconds
+)
 
-        VALUES
-        (
-          $1,
-          $2,
-          $3
-        )
+VALUES
+(
+  $1,
+  $2,
+  $3
+)
 
-        ON CONFLICT
-        (
-          user_id,
-          lesson_id
-        )
+ON CONFLICT
+(
+  child_id,
+  lesson_id
+)
 
-        DO UPDATE SET
+DO UPDATE SET
 
-watched_seconds = $3,
+  watched_seconds = $3,
 
-completed = $4,
-
-updated_at = NOW()
+  updated_at = NOW()
         `,
 
         [
-  userId,
   child_id,
   lessonId,
   watched_seconds
@@ -1057,6 +1053,10 @@ router.post(
       const userId =
         req.user.id;
 
+const {
+  child_id
+} = req.body;
+
       const today =
         new Date();
 
@@ -1073,10 +1073,10 @@ router.post(
 
           FROM kids_daily_streaks
 
-          WHERE user_id = $1
+          WHERE child_id = $1
           `,
 
-          [userId]
+          [child_id]
 
         );
 
@@ -1091,7 +1091,7 @@ router.post(
           INSERT INTO
           kids_daily_streaks
           (
-            user_id,
+            child_id,
             streak_count,
             last_activity_date
           )
@@ -1105,9 +1105,9 @@ router.post(
           `,
 
           [
-            userId,
-            todayStr
-          ]
+  child_id,
+  todayStr
+]
 
         );
 
@@ -1194,14 +1194,14 @@ router.post(
 
           last_activity_date = $2
 
-        WHERE user_id = $3
+        WHERE child_id = $3
         `,
 
         [
-          newStreak,
-          todayStr,
-          userId
-        ]
+  newStreak,
+  todayStr,
+  child_id
+]
 
       );
 
@@ -1245,10 +1245,11 @@ router.post(
 
       const {
 
-        xp,
-        coins
+  xp,
+  coins,
+  child_id
 
-      } = req.body;
+} = req.body;
 
       const existing =
         await pool.query(
@@ -1257,11 +1258,10 @@ router.post(
           SELECT *
 
           FROM kids_rewards
-
-          WHERE user_id = $1
+WHERE child_id = $1
           `,
 
-          [userId]
+          [child_id]
 
         );
 
@@ -1274,26 +1274,38 @@ router.post(
 
           `
           INSERT INTO
-          kids_rewards
-          (
-            user_id,
-            xp,
-            coins
-          )
+kids_rewards
+(
 
-          VALUES
-          (
-            $1,
-            $2,
-            $3
-          )
+  child_id,
+  xp,
+  coins
+
+)
+
+VALUES
+(
+  $1,
+  $2,
+  $3
+)
+
+ON CONFLICT (child_id)
+
+DO UPDATE SET
+
+  xp =
+    kids_rewards.xp + $2,
+
+  coins =
+    kids_rewards.coins + $3
           `,
 
           [
-            userId,
-            xp,
-            coins
-          ]
+  child_id,
+  xp,
+  coins
+]
 
         );
 
@@ -1314,14 +1326,14 @@ router.post(
 
             updated_at = NOW()
 
-          WHERE user_id = $3
+          WHERE child_id = $3
           `,
 
           [
-            xp,
-            coins,
-            userId
-          ]
+  xp,
+  coins,
+  child_id
+]
 
         );
 
@@ -1334,11 +1346,10 @@ router.post(
           SELECT *
 
           FROM kids_rewards
-
-          WHERE user_id = $1
+WHERE child_id = $1
           `,
 
-          [userId]
+          [child_id]
 
         );
 
@@ -1490,13 +1501,13 @@ router.post(
           SELECT id
           FROM kids_quiz_attempts
           WHERE
-          user_id = $1
+          child_id = $1
           AND quiz_id = $2
           `,
           [
-            userId,
-            quizId
-          ]
+  child_id,
+  quizId
+]
         );
 
       if (
@@ -1504,7 +1515,7 @@ router.post(
       ) {
 
 await checkAndUnlockBadges(
-  userId
+  child_id
 );
 
         return res.json({
@@ -1538,8 +1549,7 @@ await checkAndUnlockBadges(
       await pool.query(
         `
         INSERT INTO kids_quiz_attempts
-        (
-  user_id,
+    (
   child_id,
   quiz_id,
   selected_option,
@@ -1555,12 +1565,10 @@ await checkAndUnlockBadges(
   $3,
   $4,
   $5,
-  $6,
-  $7
+  $6
 )
         `,
         [
-  userId,
   child_id,
   quizId,
   selected_option,
@@ -1577,9 +1585,9 @@ await checkAndUnlockBadges(
             `
             SELECT *
             FROM kids_rewards
-            WHERE user_id = $1
+            WHERE child_id = $1
             `,
-            [userId]
+            [child_id]
           );
 
         if (
@@ -1589,25 +1597,37 @@ await checkAndUnlockBadges(
           await pool.query(
             `
             INSERT INTO
-            kids_rewards
-            (
-              user_id,
-              xp,
-              coins
-            )
+kids_rewards
+(
 
-            VALUES
-            (
-              $1,
-              $2,
-              $3
-            )
+  child_id,
+  xp,
+  coins
+
+)
+
+VALUES
+(
+  $1,
+  $2,
+  $3
+)
+
+ON CONFLICT (child_id)
+
+DO UPDATE SET
+
+  xp =
+    kids_rewards.xp + $2,
+
+  coins =
+    kids_rewards.coins + $3
             `,
             [
-              userId,
-              earnedXP,
-              earnedCoins
-            ]
+  child_id,
+  earnedXP,
+  earnedCoins
+]
           );
 
         }
@@ -1626,13 +1646,13 @@ await checkAndUnlockBadges(
 
               updated_at = NOW()
 
-            WHERE user_id = $3
+            WHERE child_id = $3
             `,
             [
-              earnedXP,
-              earnedCoins,
-              userId
-            ]
+  earnedXP,
+  earnedCoins,
+  child_id
+]
           );
 
         }
@@ -1780,9 +1800,9 @@ await pool.query(
           `
           SELECT xp
           FROM kids_rewards
-          WHERE user_id = $1
+WHERE child_id = $1
           `,
-          [userId]
+          [child_id]
         );
 
       const totalXP =
@@ -1801,6 +1821,11 @@ await pool.query(
           `,
           [totalXP]
         );
+
+const unlockedBadges =
+  await checkAndUnlockBadges(
+    child_id
+  );
 
       return res.json({
 
@@ -2097,17 +2122,17 @@ router.get(
 
     try {
 
-      const userId =
-        req.user.id;
+      const childId =
+  Number(req.query.child_id);
 
       const rewards =
         await pool.query(
           `
           SELECT xp
           FROM kids_rewards
-          WHERE user_id = $1
+WHERE child_id = $1
           `,
-          [userId]
+          [childId]
         );
 
       const totalXP =
@@ -2248,12 +2273,12 @@ router.get(
           LEFT JOIN
           kids_rewards kr
 
-          ON kr.user_id = kp.parent_id
+          ON kr.child_id = kp.id
 
           LEFT JOIN
           kids_daily_streaks ds
 
-          ON ds.user_id = kp.parent_id
+          ON ds.child_id = kp.id
 
           ORDER BY xp DESC
 
@@ -2351,8 +2376,10 @@ router.post(
       const userId =
         req.user.id;
 
-      const { item_id } =
-        req.body;
+      const {
+  item_id,
+  child_id
+} = req.body;
 
       const item =
         await pool.query(
@@ -2385,9 +2412,9 @@ router.post(
           `
           SELECT coins
           FROM kids_rewards
-          WHERE user_id = $1
+WHERE child_id = $1
           `,
-          [userId]
+          [child_id]
         );
 
       const coins =
@@ -2416,11 +2443,11 @@ router.post(
           `
           SELECT id
           FROM kids_purchases
-          WHERE user_id = $1
+          WHERE child_id = $1
           AND item_id = $2
           `,
           [
-            userId,
+            child_id,
             item_id
           ]
         );
@@ -2443,11 +2470,11 @@ router.post(
       await pool.query(
         `
         INSERT INTO kids_purchases
-        (user_id, item_id)
+        (child_id, item_id)
         VALUES ($1, $2)
         `,
         [
-          userId,
+          child_id,
           item_id
         ]
       );
@@ -2457,12 +2484,12 @@ router.post(
         UPDATE kids_rewards
         SET coins =
           coins - $1
-        WHERE user_id = $2
+        WHERE child_id = $2
         `,
         [
-          shopItem.item_price,
-          userId
-        ]
+  shopItem.item_price,
+  child_id
+]
       );
 
       return res.json({
@@ -2502,17 +2529,17 @@ router.get(
 
     try {
 
-      const userId =
-        req.user.id;
+      const childId =
+  Number(req.query.child_id);
 
       const result =
         await pool.query(
           `
           SELECT *
           FROM kids_active_items
-          WHERE user_id = $1
+          WHERE child_id = $1
           `,
-          [userId]
+          [childId]
         );
 
       return res.json({
@@ -2558,8 +2585,10 @@ router.post(
       const userId =
         req.user.id;
 
-      const { item_id } =
-        req.body;
+      const {
+  item_id,
+  child_id
+} = req.body;
 
       const item =
         await pool.query(
@@ -2592,13 +2621,13 @@ router.post(
           `
           SELECT id
           FROM kids_purchases
-          WHERE user_id = $1
+          WHERE child_id = $1
           AND item_id = $2
           `,
           [
-            userId,
-            item_id
-          ]
+  child_id,
+  item_id
+]
         );
 
       if (
@@ -2642,11 +2671,11 @@ router.post(
       await pool.query(
         `
         INSERT INTO kids_active_items
-        (user_id, ${field})
+        (child_id, ${field})
 
         VALUES ($1, $2)
 
-        ON CONFLICT (user_id)
+        ON CONFLICT (child_id)
 
         DO UPDATE SET
 
@@ -2655,9 +2684,9 @@ router.post(
         updated_at = NOW()
         `,
         [
-          userId,
-          shopItem.item_value
-        ]
+  child_id,
+  shopItem.item_value
+]
       );
 
       return res.json({
@@ -2710,9 +2739,9 @@ router.get(
             xp,
             coins
           FROM kids_rewards
-          WHERE user_id = $1
+WHERE child_id = $1
           `,
-          [req.user.id]
+          [childId]
         );
 
       // LESSONS COMPLETED
@@ -2771,9 +2800,9 @@ router.get(
           `
           SELECT streak_count
           FROM kids_daily_streaks
-          WHERE user_id = $1
+          WHERE child_id = $1
           `,
-          [req.user.id]
+          [childId]
         );
 
       const totalQuiz =
@@ -2863,8 +2892,8 @@ router.get(
 
     try {
 
-      const userId =
-        req.user.id;
+      const childId =
+  Number(req.query.child_id);
 
       const result =
         await pool.query(
@@ -2895,7 +2924,7 @@ router.get(
 
           ON uq.quest_id = q.id
 
-          AND uq.user_id = $1
+          AND uq.child_id = $1
 
           AND uq.created_date = CURRENT_DATE
 
@@ -2903,7 +2932,7 @@ router.get(
 
           ORDER BY q.id ASC
           `,
-          [userId]
+          [childId]
         );
 
       return res.json({
@@ -3146,9 +3175,9 @@ router.get(
           `
           SELECT *
           FROM kids_rewards
-          WHERE user_id = $1
+WHERE child_id = $1
           `,
-          [req.user.id]
+          [childId]
         );
 
       // COURSES

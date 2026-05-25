@@ -772,13 +772,18 @@ router.post(
       const userId =
         req.user.id;
 
+const {
+  child_id
+} = req.body;
+
       await pool.query(
 
         `
         INSERT INTO kids_lesson_progress
-        (
-          user_id,
-          lesson_id,
+(
+  user_id,
+  child_id,
+  lesson_id,
           completed,
           completed_at
         )
@@ -787,6 +792,7 @@ router.post(
         (
           $1,
           $2,
+	  $3,
           true,
           NOW()
         )
@@ -807,9 +813,10 @@ updated_at = NOW()
         `,
 
         [
-          userId,
-          lessonId
-        ]
+  userId,
+  child_id,
+  lessonId
+]
 
       );
 
@@ -860,6 +867,10 @@ router.post(
         watched_seconds
       } = req.body;
 
+const {
+  child_id
+} = req.body;
+
       await pool.query(
 
         `
@@ -893,10 +904,11 @@ updated_at = NOW()
         `,
 
         [
-          userId,
-          lessonId,
-          watched_seconds
-        ]
+  userId,
+  child_id,
+  lessonId,
+  watched_seconds
+]
 
       );
 
@@ -3090,6 +3102,201 @@ router.get(
       .json({
 
         success:false
+
+      });
+
+    }
+
+  }
+);
+
+// =====================================
+// KIDS DASHBOARD
+// =====================================
+
+router.get(
+
+  "/dashboard",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const childId =
+        Number(
+          req.query.child_id
+        );
+
+      // CHILD
+      const child =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_profiles
+          WHERE id = $1
+          `,
+          [childId]
+        );
+
+      // REWARDS
+      const rewards =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_rewards
+          WHERE user_id = $1
+          `,
+          [req.user.id]
+        );
+
+      // COURSES
+      const coursesResult =
+        await pool.query(
+          `
+          SELECT
+
+            c.id AS course_id,
+
+            c.title,
+
+            c.subject,
+
+            COUNT(l.id)::int
+            AS total_lessons,
+
+            COUNT(
+
+              CASE
+
+                WHEN lp.completed = true
+
+                THEN 1
+
+              END
+
+            )::int
+            AS completed_lessons
+
+          FROM kids_enrollments e
+
+          JOIN kids_courses c
+
+          ON c.id = e.course_id
+
+          LEFT JOIN kids_lessons l
+
+          ON l.course_id = c.id
+
+          LEFT JOIN
+          kids_lesson_progress lp
+
+          ON lp.lesson_id = l.id
+
+          AND lp.child_id = e.child_id
+
+          WHERE e.child_id = $1
+
+          GROUP BY
+
+            c.id,
+            c.title,
+            c.subject
+
+          ORDER BY c.id DESC
+          `,
+          [childId]
+        );
+
+      // BADGES
+      const badges =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_badges
+          WHERE child_id = $1
+          ORDER BY earned_at DESC
+          `,
+          [childId]
+        );
+
+      // TODAY ACTIVITY
+      const todayActivity =
+        {
+
+          lessons_completed:
+            await pool.query(
+              `
+              SELECT COUNT(*)::int AS total
+              FROM kids_lesson_progress
+              WHERE
+              child_id = $1
+              AND completed = true
+              `,
+              [childId]
+            ).then(
+              r => r.rows[0].total
+            ),
+
+          quizzes_completed:
+            await pool.query(
+              `
+              SELECT COUNT(*)::int AS total
+              FROM kids_quiz_attempts
+              WHERE child_id = $1
+              `,
+              [childId]
+            ).then(
+              r => r.rows[0].total
+            ),
+
+          coins_earned:
+            Number(
+              rewards.rows[0]
+              ?.coins || 0
+            )
+
+        };
+
+      return res.json({
+
+        success:true,
+
+        child:
+          child.rows[0],
+
+        rewards:
+          rewards.rows[0] || {
+
+            xp:0,
+            coins:0
+
+          },
+
+        todayActivity,
+
+        courses:
+          coursesResult.rows,
+
+        badges:
+          badges.rows
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500)
+      .json({
+
+        success:false,
+
+        error:
+          err.message
 
       });
 

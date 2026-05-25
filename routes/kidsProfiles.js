@@ -359,17 +359,51 @@ router.get(
 
         analytics: {
 
-          totalXP,
+  totalXP,
 
-          totalCoins,
+  totalCoins,
 
-          streak,
+  streak,
 
-          watchTime,
+  watchTime,
 
-          quizAccuracy
+  quizAccuracy,
 
-        }
+  my_courses:
+    await pool.query(
+      `
+      SELECT COUNT(*)::int AS total
+      FROM kids_enrollments
+      WHERE child_id = $1
+      `,
+      [childId]
+    ).then(r => r.rows[0].total),
+
+  lessons_today:
+    await pool.query(
+      `
+      SELECT COUNT(*)::int AS total
+      FROM kids_lesson_progress
+      WHERE child_id = $1
+      AND completed = true
+      `,
+      [childId]
+    ).then(r => r.rows[0].total),
+
+  quizzes_today:
+    await pool.query(
+      `
+      SELECT COUNT(*)::int AS total
+      FROM kids_quiz_attempts
+      WHERE child_id = $1
+      `,
+      [childId]
+    ).then(r => r.rows[0].total),
+
+  coins_today:
+    totalCoins
+
+}
 
       });
 

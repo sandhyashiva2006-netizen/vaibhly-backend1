@@ -3274,6 +3274,31 @@ router.get(
 
           },
 
+analytics: {
+
+  my_courses:
+    coursesResult.rows.length,
+
+  lessons_today:
+    Number(
+      todayActivity
+      .lessons_completed || 0
+    ),
+
+  quizzes_today:
+    Number(
+      todayActivity
+      .quizzes_completed || 0
+    ),
+
+  coins_today:
+    Number(
+      todayActivity
+      .coins_earned || 0
+    )
+
+},
+
         todayActivity,
 
         courses:

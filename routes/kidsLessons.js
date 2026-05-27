@@ -3662,52 +3662,13 @@ WHERE child_id = $1
 
   c.path,
 
-  COUNT(
-    DISTINCT l.id
-  )::int
-  AS total_lessons,
+  e.progress,
 
-  COUNT(
-    DISTINCT CASE
+  e.completed_lessons,
 
-      WHEN lp.completed = true
+  e.total_lessons,
 
-      THEN lp.lesson_id
-
-    END
-  )::int
-  AS completed_lessons,
-
-  CASE
-
-    WHEN COUNT(DISTINCT l.id) = 0
-
-    THEN 0
-
-    ELSE ROUND(
-
-      (
-        COUNT(
-          DISTINCT CASE
-
-            WHEN lp.completed = true
-
-            THEN lp.lesson_id
-
-          END
-        )::decimal
-
-        /
-
-        COUNT(
-          DISTINCT l.id
-        )
-
-      ) * 100
-
-    )
-
-  END AS progress
+  e.completed
 
 FROM kids_enrollments e
 
@@ -3715,27 +3676,9 @@ JOIN kids_courses c
 
 ON c.id = e.course_id
 
-LEFT JOIN kids_lessons l
-
-ON l.course_id = c.id
-
-LEFT JOIN kids_lesson_progress lp
-
-ON
-lp.lesson_id = l.id
-
-AND lp.child_id = e.child_id
-
 WHERE e.child_id = $1
 
-GROUP BY
-
-  c.id,
-  c.title,
-  c.subject,
-  c.path
-
-          ORDER BY c.id DESC
+ORDER BY e.id DESC
           `,
           [childId]
         );

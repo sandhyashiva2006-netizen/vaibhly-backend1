@@ -1106,6 +1106,8 @@ router.post(
           [childId]
         );
 
+let newStreak = 1;
+
       if (
         existing.rows.length === 0
       ) {
@@ -1162,8 +1164,8 @@ router.post(
             )
           );
 
-        let newStreak =
-          streak.streak_count;
+        newStreak =
+  streak.streak_count;
 
         if (
           diffDays === 1
@@ -1204,9 +1206,17 @@ router.post(
 
       return res.json({
 
-        success:true
+  success:true,
 
-      });
+  streak:
+
+    existing.rows.length === 0
+
+      ? 1
+
+      : newStreak
+
+});
 
     }
 

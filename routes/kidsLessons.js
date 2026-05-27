@@ -3295,21 +3295,6 @@ AS completed_lessons
 
         };
 
-      return res.json({
-
-        success:true,
-
-        child:
-          child.rows[0],
-
-        rewards:
-          rewards.rows[0] || {
-
-            xp:0,
-            coins:0
-
-          },
-
 const rewardsResult =
   await pool.query(
     `
@@ -3331,6 +3316,23 @@ const rewardsResult =
     `,
     [childId]
   );
+
+      return res.json({
+
+        success:true,
+
+        child:
+          child.rows[0],
+
+        rewards:
+          rewards.rows[0] || {
+
+            xp:0,
+            coins:0
+
+          },
+
+
 
 analytics: {
 

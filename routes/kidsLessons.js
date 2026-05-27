@@ -766,6 +766,20 @@ router.post(
 
     try {
 
+console.log(
+  "🔥 COMPLETE ROUTE HIT"
+);
+
+console.log(
+  "BODY:",
+  req.body
+);
+
+console.log(
+  "PARAMS:",
+  req.params
+);
+
       const lessonId =
         Number(req.params.lessonId);
 
@@ -777,7 +791,9 @@ const {
 } = req.body;
 
       await pool.query(
-
+console.log(
+  "✅ lesson progress saved"
+);
         `
 INSERT INTO
 kids_lesson_progress
@@ -944,6 +960,12 @@ await pool.query(
     courseId
   ]
 );
+
+console.log({
+  progress,
+  completedLessons,
+  totalLessons
+});
 
       return res.json({
 

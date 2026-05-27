@@ -779,20 +779,25 @@ const {
       await pool.query(
 
         `
-       INSERT INTO kids_lesson_progress
+INSERT INTO
+kids_lesson_progress
 (
+
   child_id,
   lesson_id,
   completed,
   completed_at
+
 )
 
 VALUES
 (
+
   $1,
   $2,
   true,
   NOW()
+
 )
 
 ON CONFLICT
@@ -805,9 +810,7 @@ DO UPDATE SET
 
   completed = true,
 
-  completed_at = NOW(),
-
-  updated_at = NOW()
+  completed_at = NOW()
         `,
 
    [
@@ -3502,49 +3505,86 @@ WHERE child_id = $1
           `
           SELECT
 
-            c.id AS course_id,
+  c.id AS course_id,
 
-            c.title,
+  c.title,
 
-            c.subject,
+  c.subject,
 
-            COUNT(
-  DISTINCT l.id
-)::int
-AS total_lessons,
+  c.path,
 
-COALESCE(
   COUNT(
-    DISTINCT lp.lesson_id
-  ),
-  0
-)::int
-AS completed_lessons
+    DISTINCT l.id
+  )::int
+  AS total_lessons,
 
-          FROM kids_enrollments e
+  COUNT(
+    DISTINCT CASE
 
-          JOIN kids_courses c
+      WHEN lp.completed = true
 
-          ON c.id = e.course_id
+      THEN lp.lesson_id
 
-          LEFT JOIN kids_lessons l
+    END
+  )::int
+  AS completed_lessons,
 
-          ON l.course_id = c.id
+  CASE
 
-          LEFT JOIN
-          kids_lesson_progress lp
+    WHEN COUNT(DISTINCT l.id) = 0
 
-          ON lp.lesson_id = l.id
+    THEN 0
 
-          AND lp.child_id = e.child_id
+    ELSE ROUND(
 
-          WHERE e.child_id = $1
+      (
+        COUNT(
+          DISTINCT CASE
 
-          GROUP BY
+            WHEN lp.completed = true
 
-            c.id,
-            c.title,
-            c.subject
+            THEN lp.lesson_id
+
+          END
+        )::decimal
+
+        /
+
+        COUNT(
+          DISTINCT l.id
+        )
+
+      ) * 100
+
+    )
+
+  END AS progress
+
+FROM kids_enrollments e
+
+JOIN kids_courses c
+
+ON c.id = e.course_id
+
+LEFT JOIN kids_lessons l
+
+ON l.course_id = c.id
+
+LEFT JOIN kids_lesson_progress lp
+
+ON
+lp.lesson_id = l.id
+
+AND lp.child_id = e.child_id
+
+WHERE e.child_id = $1
+
+GROUP BY
+
+  c.id,
+  c.title,
+  c.subject,
+  c.path
 
           ORDER BY c.id DESC
           `,

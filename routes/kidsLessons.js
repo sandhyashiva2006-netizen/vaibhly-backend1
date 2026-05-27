@@ -2059,6 +2059,123 @@ router.post(
 );
 
 // =====================================
+// ENROLL COURSE
+// =====================================
+
+router.post(
+  "/enroll-course",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const {
+        child_id,
+        course_id
+      } = req.body;
+
+      if (
+        !child_id ||
+        !course_id
+      ) {
+
+        return res.status(400)
+        .json({
+
+          success:false,
+
+          message:
+            "child_id and course_id required"
+
+        });
+
+      }
+
+      const existing =
+        await pool.query(
+          `
+          SELECT id
+          FROM kids_enrollments
+          WHERE
+          child_id = $1
+          AND course_id = $2
+          `,
+          [
+            child_id,
+            course_id
+          ]
+        );
+
+      if (
+        existing.rows.length
+      ) {
+
+        return res.json({
+
+          success:true,
+
+          alreadyEnrolled:true
+
+        });
+
+      }
+
+      await pool.query(
+        `
+        INSERT INTO
+        kids_enrollments
+        (
+          child_id,
+          course_id,
+          completed
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          false
+        )
+        `,
+        [
+          child_id,
+          course_id
+        ]
+      );
+
+      return res.json({
+
+        success:true
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(
+        "Enroll course error:",
+        err
+      );
+
+      return res.status(500)
+      .json({
+
+        success:false,
+
+        message:
+          err.message
+
+      });
+
+    }
+
+  }
+);
+
+// =====================================
 // COMPLETE COURSE
 // =====================================
 

@@ -784,8 +784,9 @@ router.post(
         Number(req.params.lessonId);
 
       const {
-        child_id
-      } = req.body;
+  child_id,
+  course_id
+} = req.body;
 
       await pool.query(
         `
@@ -890,21 +891,7 @@ router.post(
           ]
         );
 
-      const courseIdResult =
-        await pool.query(
-          `
-          SELECT course_id
-
-          FROM kids_lessons
-
-          WHERE id = $1
-          `,
-          [lessonId]
-        );
-
-      const courseId =
-        courseIdResult.rows[0]
-        ?.course_id;
+      
 
       const totalLessons =
         totalLessonsResult.rows[0]
@@ -953,7 +940,7 @@ router.post(
           progress,
           progress >= 100,
           child_id,
-          courseId
+          course_id
         ]
       );
 

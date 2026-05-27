@@ -1069,11 +1069,15 @@ router.post(
 
     try {
 
-      const {
-        child_id
-      } = req.body;
+      const childId =
+        parseInt(
+          req.body.child_id,
+          10
+        );
 
-      if (!child_id) {
+      if (
+        Number.isNaN(childId)
+      ) {
 
         return res.status(400)
         .json({
@@ -1081,13 +1085,13 @@ router.post(
           success:false,
 
           message:
-            "child_id required"
+            "Invalid child id"
 
         });
 
       }
 
-      const todayStr =
+      const today =
         new Date()
         .toISOString()
         .split("T")[0];
@@ -1099,7 +1103,7 @@ router.post(
           FROM kids_daily_streaks
           WHERE child_id = $1
           `,
-          [child_id]
+          [childId]
         );
 
       if (
@@ -1124,8 +1128,75 @@ router.post(
           )
           `,
           [
-            child_id,
-            todayStr
+            childId,
+            today
+          ]
+        );
+
+      }
+
+      else {
+
+        const streak =
+          existing.rows[0];
+
+        const lastDate =
+          new Date(
+            streak.last_activity_date
+          );
+
+        const currentDate =
+          new Date(today);
+
+        const diffDays =
+          Math.floor(
+            (
+              currentDate -
+              lastDate
+            ) /
+            (
+              1000 *
+              60 *
+              60 *
+              24
+            )
+          );
+
+        let newStreak =
+          streak.streak_count;
+
+        if (
+          diffDays === 1
+        ) {
+
+          newStreak += 1;
+
+        }
+
+        else if (
+          diffDays > 1
+        ) {
+
+          newStreak = 1;
+
+        }
+
+        await pool.query(
+          `
+          UPDATE kids_daily_streaks
+
+          SET
+
+            streak_count = $1,
+
+            last_activity_date = $2
+
+          WHERE child_id = $3
+          `,
+          [
+            newStreak,
+            today,
+            childId
           ]
         );
 
@@ -1141,7 +1212,10 @@ router.post(
 
     catch (err) {
 
-      console.error(err);
+      console.error(
+        "UPDATE STREAK ERROR:",
+        err
+      );
 
       return res.status(500)
       .json({

@@ -3310,6 +3310,28 @@ AS completed_lessons
 
           },
 
+const rewardsResult =
+  await pool.query(
+    `
+    SELECT
+
+      COALESCE(
+        xp,
+        0
+      ) AS xp,
+
+      COALESCE(
+        coins,
+        0
+      ) AS coins
+
+    FROM kids_rewards
+
+    WHERE child_id = $1
+    `,
+    [childId]
+  );
+
 analytics: {
 
   my_courses:

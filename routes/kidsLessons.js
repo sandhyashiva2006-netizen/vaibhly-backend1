@@ -766,230 +766,231 @@ router.post(
 
     try {
 
-console.log(
-  "🔥 COMPLETE ROUTE HIT"
-);
+      console.log(
+        "🔥 COMPLETE ROUTE HIT"
+      );
 
-console.log(
-  "BODY:",
-  req.body
-);
+      console.log(
+        "BODY:",
+        req.body
+      );
 
-console.log(
-  "PARAMS:",
-  req.params
-);
+      console.log(
+        "PARAMS:",
+        req.params
+      );
 
       const lessonId =
         Number(req.params.lessonId);
 
-      const userId =
-        req.user.id;
-
-const {
-  child_id
-} = req.body;
+      const {
+        child_id
+      } = req.body;
 
       await pool.query(
-console.log(
-  "✅ lesson progress saved"
-);
         `
-INSERT INTO
-kids_lesson_progress
-(
-
-  child_id,
-  lesson_id,
-  completed,
-  completed_at
-
-)
-
-VALUES
-(
-
-  $1,
-  $2,
-  true,
-  NOW()
-
-)
-
-ON CONFLICT
-(
-  child_id,
-  lesson_id
-)
-
-DO UPDATE SET
-
-  completed = true,
-
-  completed_at = NOW()
-        `,
-
-   [
-  child_id,
-  lessonId
-]
-
-      );
-
-const unlockedBadges =
-  await checkAndUnlockBadges(
-    child_id
-  );
-
-const totalLessonsResult =
-  await pool.query(
-    `
-    SELECT COUNT(*)::int AS total
-
-    FROM kids_lessons
-
-    WHERE course_id = (
-
-      SELECT course_id
-
-      FROM kids_lessons
-
-      WHERE id = $1
-
-    )
-    `,
-    [lessonId]
-  );
-
-const completedLessonsResult =
-  await pool.query(
-    `
-    SELECT COUNT(*)::int AS completed
-
-    FROM kids_lesson_progress lp
-
-    JOIN kids_lessons l
-
-    ON l.id = lp.lesson_id
-
-    WHERE
-
-      lp.child_id = $1
-
-      AND l.course_id = (
-
-        SELECT course_id
-
-        FROM kids_lessons
-
-        WHERE id = $2
-
-      )
-
-      AND lp.completed = true
-    `,
-    [
-      child_id,
-      lessonId
-    ]
-  );
-
-const courseIdResult =
-  await pool.query(
-    `
-    SELECT course_id
-
-    FROM kids_lessons
-
-    WHERE id = $1
-    `,
-    [lessonId]
-  );
-
-const courseId =
-  courseIdResult.rows[0]
-  ?.course_id;
-
-const totalLessons =
-  totalLessonsResult.rows[0]
-  ?.total || 0;
-
-const completedLessons =
-  completedLessonsResult.rows[0]
-  ?.completed || 0;
-
-const progress =
-
-  totalLessons === 0
-
-    ? 0
-
-    : Math.round(
+        INSERT INTO
+        kids_lesson_progress
         (
-          completedLessons /
-          totalLessons
-        ) * 100
+
+          child_id,
+          lesson_id,
+          completed,
+          completed_at
+
+        )
+
+        VALUES
+        (
+
+          $1,
+          $2,
+          true,
+          NOW()
+
+        )
+
+        ON CONFLICT
+        (
+          child_id,
+          lesson_id
+        )
+
+        DO UPDATE SET
+
+          completed = true,
+
+          completed_at = NOW()
+        `,
+        [
+          child_id,
+          lessonId
+        ]
       );
 
-await pool.query(
-  `
-  UPDATE kids_enrollments
+      console.log(
+        "✅ lesson progress saved"
+      );
 
-  SET
+      const unlockedBadges =
+        await checkAndUnlockBadges(
+          child_id
+        );
 
-    completed_lessons = $1,
+      const totalLessonsResult =
+        await pool.query(
+          `
+          SELECT COUNT(*)::int AS total
 
-    total_lessons = $2,
+          FROM kids_lessons
 
-    progress = $3,
+          WHERE course_id = (
 
-    completed = $4
+            SELECT course_id
 
-  WHERE
+            FROM kids_lessons
 
-    child_id = $5
+            WHERE id = $1
 
-    AND course_id = $6
-  `,
-  [
-    completedLessons,
-    totalLessons,
-    progress,
-    progress >= 100,
-    child_id,
-    courseId
-  ]
-);
+          )
+          `,
+          [lessonId]
+        );
 
-console.log({
-  progress,
-  completedLessons,
-  totalLessons
-});
+      const completedLessonsResult =
+        await pool.query(
+          `
+          SELECT COUNT(*)::int AS completed
+
+          FROM kids_lesson_progress lp
+
+          JOIN kids_lessons l
+
+          ON l.id = lp.lesson_id
+
+          WHERE
+
+            lp.child_id = $1
+
+            AND l.course_id = (
+
+              SELECT course_id
+
+              FROM kids_lessons
+
+              WHERE id = $2
+
+            )
+
+            AND lp.completed = true
+          `,
+          [
+            child_id,
+            lessonId
+          ]
+        );
+
+      const courseIdResult =
+        await pool.query(
+          `
+          SELECT course_id
+
+          FROM kids_lessons
+
+          WHERE id = $1
+          `,
+          [lessonId]
+        );
+
+      const courseId =
+        courseIdResult.rows[0]
+        ?.course_id;
+
+      const totalLessons =
+        totalLessonsResult.rows[0]
+        ?.total || 0;
+
+      const completedLessons =
+        completedLessonsResult.rows[0]
+        ?.completed || 0;
+
+      const progress =
+
+        totalLessons === 0
+
+          ? 0
+
+          : Math.round(
+              (
+                completedLessons /
+                totalLessons
+              ) * 100
+            );
+
+      await pool.query(
+        `
+        UPDATE kids_enrollments
+
+        SET
+
+          completed_lessons = $1,
+
+          total_lessons = $2,
+
+          progress = $3,
+
+          completed = $4
+
+        WHERE
+
+          child_id = $5
+
+          AND course_id = $6
+        `,
+        [
+          completedLessons,
+          totalLessons,
+          progress,
+          progress >= 100,
+          child_id,
+          courseId
+        ]
+      );
+
+      console.log({
+        progress,
+        completedLessons,
+        totalLessons
+      });
 
       return res.json({
 
-  success: true,
+        success: true,
 
-  unlockedBadges,
+        unlockedBadges,
 
-  progress,
+        progress,
 
-  completedLessons,
+        completedLessons,
 
-  totalLessons
+        totalLessons
 
-});
+      });
 
     }
 
     catch (err) {
 
-      console.error(err);
+      console.error(
+        "LESSON COMPLETE ERROR:",
+        err
+      );
 
       return res.status(500).json({
 
-        success: false
+        success: false,
+
+        message: err.message
 
       });
 

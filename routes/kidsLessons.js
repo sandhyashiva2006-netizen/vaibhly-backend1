@@ -2690,42 +2690,47 @@ router.get(
     try {
 
       const childId =
-  parseInt(
-    req.query.child_id,
-    10
-  );
+        parseInt(
+          req.query.child_id,
+          10
+        );
 
-if (
-  Number.isNaN(childId)
-) {
+      if (
+        Number.isNaN(childId)
+      ) {
 
-  return res.status(400)
-  .json({
+        return res.status(400)
+        .json({
 
-    success:false,
+          success:false,
 
-    message:
-      "Invalid child id"
+          message:
+            "Invalid child id"
 
-  });
+        });
 
-}
+      }
 
       const result =
         await pool.query(
           `
           SELECT *
+
           FROM kids_active_items
+
           WHERE child_id = $1
+
+          LIMIT 1
           `,
           [childId]
         );
 
       return res.json({
 
-        success: true,
+        success:true,
 
         active:
+
           result.rows[0] || null
 
       });
@@ -2734,12 +2739,18 @@ if (
 
     catch (err) {
 
-      console.error(err);
+      console.error(
+        "ACTIVE ITEMS ERROR:",
+        err
+      );
 
       return res.status(500)
       .json({
 
-        success: false
+        success:false,
+
+        message:
+          err.message
 
       });
 
@@ -3469,12 +3480,12 @@ if (
           SELECT
 
   COALESCE(
-    xp,
+    SUM(xp),
     0
   ) AS xp,
 
   COALESCE(
-    coins,
+    SUM(coins),
     0
   ) AS coins
 
@@ -3631,11 +3642,18 @@ analytics: {
   my_courses:
     coursesResult.rows.length,
 
-  lessons_today:
+  coursesResult.reduce(
+
+  (sum, course) =>
+
+    sum +
     Number(
-      todayActivity
-      .lessons_completed || 0
+      course.completed_lessons || 0
     ),
+
+  0
+
+)
 
   quizzes_today:
     Number(

@@ -3204,21 +3204,21 @@ WHERE child_id = $1
 
             c.subject,
 
-            COUNT(l.id)::int
-            AS total_lessons,
-
             COUNT(
+  DISTINCT l.id
+)::int
+AS total_lessons,
 
-              CASE
+COUNT(
+  DISTINCT CASE
 
-                WHEN lp.completed = true
+    WHEN lp.completed = true
 
-                THEN 1
+    THEN lp.lesson_id
 
-              END
-
-            )::int
-            AS completed_lessons
+  END
+)::int
+AS completed_lessons
 
           FROM kids_enrollments e
 

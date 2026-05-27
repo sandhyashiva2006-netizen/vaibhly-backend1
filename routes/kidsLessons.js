@@ -944,7 +944,26 @@ router.get(
         Number(req.params.courseId);
 
       const childId =
-  Number(req.query.child_id || 0);
+  parseInt(
+    req.query.child_id,
+    10
+  );
+
+if (
+  Number.isNaN(childId)
+) {
+
+  return res.status(400)
+  .json({
+
+    success:false,
+
+    message:
+      "Invalid child id"
+
+  });
+
+}
 
       const totalLessons =
         await pool.query(
@@ -1882,9 +1901,26 @@ router.get(
     try {
 
       const childId =
-        Number(
-          req.params.childId
-        );
+  parseInt(
+    req.query.child_id,
+    10
+  );
+
+if (
+  Number.isNaN(childId)
+) {
+
+  return res.status(400)
+  .json({
+
+    success:false,
+
+    message:
+      "Invalid child id"
+
+  });
+
+}
 
       const result =
         await pool.query(
@@ -2122,9 +2158,27 @@ router.get(
 
     try {
 
-      const childId =
-  Number(req.query.child_id);
+const childId =
+  parseInt(
+    req.query.child_id,
+    10
+  );
 
+if (
+  Number.isNaN(childId)
+) {
+
+  return res.status(400)
+  .json({
+
+    success:false,
+
+    message:
+      "Invalid child id"
+
+  });
+
+}
       const rewards =
         await pool.query(
           `
@@ -2530,7 +2584,26 @@ router.get(
     try {
 
       const childId =
-  Number(req.query.child_id);
+  parseInt(
+    req.query.child_id,
+    10
+  );
+
+if (
+  Number.isNaN(childId)
+) {
+
+  return res.status(400)
+  .json({
+
+    success:false,
+
+    message:
+      "Invalid child id"
+
+  });
+
+}
 
       const result =
         await pool.query(
@@ -2727,9 +2800,26 @@ router.get(
     try {
 
       const childId =
-        Number(
-          req.params.childId
-        );
+  parseInt(
+    req.query.child_id,
+    10
+  );
+
+if (
+  Number.isNaN(childId)
+) {
+
+  return res.status(400)
+  .json({
+
+    success:false,
+
+    message:
+      "Invalid child id"
+
+  });
+
+}
 
       // TOTAL XP + COINS
       const rewards =
@@ -2892,9 +2982,27 @@ router.get(
 
     try {
 
-      const childId =
-  Number(req.query.child_id);
+const childId =
+  parseInt(
+    req.query.child_id,
+    10
+  );
 
+if (
+  Number.isNaN(childId)
+) {
+
+  return res.status(400)
+  .json({
+
+    success:false,
+
+    message:
+      "Invalid child id"
+
+  });
+
+}
       const result =
         await pool.query(
           `
@@ -2924,7 +3032,7 @@ router.get(
 
           ON uq.quest_id = q.id
 
-          AND uq.child_id = $1
+          AND uq.user_id = $1
 
           AND uq.created_date = CURRENT_DATE
 
@@ -2977,9 +3085,26 @@ router.get(
     try {
 
       const childId =
-        Number(
-          req.params.childId
-        );
+  parseInt(
+    req.query.child_id,
+    10
+  );
+
+if (
+  Number.isNaN(childId)
+) {
+
+  return res.status(400)
+  .json({
+
+    success:false,
+
+    message:
+      "Invalid child id"
+
+  });
+
+}
 
       const result =
         await pool.query(
@@ -3062,52 +3187,81 @@ router.get(
     try {
 
       const childId =
-        Number(
-          req.params.childId
-        );
+  parseInt(
+    req.query.child_id,
+    10
+  );
+
+if (
+  Number.isNaN(childId)
+) {
+
+  return res.status(400)
+  .json({
+
+    success:false,
+
+    message:
+      "Invalid child id"
+
+  });
+
+}
 
       const result =
         await pool.query(
           `
           SELECT
 
-            c.id,
-            c.title,
+  c.id,
+  c.title,
+  c.thumbnail,
 
-            CASE
+  COUNT(
+    DISTINCT l.id
+  )::int
+  AS total_lessons,
 
-              WHEN e.id IS NOT NULL
+  COUNT(
+    DISTINCT CASE
 
-              THEN true
+      WHEN lp.completed = true
 
-              ELSE false
+      THEN lp.lesson_id
 
-            END AS enrolled
+    END
+  )::int
+  AS completed_lessons
 
-          FROM kids_courses c
+FROM kids_courses c
 
-          LEFT JOIN
-          kids_enrollments e
+LEFT JOIN kids_lessons l
 
-          ON e.course_id = c.id
+ON l.course_id = c.id
 
-          AND e.child_id = $1
+LEFT JOIN kids_enrollments e
 
-          ORDER BY
+ON
+e.course_id = c.id
 
-            CASE
+AND e.child_id = $1
 
-              WHEN e.id IS NOT NULL
+LEFT JOIN kids_lesson_progress lp
 
-              THEN 0
+ON
+lp.lesson_id = l.id
 
-              ELSE 1
+AND lp.child_id = $1
 
-            END,
+GROUP BY
 
-            c.id DESC
+  c.id,
+  c.title,
+  c.thumbnail
 
-          LIMIT 6
+ORDER BY c.id DESC
+
+LIMIT 6
           `,
           [childId]
         );
@@ -3154,9 +3308,26 @@ router.get(
     try {
 
       const childId =
-        Number(
-          req.query.child_id
-        );
+  parseInt(
+    req.query.child_id,
+    10
+  );
+
+if (
+  Number.isNaN(childId)
+) {
+
+  return res.status(400)
+  .json({
+
+    success:false,
+
+    message:
+      "Invalid child id"
+
+  });
+
+}
 
       // CHILD
       const child =
@@ -3333,6 +3504,8 @@ const rewardsResult =
     [childId]
   );
 
+
+
       return res.json({
 
         success:true,
@@ -3357,14 +3530,14 @@ analytics: {
 
   lessons_today:
     Number(
-      todayActivityResult.rows[0]
-      ?.lessons_completed || 0
+      todayActivity
+      .lessons_completed || 0
     ),
 
   quizzes_today:
     Number(
-      todayActivityResult.rows[0]
-      ?.quizzes_completed || 0
+      todayActivity
+      .quizzes_completed || 0
     ),
 
   coins_today:

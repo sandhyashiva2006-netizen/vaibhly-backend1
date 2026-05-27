@@ -2063,7 +2063,7 @@ router.post(
 // =====================================
 
 router.post(
-  "/enroll-course",
+  "/enroll",
 
   verifyToken,
 

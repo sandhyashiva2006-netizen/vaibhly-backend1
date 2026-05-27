@@ -1069,43 +1069,44 @@ router.post(
 
     try {
 
-      const userId =
-        req.user.id;
+      const {
+        child_id
+      } = req.body;
 
-const {
-  child_id
-} = req.body;
+      if (!child_id) {
 
-      const today =
-        new Date();
+        return res.status(400)
+        .json({
+
+          success:false,
+
+          message:
+            "child_id required"
+
+        });
+
+      }
 
       const todayStr =
-        today
+        new Date()
         .toISOString()
         .split("T")[0];
 
       const existing =
         await pool.query(
-
           `
           SELECT *
-
           FROM kids_daily_streaks
-
           WHERE child_id = $1
           `,
-
           [child_id]
-
         );
 
-      // FIRST TIME
       if (
-        !existing.rows.length
+        existing.rows.length === 0
       ) {
 
         await pool.query(
-
           `
           INSERT INTO
           kids_daily_streaks
@@ -1122,114 +1123,17 @@ const {
             $2
           )
           `,
-
           [
-  child_id,
-  todayStr
-]
-
+            child_id,
+            todayStr
+          ]
         );
 
-        return res.json({
-
-          success: true,
-
-          streak: 1
-
-        });
-
       }
-
-      const streakData =
-        existing.rows[0];
-
-      const lastDate =
-        new Date(
-          streakData
-          .last_activity_date
-        );
-
-      const diffDays =
-        Math.floor(
-
-          (
-            today - lastDate
-          )
-
-          /
-
-          (
-            1000 *
-            60 *
-            60 *
-            24
-          )
-
-        );
-
-      let newStreak =
-        streakData
-        .streak_count;
-
-      // NEXT DAY
-      if (diffDays === 1) {
-
-        newStreak++;
-
-      }
-
-      // MISSED DAYS
-      else if (
-        diffDays > 1
-      ) {
-
-        newStreak = 1;
-
-      }
-
-      // SAME DAY
-      else {
-
-        return res.json({
-
-          success: true,
-
-          streak:
-            newStreak
-
-        });
-
-      }
-
-      await pool.query(
-
-        `
-        UPDATE
-        kids_daily_streaks
-
-        SET
-
-          streak_count = $1,
-
-          last_activity_date = $2
-
-        WHERE child_id = $3
-        `,
-
-        [
-  newStreak,
-  todayStr,
-  child_id
-]
-
-      );
 
       return res.json({
 
-        success: true,
-
-        streak:
-          newStreak
+        success:true
 
       });
 
@@ -1239,9 +1143,13 @@ const {
 
       console.error(err);
 
-      return res.status(500).json({
+      return res.status(500)
+      .json({
 
-        success: false
+        success:false,
+
+        message:
+          err.message
 
       });
 
@@ -3295,7 +3203,7 @@ if (
 
 router.get(
 
-  "/recommended-courses/:childId",
+  "/recommended-courses",
 
   verifyToken,
 
@@ -3513,14 +3421,11 @@ WHERE child_id = $1
 )::int
 AS total_lessons,
 
-COUNT(
-  DISTINCT CASE
-
-    WHEN lp.completed = true
-
-    THEN lp.lesson_id
-
-  END
+COALESCE(
+  COUNT(
+    DISTINCT lp.lesson_id
+  ),
+  0
 )::int
 AS completed_lessons
 

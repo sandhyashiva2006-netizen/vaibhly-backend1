@@ -1974,6 +1974,12 @@ const unlockedBadges =
     child_id
   );
 
+console.log({
+  child_id,
+  xpEarned,
+  coinsEarned
+});
+
       return res.json({
 
         success: true,
@@ -1999,7 +2005,10 @@ unlockedBadges,
 
     catch (err) {
 
-      console.error(err);
+      console.error(
+  "QUIZ SUBMIT ERROR:",
+  err
+);
 
       return res.status(500).json({
 

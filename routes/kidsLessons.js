@@ -825,11 +825,137 @@ const unlockedBadges =
     child_id
   );
 
+const totalLessonsResult =
+  await pool.query(
+    `
+    SELECT COUNT(*)::int AS total
+
+    FROM kids_lessons
+
+    WHERE course_id = (
+
+      SELECT course_id
+
+      FROM kids_lessons
+
+      WHERE id = $1
+
+    )
+    `,
+    [lessonId]
+  );
+
+const completedLessonsResult =
+  await pool.query(
+    `
+    SELECT COUNT(*)::int AS completed
+
+    FROM kids_lesson_progress lp
+
+    JOIN kids_lessons l
+
+    ON l.id = lp.lesson_id
+
+    WHERE
+
+      lp.child_id = $1
+
+      AND l.course_id = (
+
+        SELECT course_id
+
+        FROM kids_lessons
+
+        WHERE id = $2
+
+      )
+
+      AND lp.completed = true
+    `,
+    [
+      child_id,
+      lessonId
+    ]
+  );
+
+const courseIdResult =
+  await pool.query(
+    `
+    SELECT course_id
+
+    FROM kids_lessons
+
+    WHERE id = $1
+    `,
+    [lessonId]
+  );
+
+const courseId =
+  courseIdResult.rows[0]
+  ?.course_id;
+
+const totalLessons =
+  totalLessonsResult.rows[0]
+  ?.total || 0;
+
+const completedLessons =
+  completedLessonsResult.rows[0]
+  ?.completed || 0;
+
+const progress =
+
+  totalLessons === 0
+
+    ? 0
+
+    : Math.round(
+        (
+          completedLessons /
+          totalLessons
+        ) * 100
+      );
+
+await pool.query(
+  `
+  UPDATE kids_enrollments
+
+  SET
+
+    completed_lessons = $1,
+
+    total_lessons = $2,
+
+    progress = $3,
+
+    completed = $4
+
+  WHERE
+
+    child_id = $5
+
+    AND course_id = $6
+  `,
+  [
+    completedLessons,
+    totalLessons,
+    progress,
+    progress >= 100,
+    child_id,
+    courseId
+  ]
+);
+
       return res.json({
 
   success: true,
 
-  unlockedBadges
+  unlockedBadges,
+
+  progress,
+
+  completedLessons,
+
+  totalLessons
 
 });
 

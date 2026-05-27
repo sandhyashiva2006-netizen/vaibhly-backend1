@@ -303,7 +303,7 @@ app.use(
 );
 app.use("/api/kids/profiles", kidsProfilesRoutes);
 app.use("/api/kids", kidsDashboardRoutes);
-app.use("/api/kids", kidsProgressRoutes);
+
 app.use(
   "/api/kids",
   kidsCoursesRoutes

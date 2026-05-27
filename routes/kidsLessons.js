@@ -3176,12 +3176,12 @@ router.get(
           SELECT
 
   COALESCE(
-    SUM(xp),
+    xp,
     0
   ) AS xp,
 
   COALESCE(
-    SUM(coins),
+    coins,
     0
   ) AS coins
 
@@ -3317,31 +3317,31 @@ analytics: {
 
   lessons_today:
     Number(
-      todayActivity
-      .lessons_completed || 0
+      todayActivityResult.rows[0]
+      ?.lessons_completed || 0
     ),
 
   quizzes_today:
     Number(
-      todayActivity
-      .quizzes_completed || 0
+      todayActivityResult.rows[0]
+      ?.quizzes_completed || 0
     ),
 
   coins_today:
     Number(
-      rewards.rows[0]
+      rewardsResult.rows[0]
       ?.coins || 0
     ),
 
   total_xp:
     Number(
-      rewards.rows[0]
+      rewardsResult.rows[0]
       ?.xp || 0
     ),
 
   total_coins:
     Number(
-      rewards.rows[0]
+      rewardsResult.rows[0]
       ?.coins || 0
     )
 

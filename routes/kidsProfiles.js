@@ -240,9 +240,9 @@ WHERE child_id = $1
             SELECT
               streak_count
             FROM kids_daily_streaks
-            WHERE user_id = $1
+            WHERE child_id = $1
             `,
-            [req.user.id]
+            [childId]
           );
 
         streak =

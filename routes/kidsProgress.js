@@ -155,7 +155,7 @@ router.post(
             $3,
             0,
             0,
-            2,
+            0,
             NOW()
           )
           RETURNING *

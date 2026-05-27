@@ -3169,6 +3169,22 @@ router.get(
           [childId]
         );
 
+if (
+  child.rows.length === 0
+) {
+
+  return res.status(404)
+  .json({
+
+    success:false,
+
+    message:
+      "Child profile not found"
+
+  });
+
+}
+
       // REWARDS
       const rewards =
         await pool.query(
@@ -3385,19 +3401,25 @@ analytics: {
 
     catch (err) {
 
-      console.error(err);
+  console.error(
+    "KIDS DASHBOARD ERROR:",
+    err
+  );
 
-      return res.status(500)
-      .json({
+  return res.status(500)
+  .json({
 
-        success:false,
+    success:false,
 
-        error:
-          err.message
+    message:
+      err.message,
 
-      });
+    stack:
+      err.stack
 
-    }
+  });
+
+}
 
   }
 );

@@ -1100,13 +1100,15 @@ router.post(
         await pool.query(
           `
           SELECT *
+
           FROM kids_daily_streaks
+
           WHERE child_id = $1
           `,
           [childId]
         );
 
-let newStreak = 1;
+      let newStreak = 1;
 
       if (
         existing.rows.length === 0
@@ -1125,12 +1127,13 @@ let newStreak = 1;
           VALUES
           (
             $1,
-            1,
-            $2
+            $2,
+            $3
           )
           `,
           [
             childId,
+            1,
             today
           ]
         );
@@ -1139,12 +1142,12 @@ let newStreak = 1;
 
       else {
 
-        const streak =
+        const streakData =
           existing.rows[0];
 
         const lastDate =
           new Date(
-            streak.last_activity_date
+            streakData.last_activity_date
           );
 
         const currentDate =
@@ -1165,7 +1168,7 @@ let newStreak = 1;
           );
 
         newStreak =
-  streak.streak_count;
+          streakData.streak_count;
 
         if (
           diffDays === 1
@@ -1206,17 +1209,11 @@ let newStreak = 1;
 
       return res.json({
 
-  success:true,
+        success:true,
 
-  streak:
+        streak:newStreak
 
-    existing.rows.length === 0
-
-      ? 1
-
-      : newStreak
-
-});
+      });
 
     }
 

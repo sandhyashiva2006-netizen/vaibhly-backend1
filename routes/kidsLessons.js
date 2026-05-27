@@ -3292,11 +3292,6 @@ AS completed_lessons
               r => r.rows[0].total
             ),
 
-          coins_earned:
-            Number(
-              rewards.rows[0]
-              ?.coins || 0
-            )
 
         };
 
@@ -3334,8 +3329,20 @@ analytics: {
 
   coins_today:
     Number(
-      todayActivity
-      .coins_earned || 0
+      rewards.rows[0]
+      ?.coins || 0
+    ),
+
+  total_xp:
+    Number(
+      rewards.rows[0]
+      ?.xp || 0
+    ),
+
+  total_coins:
+    Number(
+      rewards.rows[0]
+      ?.coins || 0
     )
 
 },

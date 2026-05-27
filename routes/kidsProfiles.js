@@ -191,12 +191,22 @@ router.get(
           await pool.query(
             `
             SELECT
-              xp,
-              coins
-            FROM kids_rewards
-            WHERE user_id = $1
+
+  COALESCE(
+    SUM(xp),
+    0
+  ) AS xp,
+
+  COALESCE(
+    SUM(coins),
+    0
+  ) AS coins
+
+FROM kids_rewards
+
+WHERE child_id = $1
             `,
-            [req.user.id]
+            [childId]
           );
 
         totalXP =

@@ -3642,18 +3642,20 @@ analytics: {
   my_courses:
     coursesResult.rows.length,
 
-  coursesResult.reduce(
+lessons_today:
 
-  (sum, course) =>
+  coursesResult.rows.reduce(
 
-    sum +
-    Number(
-      course.completed_lessons || 0
-    ),
+    (sum, course) =>
 
-  0
+      sum +
+      Number(
+        course.completed_lessons || 0
+      ),
 
-)
+    0
+
+  ),
 
   quizzes_today:
     Number(

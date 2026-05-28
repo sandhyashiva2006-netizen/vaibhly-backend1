@@ -1379,112 +1379,69 @@ router.post(
 );
 
 router.post(
+
   "/reward-lesson",
 
   verifyToken,
 
   async (req, res) => {
 
-    try {
+    console.log(
+      "🔥 REWARD ROUTE HIT"
+    );
 
-      const userId =
-        req.user.id;
+    console.log(
+      req.body
+    );
+
+    try {
 
       const {
 
-  xp,
-  coins,
-  child_id
+        xp,
+        coins,
+        child_id
 
-} = req.body;
+      } = req.body;
 
-      const existing =
-        await pool.query(
+      await pool.query(
 
-          `
-          SELECT *
+        `
+        INSERT INTO
+        kids_rewards
+        (
 
-          FROM kids_rewards
-WHERE child_id = $1
-          `,
+          child_id,
+          xp,
+          coins
 
-          [child_id]
+        )
 
-        );
+        VALUES
+        (
+          $1,
+          $2,
+          $3
+        )
 
-      // FIRST TIME
-      if (
-        !existing.rows.length
-      ) {
+        ON CONFLICT (child_id)
 
-        await pool.query(
+        DO UPDATE SET
 
-          `
-          INSERT INTO
-kids_rewards
-(
+          xp =
+            kids_rewards.xp + EXCLUDED.xp,
 
-  child_id,
-  xp,
-  coins
+          coins =
+            kids_rewards.coins + EXCLUDED.coins
+        `,
 
-)
+        [
+          child_id,
+          xp,
+          coins
+        ]
 
-VALUES
-(
-  $1,
-  $2,
-  $3
-)
-
-ON CONFLICT (child_id)
-
-DO UPDATE SET
-
-  xp =
-    kids_rewards.xp + $2,
-
-  coins =
-    kids_rewards.coins + $3
-          `,
-
-          [
-  child_id,
-  xp,
-  coins
-]
-
-        );
-
-      }
-
-      else {
-
-        await pool.query(
-
-          `
-          UPDATE kids_rewards
-
-          SET
-
-            xp = xp + $1,
-
-            coins = coins + $2,
-
-            updated_at = NOW()
-
-          WHERE child_id = $3
-          `,
-
-          [
-  xp,
-  coins,
-  child_id
-]
-
-        );
-
-      }
+      );
 
       const updated =
         await pool.query(
@@ -1493,12 +1450,17 @@ DO UPDATE SET
           SELECT *
 
           FROM kids_rewards
-WHERE child_id = $1
+
+          WHERE child_id = $1
           `,
 
           [child_id]
 
         );
+
+      console.log(
+        "✅ REWARD SAVED"
+      );
 
       return res.json({
 
@@ -1513,17 +1475,24 @@ WHERE child_id = $1
 
     catch (err) {
 
-      console.error(err);
+      console.error(
+        "REWARD ROUTE ERROR:",
+        err
+      );
 
       return res.status(500).json({
 
-        success: false
+        success: false,
+
+        message:
+          err.message
 
       });
 
     }
 
   }
+
 );
 
 // =====================================

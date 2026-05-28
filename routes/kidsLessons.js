@@ -950,6 +950,16 @@ router.post(
         totalLessons
       });
 
+await updateDailyQuestProgress(
+
+  child_id,
+
+  "lesson_complete",
+
+  1
+
+);
+
       return res.json({
 
         success: true,
@@ -1046,6 +1056,16 @@ DO UPDATE SET
 ]
 
       );
+
+await updateDailyQuestProgress(
+
+  child_id,
+
+  "study_time",
+
+  watched_seconds
+
+);
 
       return res.json({
 
@@ -1712,6 +1732,16 @@ await checkAndUnlockBadges(
       );
 
       if (isCorrect) {
+
+await updateDailyQuestProgress(
+
+  child_id,
+
+  "quiz_complete",
+
+  1
+
+);
 
         const existingRewards =
           await pool.query(
@@ -3835,6 +3865,139 @@ lessons_today:
   }
 );
 
+async function updateDailyQuestProgress(
 
+  child_id,
+  type,
+  amount = 1
+
+) {
+
+  try {
+
+    const quests =
+      await pool.query(
+        `
+        SELECT *
+
+        FROM kids_daily_quests
+
+        WHERE
+
+          trigger_type = $1
+
+          AND is_active = true
+        `,
+        [type]
+      );
+
+    for (const quest of quests.rows) {
+
+      const existing =
+        await pool.query(
+          `
+          SELECT *
+
+          FROM kids_user_quests
+
+          WHERE
+
+            child_id = $1
+
+            AND quest_id = $2
+
+            AND created_date = CURRENT_DATE
+          `,
+          [
+            child_id,
+            quest.id
+          ]
+        );
+
+      let progress = amount;
+
+      if (
+        existing.rows.length
+      ) {
+
+        progress =
+
+          Number(
+            existing.rows[0]
+            .progress_count || 0
+          ) + amount;
+
+      }
+
+      const completed =
+
+        progress >=
+        quest.target_count;
+
+      await pool.query(
+        `
+        INSERT INTO
+        kids_user_quests
+        (
+
+          child_id,
+          quest_id,
+          progress_count,
+          completed,
+          claimed,
+          created_date
+
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          $3,
+          $4,
+          false,
+          CURRENT_DATE
+        )
+
+        ON CONFLICT
+        (
+          child_id,
+          quest_id,
+          created_date
+        )
+
+        DO UPDATE SET
+
+          progress_count = $3,
+
+          completed = $4
+        `,
+        [
+
+          child_id,
+
+          quest.id,
+
+          progress,
+
+          completed
+
+        ]
+      );
+
+    }
+
+  }
+
+  catch (err) {
+
+    console.error(
+      "QUEST UPDATE ERROR:",
+      err
+    );
+
+  }
+
+}
 
 module.exports = router;

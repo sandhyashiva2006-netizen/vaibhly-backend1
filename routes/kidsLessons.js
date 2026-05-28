@@ -1398,78 +1398,86 @@ router.post(
 
       const {
 
-        xp,
-        coins,
-        child_id
+  xp,
+  coins,
+  child_id
 
-      } = req.body;
+} = req.body;
 
-      await pool.query(
+console.log({
+  xp,
+  coins,
+  child_id
+});
 
-        `
-        INSERT INTO
-        kids_rewards
-        (
+await pool.query(
 
-          child_id,
-          xp,
-          coins
+  `
+  INSERT INTO kids_rewards
+  (
 
-        )
+    child_id,
+    xp,
+    coins
 
-        VALUES
-        (
-          $1,
-          $2,
-          $3
-        )
+  )
 
-        ON CONFLICT (child_id)
+  VALUES
+  (
+    $1,
+    $2,
+    $3
+  )
 
-        DO UPDATE SET
+  ON CONFLICT (child_id)
 
-          xp =
-            kids_rewards.xp + EXCLUDED.xp,
+  DO UPDATE SET
 
-          coins =
-            kids_rewards.coins + EXCLUDED.coins
-        `,
+    xp =
+      kids_rewards.xp + EXCLUDED.xp,
 
-        [
-          child_id,
-          xp,
-          coins
-        ]
+    coins =
+      kids_rewards.coins + EXCLUDED.coins,
 
-      );
+    updated_at = NOW()
+  `,
 
-      const updated =
-        await pool.query(
+  [
+    child_id,
+    xp,
+    coins
+  ]
 
-          `
-          SELECT *
+);
 
-          FROM kids_rewards
+const updated =
+  await pool.query(
 
-          WHERE child_id = $1
-          `,
+    `
+    SELECT *
 
-          [child_id]
+    FROM kids_rewards
 
-        );
+    WHERE child_id = $1
+    `,
 
-      console.log(
-        "✅ REWARD SAVED"
-      );
+    [child_id]
 
-      return res.json({
+  );
 
-        success: true,
+console.log(
+  "✅ UPDATED REWARDS:",
+  updated.rows[0]
+);
 
-        rewards:
-          updated.rows[0]
+return res.json({
 
-      });
+  success: true,
+
+  rewards:
+    updated.rows[0]
+
+});
 
     }
 

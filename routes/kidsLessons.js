@@ -1603,8 +1603,7 @@ router.post(
       const quizId =
         Number(req.params.quizId);
 
-      const userId =
-        req.user.id;
+      
 
       const {
 
@@ -1765,10 +1764,10 @@ ON CONFLICT (child_id)
 DO UPDATE SET
 
   xp =
-    kids_rewards.xp + $2,
+    kids_rewards.xp + EXCLUDED.xp,
 
   coins =
-    kids_rewards.coins + $3
+    kids_rewards.coins + EXCLUDED.coins
             `,
             [
   child_id,
@@ -1976,9 +1975,10 @@ const unlockedBadges =
 
 console.log({
   child_id,
-  xpEarned,
-  coinsEarned
+  earnedXP,
+  earnedCoins
 });
+
 
       return res.json({
 
@@ -2039,7 +2039,7 @@ router.get(
 
       const childId =
   parseInt(
-    req.query.child_id,
+    req.query.childId,
     10
   );
 
@@ -3297,7 +3297,7 @@ if (
 
           ON uq.quest_id = q.id
 
-          AND uq.user_id = $1
+          AND uq.child_id = $1
 
           AND uq.created_date = CURRENT_DATE
 
@@ -3351,7 +3351,7 @@ router.get(
 
       const childId =
   parseInt(
-    req.query.child_id,
+    req.params.childId,
     10
   );
 
@@ -3628,12 +3628,12 @@ if (
           SELECT
 
   COALESCE(
-    SUM(xp),
+    xp,
     0
   ) AS xp,
 
   COALESCE(
-    SUM(coins),
+    coins,
     0
   ) AS coins
 

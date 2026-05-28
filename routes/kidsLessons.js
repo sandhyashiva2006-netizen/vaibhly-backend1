@@ -4000,4 +4000,201 @@ async function updateDailyQuestProgress(
 
 }
 
+router.post(
+
+  "/claim-quest",
+
+  verifyToken,
+
+  async (req, res) => {
+
+    try {
+
+      const {
+
+        child_id,
+        quest_id
+
+      } = req.body;
+
+      const questResult =
+        await pool.query(
+          `
+          SELECT *
+
+          FROM kids_daily_quests
+
+          WHERE id = $1
+          `,
+          [quest_id]
+        );
+
+      if (
+        !questResult.rows.length
+      ) {
+
+        return res.status(404)
+        .json({
+
+          success:false
+
+        });
+
+      }
+
+      const quest =
+        questResult.rows[0];
+
+      const progress =
+        await pool.query(
+          `
+          SELECT *
+
+          FROM kids_user_quests
+
+          WHERE
+
+            child_id = $1
+
+            AND quest_id = $2
+
+            AND created_date = CURRENT_DATE
+          `,
+          [
+            child_id,
+            quest_id
+          ]
+        );
+
+      if (
+        !progress.rows.length
+      ) {
+
+        return res.json({
+
+          success:false,
+
+          message:
+            "Quest not started"
+
+        });
+
+      }
+
+      const userQuest =
+        progress.rows[0];
+
+      if (
+        userQuest.claimed
+      ) {
+
+        return res.json({
+
+          success:false,
+
+          message:
+            "Already claimed"
+
+        });
+
+      }
+
+      if (
+        !userQuest.completed
+      ) {
+
+        return res.json({
+
+          success:false,
+
+          message:
+            "Quest incomplete"
+
+        });
+
+      }
+
+      await pool.query(
+        `
+        UPDATE kids_user_quests
+
+        SET claimed = true
+
+        WHERE id = $1
+        `,
+        [userQuest.id]
+      );
+
+      await pool.query(
+        `
+        INSERT INTO kids_rewards
+        (
+
+          child_id,
+          xp,
+          coins
+
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          $3
+        )
+
+        ON CONFLICT (child_id)
+
+        DO UPDATE SET
+
+          xp =
+            kids_rewards.xp + EXCLUDED.xp,
+
+          coins =
+            kids_rewards.coins + EXCLUDED.coins,
+
+          updated_at = NOW()
+        `,
+        [
+
+          child_id,
+
+          quest.reward_xp,
+
+          quest.reward_coins
+
+        ]
+      );
+
+      return res.json({
+
+        success:true,
+
+        xp:
+          quest.reward_xp,
+
+        coins:
+          quest.reward_coins
+
+      });
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      return res.status(500)
+      .json({
+
+        success:false
+
+      });
+
+    }
+
+  }
+);
+
+
 module.exports = router;

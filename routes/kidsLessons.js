@@ -1061,7 +1061,7 @@ await updateDailyQuestProgress(
 
   child_id,
 
-  "study_time",
+  "watch_time",
 
   watched_seconds
 
@@ -1737,7 +1737,7 @@ await updateDailyQuestProgress(
 
   child_id,
 
-  "quiz_complete",
+  "quiz_answer",
 
   1
 

@@ -1582,6 +1582,16 @@ router.post(
 
 } = req.body;
 
+console.log({
+
+  selected_option,
+
+  child_id,
+
+  body: req.body
+
+});
+
       const quizResult =
         await pool.query(
           `

@@ -2039,7 +2039,7 @@ router.get(
 
       const childId =
   parseInt(
-    req.query.childId,
+    req.params.childId,
     10
   );
 

@@ -3884,7 +3884,7 @@ async function updateDailyQuestProgress(
 
         WHERE
 
-          trigger_type = $1
+  quest_type = $1
 
           AND is_active = true
         `,

@@ -1,3 +1,21 @@
+const express =
+  require("express");
+
+const router =
+  express.Router();
+
+const pool =
+  require("../config/db");
+
+const {
+  verifyToken
+} = require(
+  "../middleware/auth.middleware"
+);
+
+console.log(
+  "✅ kidsCertificates routes loaded"
+);
 
 router.get(
   "/my-certificates",

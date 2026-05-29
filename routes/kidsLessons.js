@@ -944,6 +944,68 @@ router.post(
         ]
       );
 
+if (progress >= 100) {
+
+  const existingCert =
+    await pool.query(
+      `
+      SELECT id
+
+      FROM kids_certificates
+
+      WHERE
+
+        child_id = $1
+
+        AND course_id = $2
+      `,
+      [
+        child_id,
+        course_id
+      ]
+    );
+
+  if (
+    !existingCert.rows.length
+  ) {
+
+    const certId =
+      "KID-" +
+      Math.random()
+        .toString(36)
+        .substring(2,10)
+        .toUpperCase();
+
+    await pool.query(
+      `
+      INSERT INTO
+      kids_certificates
+      (
+
+        child_id,
+        course_id,
+        certificate_id
+
+      )
+
+      VALUES
+      (
+        $1,
+        $2,
+        $3
+      )
+      `,
+      [
+        child_id,
+        course_id,
+        certId
+      ]
+    );
+
+  }
+
+}
+
       console.log({
         progress,
         completedLessons,

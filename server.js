@@ -85,6 +85,8 @@ const kidsLessonsRoutes =
   require("./routes/kidsLessons");
 const kidsCertificatesRoutes =
   require("./routes/kidsCertificates.routes");
+const kidsDailyQuizRoutes =
+  require("./routes/kidsDailyQuiz");
 
 /* ================= MIDDLEWARE ================= */
 
@@ -184,6 +186,20 @@ app.get("/kids-player.html", (req, res) => {
     path.join(CLIENT_ROOT, "kids-player.html")
   );
 });
+
+app.get(
+  "/kids-daily-quiz.html",
+  (req, res) => {
+
+    res.sendFile(
+      path.join(
+        CLIENT_ROOT,
+        "kids-daily-quiz.html"
+      )
+    );
+
+  }
+);
 
 // 🌍 Public profile route
 app.get("/u/:username", (req, res) => {
@@ -318,6 +334,11 @@ app.use(
   "/api/kids-certificates",
   kidsCertificatesRoutes
 );
+app.use(
+  "/api/kids/daily-quiz",
+  kidsDailyQuizRoutes
+);
+
 
 app.get("/kids", (req, res) => {
   res.sendFile(

@@ -87,6 +87,11 @@ const kidsCertificatesRoutes =
   require("./routes/kidsCertificates.routes");
 const kidsDailyQuizRoutes =
   require("./routes/kidsDailyQuiz");
+const kidsAchievementsRoutes =
+require(
+  "./routes/kidsAchievements"
+);
+
 
 /* ================= MIDDLEWARE ================= */
 
@@ -337,6 +342,10 @@ app.use(
 app.use(
   "/api/kids/daily-quiz",
   kidsDailyQuizRoutes
+);
+app.use(
+  "/api/kids/achievements",
+  kidsAchievementsRoutes
 );
 
 

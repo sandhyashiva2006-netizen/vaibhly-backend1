@@ -944,6 +944,15 @@ router.post(
         ]
       );
 
+console.log(
+  "🏆 CERTIFICATE CHECK",
+  {
+    child_id,
+    course_id,
+    progress
+  }
+);
+
 if (progress >= 100) {
 
   const existingCert =
@@ -968,6 +977,10 @@ if (progress >= 100) {
   if (
     !existingCert.rows.length
   ) {
+
+console.log(
+  "🏆 CREATING CERTIFICATE"
+);
 
     const certId =
       "KID-" +
@@ -1000,6 +1013,11 @@ if (progress >= 100) {
         course_id,
         certId
       ]
+    );
+
+  console.log(
+      "🏆 CERTIFICATE CREATED",
+      certId
     );
 
   }

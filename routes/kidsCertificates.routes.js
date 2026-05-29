@@ -64,4 +64,84 @@ router.get(
   }
 );
 
+router.get(
+  "/:certificateId",
+
+  verifyToken,
+
+  async (req,res) => {
+
+    try {
+
+      const certId =
+        req.params.certificateId;
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+
+            kc.*,
+
+            kp.child_name,
+
+            c.title
+              AS course_title
+
+          FROM kids_certificates kc
+
+          JOIN kids_profiles kp
+
+          ON kp.id = kc.child_id
+
+          JOIN kids_courses c
+
+          ON c.id = kc.course_id
+
+          WHERE
+          kc.certificate_id = $1
+          `,
+          [certId]
+        );
+
+      if (
+        !result.rows.length
+      ) {
+
+        return res.status(404)
+        .json({
+
+          success:false
+
+        });
+
+      }
+
+      return res.json({
+
+        success:true,
+
+        certificate:
+          result.rows[0]
+
+      });
+
+    }
+
+    catch(err) {
+
+      console.error(err);
+
+      return res.status(500)
+      .json({
+
+        success:false
+
+      });
+
+    }
+
+  }
+);
+
 module.exports = router;

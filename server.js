@@ -325,7 +325,14 @@ app.get("/kids", (req, res) => {
   );
 });
 
-
+app.get("/kids-certificate.html", (req, res) => {
+  res.sendFile(
+    path.join(
+      CLIENT_ROOT,
+      "kids-certificate.html"
+    )
+  );
+});
 
 
 

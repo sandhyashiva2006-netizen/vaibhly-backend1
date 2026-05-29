@@ -1,3 +1,4 @@
+
 router.get(
   "/my-certificates",
   verifyToken,
@@ -44,3 +45,5 @@ router.get(
 
   }
 );
+
+module.exports = router;

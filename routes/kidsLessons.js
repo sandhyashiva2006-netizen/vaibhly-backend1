@@ -3710,36 +3710,51 @@ ORDER BY e.id DESC
 
       // TODAY ACTIVITY
       const todayActivity =
-        {
+{
 
-          lessons_completed:
-            await pool.query(
-              `
-              SELECT COUNT(*)::int AS total
-              FROM kids_lesson_progress
-              WHERE
-              child_id = $1
-              AND completed = true
-              `,
-              [childId]
-            ).then(
-              r => r.rows[0].total
-            ),
+  lessons_completed:
+    await pool.query(
+      `
+      SELECT COUNT(*)::int AS total
+      FROM kids_lesson_progress
+      WHERE
+      child_id = $1
+      AND completed = true
+      `,
+      [childId]
+    ).then(
+      r => r.rows[0].total
+    ),
 
-          quizzes_completed:
-            await pool.query(
-              `
-              SELECT COUNT(*)::int AS total
-              FROM kids_quiz_attempts
-              WHERE child_id = $1
-              `,
-              [childId]
-            ).then(
-              r => r.rows[0].total
-            ),
+  quizzes_completed:
+    await pool.query(
+      `
+      SELECT COUNT(*)::int AS total
+      FROM kids_quiz_attempts
+      WHERE child_id = $1
+      `,
+      [childId]
+    ).then(
+      r => r.rows[0].total
+    ),
 
+  streak:
+    await pool.query(
+      `
+      SELECT
+        COALESCE(
+          streak_count,
+          0
+        ) AS streak
+      FROM kids_daily_streaks
+      WHERE child_id = $1
+      `,
+      [childId]
+    ).then(
+      r => r.rows[0]?.streak || 0
+    )
 
-        };
+};
 
 const rewardsResult =
   await pool.query(

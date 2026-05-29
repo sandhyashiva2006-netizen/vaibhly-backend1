@@ -7,6 +7,353 @@ const {
   verifyToken
 } = require("../middleware/auth.middleware");
 
+async function updateDailyQuestProgress(
+
+  child_id,
+  type,
+  amount = 1
+
+) {
+
+  try {
+
+    const quests =
+      await pool.query(
+        `
+        SELECT *
+
+        FROM kids_daily_quests
+
+        WHERE
+
+  quest_type = $1
+
+          AND is_active = true
+        `,
+        [type]
+      );
+
+    for (const quest of quests.rows) {
+
+      const existing =
+        await pool.query(
+          `
+          SELECT *
+
+          FROM kids_user_quests
+
+          WHERE
+
+            child_id = $1
+
+            AND quest_id = $2
+
+            AND created_date = CURRENT_DATE
+          `,
+          [
+            child_id,
+            quest.id
+          ]
+        );
+
+      let progress = amount;
+
+      if (
+        existing.rows.length
+      ) {
+
+        progress =
+
+          Number(
+            existing.rows[0]
+            .progress_count || 0
+          ) + amount;
+
+      }
+
+      const completed =
+
+        progress >=
+        quest.target_count;
+
+      await pool.query(
+        `
+        INSERT INTO
+        kids_user_quests
+        (
+
+          child_id,
+          quest_id,
+          progress_count,
+          completed,
+          claimed,
+          created_date
+
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          $3,
+          $4,
+          false,
+          CURRENT_DATE
+        )
+
+        ON CONFLICT
+        (
+          child_id,
+          quest_id,
+          created_date
+        )
+
+        DO UPDATE SET
+
+          progress_count = $3,
+
+          completed = $4
+        `,
+        [
+
+          child_id,
+
+          quest.id,
+
+          progress,
+
+          completed
+
+        ]
+      );
+
+    }
+
+  }
+
+  catch (err) {
+
+    console.error(
+      "QUEST UPDATE ERROR:",
+      err
+    );
+
+  }
+
+}
+
+async function checkAndUnlockBadges(
+  child_id
+) {
+
+  try {
+
+    const newlyUnlocked = [];
+
+    // EXISTING BADGES
+    const existingBadges =
+      await pool.query(
+        `
+        SELECT badge_name
+        FROM kids_badges
+        WHERE child_id = $1
+        `,
+        [child_id]
+      );
+
+    const earned =
+      existingBadges.rows.map(
+        b => b.badge_name
+      );
+
+    // LESSON COUNT
+    const lessonsResult =
+      await pool.query(
+        `
+        SELECT COUNT(*)::int AS total
+        FROM kids_lesson_progress
+        WHERE
+        child_id = $1
+        AND completed = true
+        `,
+        [child_id]
+      );
+
+    const lessonsCompleted =
+      lessonsResult.rows[0].total;
+
+    // QUIZ COUNT
+    const quizResult =
+      await pool.query(
+        `
+        SELECT COUNT(*)::int AS total
+        FROM kids_quiz_attempts
+        WHERE
+        child_id = $1
+        AND is_correct = true
+        `,
+        [child_id]
+      );
+
+    const quizzesCompleted =
+      quizResult.rows[0].total;
+
+    // XP
+    const xpResult =
+      await pool.query(
+        `
+        SELECT xp
+        FROM kids_rewards
+WHERE child_id = $1
+        `,
+        [child_id]
+      );
+
+    const totalXP =
+      Number(
+        xpResult.rows[0]?.xp || 0
+      );
+
+    // STREAK
+    const streakResult =
+      await pool.query(
+        `
+        SELECT streak_count
+        FROM kids_daily_streaks
+        WHERE child_id = $1
+        `,
+        [child_id]
+      );
+
+    const streak =
+      Number(
+        streakResult.rows[0]
+        ?.streak_count || 0
+      );
+
+    // RULES
+    const rules =
+      await pool.query(
+        `
+        SELECT *
+        FROM kids_badge_rules
+        `
+      );
+
+    for (const rule of rules.rows) {
+
+      if (
+        earned.includes(
+          rule.badge_name
+        )
+      ) {
+
+        continue;
+
+      }
+
+      let unlocked = false;
+
+      if (
+        rule.trigger_type ===
+        "lessons_completed"
+      ) {
+
+        unlocked =
+          lessonsCompleted >=
+          rule.trigger_value;
+
+      }
+
+      if (
+        rule.trigger_type ===
+        "quizzes_completed"
+      ) {
+
+        unlocked =
+          quizzesCompleted >=
+          rule.trigger_value;
+
+      }
+
+      if (
+        rule.trigger_type ===
+        "xp_earned"
+      ) {
+
+        unlocked =
+          totalXP >=
+          rule.trigger_value;
+
+      }
+
+      if (
+        rule.trigger_type ===
+        "streak_days"
+      ) {
+
+        unlocked =
+          streak >=
+          rule.trigger_value;
+
+      }
+
+      if (unlocked) {
+
+        const inserted =
+          await pool.query(
+            `
+            INSERT INTO kids_badges
+            (
+              child_id,
+              badge_name,
+              badge_icon,
+              badge_type,
+              earned_at
+            )
+
+            VALUES
+            (
+              $1,
+              $2,
+              $3,
+              'achievement',
+              NOW()
+            )
+
+            RETURNING *
+            `,
+            [
+  child_id,
+  rule.badge_name,
+  rule.badge_icon
+]
+          );
+
+        newlyUnlocked.push(
+          inserted.rows[0]
+        );
+
+      }
+
+    }
+
+    return newlyUnlocked;
+
+  }
+
+  catch (err) {
+
+    console.error(
+      "Badge unlock error:",
+      err
+    );
+
+    return [];
+
+  }
+
+}
 
 
 router.get(
@@ -210,27 +557,58 @@ await pool.query(
 
 if (correct) {
 
-        await pool.query(
-          `
-          UPDATE kids_rewards
-          SET
+  await updateDailyQuestProgress(
+    child_id,
+    "quiz_answer",
+    1
+  );
 
-            xp =
-              COALESCE(xp,0)+$1,
+}
 
-            coins =
-              COALESCE(coins,0)+$2
+if (correct) {
 
-          WHERE child_id = $3
-          `,
-          [
-            xp,
-            coins,
-            child_id
-          ]
-        );
+  await pool.query(
+    `
+    INSERT INTO kids_rewards
+    (
+      child_id,
+      xp,
+      coins
+    )
 
-      }
+    VALUES
+    (
+      $1,
+      $2,
+      $3
+    )
+
+    ON CONFLICT (child_id)
+
+    DO UPDATE SET
+
+      xp =
+        kids_rewards.xp +
+        EXCLUDED.xp,
+
+      coins =
+        kids_rewards.coins +
+        EXCLUDED.coins,
+
+      updated_at = NOW()
+    `,
+    [
+      child_id,
+      xp,
+      coins
+    ]
+  );
+
+}
+
+await checkAndUnlockBadges(
+  child_id
+);
 
       await pool.query(
         `

@@ -4111,6 +4111,126 @@ lessons_today:
   }
 );
 
+router.get(
+  "/my-collection",
+  verifyToken,
+  async (req, res) => {
+
+    try {
+
+      const childId =
+        parseInt(
+          req.query.child_id,
+          10
+        );
+
+      if (
+        Number.isNaN(childId)
+      ) {
+
+        return res.status(400)
+        .json({
+          success:false
+        });
+
+      }
+
+      const pets =
+        await pool.query(
+          `
+          SELECT
+            s.item_name
+          FROM kids_purchases p
+          JOIN kids_shop_items s
+          ON s.id = p.item_id
+          WHERE
+            p.child_id = $1
+            AND s.item_type = 'pet'
+          `,
+          [childId]
+        );
+
+      const frames =
+        await pool.query(
+          `
+          SELECT
+            s.item_name
+          FROM kids_purchases p
+          JOIN kids_shop_items s
+          ON s.id = p.item_id
+          WHERE
+            p.child_id = $1
+            AND s.item_type = 'avatar_frame'
+          `,
+          [childId]
+        );
+
+      const themes =
+        await pool.query(
+          `
+          SELECT
+            s.item_name
+          FROM kids_purchases p
+          JOIN kids_shop_items s
+          ON s.id = p.item_id
+          WHERE
+            p.child_id = $1
+            AND s.item_type = 'theme'
+          `,
+          [childId]
+        );
+
+      const badges =
+        await pool.query(
+          `
+          SELECT
+            badge_name
+          FROM kids_badges
+          WHERE child_id = $1
+          ORDER BY earned_at DESC
+          `,
+          [childId]
+        );
+
+      return res.json({
+
+        success:true,
+
+        pets:
+          pets.rows,
+
+        frames:
+          frames.rows,
+
+        themes:
+          themes.rows,
+
+        badges:
+          badges.rows
+
+      });
+
+    }
+
+    catch(err) {
+
+      console.error(
+        "MY COLLECTION ERROR:",
+        err
+      );
+
+      return res.status(500)
+      .json({
+
+        success:false
+
+      });
+
+    }
+
+  }
+);
+
 async function updateDailyQuestProgress(
 
   child_id,

@@ -1034,15 +1034,16 @@ console.log(req.body);
 
   try {
     const {
-      title,
-      description,
-      price,
-      class_level,
-      subject,
-      learning_path,
-      kids_style,
-      thumbnail_icon
-    } = req.body;
+  title,
+  description,
+  price,
+  class_level,
+  subject,
+  learning_path,
+  world_slug,
+  kids_style,
+  thumbnail_icon
+} = req.body;
 
     if (!title || !class_level || !subject || !learning_path) {
       return res.status(400).json({
@@ -1053,36 +1054,38 @@ console.log(req.body);
     const result = await pool.query(
       `
       INSERT INTO courses
-      (
-        title,
-        description,
-        price,
-        instructor_id,
-        created_by_role,
-        is_kids,
-        audience,
-        class_level,
-        subject,
-        learning_path,
-        kids_style,
-        thumbnail_icon,
-        status
-      )
+(
+  title,
+  description,
+  price,
+  instructor_id,
+  created_by_role,
+  is_kids,
+  audience,
+  class_level,
+  subject,
+  learning_path,
+  world_slug,
+  kids_style,
+  thumbnail_icon,
+  status
+)
       VALUES
-      ($1,$2,$3,$4,'admin',true,'kids',$5,$6,$7,$8,$9,'active')
+      ($1,$2,$3,$4,'admin',true,'kids',$5,$6,$7,$8,$9,$10,'active')
       RETURNING *
       `,
       [
-        title,
-        description || "",
-        Number(price) || 0,
-        req.user.id,
-        class_level,
-        subject,
-        learning_path,
-        kids_style || "story",
-        thumbnail_icon || "📚"
-      ]
+  title,
+  description || "",
+  Number(price) || 0,
+  req.user.id,
+  class_level,
+  subject,
+  learning_path,
+  world_slug || "learning-village",
+  kids_style || "story",
+  thumbnail_icon || "📚"
+]
     );
 
     res.json(result.rows[0]);

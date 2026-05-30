@@ -14,13 +14,26 @@ router.get(
     try {
 
       const result =
-        await pool.query(
-          `
-          SELECT *
-          FROM kids_courses
-          ORDER BY id ASC
-          `
-        );
+await pool.query(
+`
+SELECT
+  id,
+  title,
+  description,
+  class_level,
+  subject,
+  learning_path,
+  world_slug,
+  thumbnail_icon,
+  price
+FROM courses
+WHERE
+  is_kids = true
+OR
+  audience = 'kids'
+ORDER BY id DESC
+`
+);
 
       return res.json(
         result.rows
@@ -61,8 +74,13 @@ router.get(
         await pool.query(
           `
           SELECT *
-          FROM kids_courses
-          WHERE id = $1
+FROM courses
+WHERE id = $1
+AND
+(
+  is_kids = true
+  OR audience = 'kids'
+)
           `,
           [courseId]
         );

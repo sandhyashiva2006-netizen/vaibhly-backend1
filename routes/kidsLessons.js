@@ -1040,6 +1040,12 @@ await updateDailyQuestProgress(
 
 );
 
+await updateWeeklyChallengeProgress(
+  child_id,
+  "lesson",
+  1
+);
+
       return res.json({
 
         success: true,
@@ -1146,6 +1152,7 @@ await updateDailyQuestProgress(
   watched_seconds
 
 );
+
 
       return res.json({
 
@@ -1823,6 +1830,12 @@ await updateDailyQuestProgress(
 
 );
 
+await updateWeeklyChallengeProgress(
+  child_id,
+  "quiz",
+  1
+);
+
         const existingRewards =
           await pool.query(
             `
@@ -1901,6 +1914,16 @@ DO UPDATE SET
         }
 
       }
+
+if (earnedXP > 0) {
+
+  await updateWeeklyChallengeProgress(
+    child_id,
+    "xp",
+    earnedXP
+  );
+
+}
 
 // =====================================
 // UPDATE LEARNING PROFILE
@@ -2118,7 +2141,115 @@ unlockedBadges,
   }
 );
 
+async function updateWeeklyChallengeProgress(
+  child_id,
+  challengeType,
+  amount = 1
+) {
 
+  try {
+
+    const challenges =
+      await pool.query(
+        `
+        SELECT *
+        FROM kids_weekly_challenges
+        WHERE
+          challenge_type = $1
+          AND is_active = true
+        `,
+        [challengeType]
+      );
+
+    for (const challenge of challenges.rows) {
+
+      const existing =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_weekly_challenge_progress
+          WHERE
+            child_id = $1
+            AND challenge_id = $2
+          `,
+          [
+            child_id,
+            challenge.id
+          ]
+        );
+
+      let progress = amount;
+
+      if (
+        existing.rows.length
+      ) {
+
+        progress =
+          Number(
+            existing.rows[0]
+            .progress_value || 0
+          ) + amount;
+
+      }
+
+      const completed =
+        progress >=
+        challenge.target_value;
+
+      await pool.query(
+        `
+        INSERT INTO
+        kids_weekly_challenge_progress
+        (
+          child_id,
+          challenge_id,
+          progress_value,
+          completed
+        )
+        VALUES
+        (
+          $1,
+          $2,
+          $3,
+          $4
+        )
+
+        ON CONFLICT
+        (
+          child_id,
+          challenge_id
+        )
+
+        DO UPDATE SET
+
+          progress_value = $3,
+
+          completed = $4,
+
+          updated_at = NOW()
+        `,
+        [
+          child_id,
+          challenge.id,
+          progress,
+          completed
+        ]
+      );
+
+    }
+
+  }
+
+  catch(err) {
+
+    console.error(
+      "WEEKLY CHALLENGE ERROR:",
+      err
+    );
+
+  }
+
+}
 
 // =====================================
 // LEARNING PROFILE

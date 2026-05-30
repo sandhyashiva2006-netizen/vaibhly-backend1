@@ -3234,6 +3234,14 @@ router.post(
 
       }
 
+if (
+  shopItem.item_type ===
+  "avatar_accessory"
+) {
+  field =
+    "active_accessory";
+}
+
 await pool.query(
   `
   INSERT INTO kids_active_items

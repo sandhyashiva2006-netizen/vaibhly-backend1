@@ -392,112 +392,86 @@ fs.unlinkSync(file.path);
 
 router.get(
   "/lessons/:courseId",
-verifyToken,
-  async (req, res) => {
+  verifyToken,
+  async (req,res)=>{
 
-    console.log(
-      "✅ LESSON ROUTE HIT:",
-      req.params.courseId
-    );
-
-    try {
+    try{
 
       const courseId =
-        Number(req.params.courseId);
+      Number(req.params.courseId);
 
       const result =
-  await pool.query(
-    `
-    SELECT
+      await pool.query(
+      `
+      SELECT
 
-      l.id,
-      l.course_id,
-      l.title,
-      l.description,
-      l.video_file,
-      l.pdf_file,
-      l.notes,
-      l.lesson_order,
-      l.created_at,
+        l.id,
+        l.title,
 
-      COALESCE(
-        p.completed,
-        false
-      ) AS completed,
+        l.content_type,
 
-      COALESCE(
-        p.watched_seconds,
-        0
-      ) AS watched_seconds,
+        l.content,
 
-      COALESCE(
-        e.completed,
-        false
-      ) AS course_completed
+        l.position,
 
-    FROM kids_lessons l
+        false AS completed,
 
-    LEFT JOIN
-    kids_lesson_progress p
+        0 AS watched_seconds,
 
-    ON
-    p.lesson_id = l.id
+        false AS course_completed
 
-    AND
-    p.child_id = $2
+      FROM course_modules m
 
-    LEFT JOIN
-    kids_enrollments e
+      JOIN course_lessons l
 
-    ON
-    e.course_id = l.course_id
+      ON l.module_id = m.id
 
-    AND
-    e.child_id = $2
+      WHERE m.course_id = $1
 
-    WHERE l.course_id = $1
-
-    ORDER BY l.lesson_order ASC
-    `,
-    [
-      courseId,
-      Number(req.query.child_id || 0)
-    ]
-  );
-
-console.log(
-  "LESSONS:",
-  result.rows
-);
+      ORDER BY
+      m.position,
+      l.position
+      `,
+      [courseId]
+      );
 
       return res.json({
 
-        success: true,
+        success:true,
 
         lessons:
-          result.rows
+        result.rows.map(
+          lesson=>({
+
+            ...lesson,
+
+            video_file:
+              lesson.content_type ===
+              "video"
+              ? lesson.content
+              : null,
+
+            pdf_file:
+              lesson.content_type ===
+              "pdf"
+              ? lesson.content
+              : null,
+
+            description:"",
+            notes:""
+
+          })
+        )
 
       });
 
     }
+    catch(err){
 
-    catch (err) {
+      console.error(err);
 
-      console.error(
-        "❌ GET kids lessons FULL ERROR:",
-        err
-      );
-
-      return res.status(500).json({
-
-        success: false,
-
-        message:
-          err.message,
-
-        error:
-          err
-
+      res.status(500).json({
+        success:false
       });
 
     }

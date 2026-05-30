@@ -4562,5 +4562,128 @@ router.post(
   }
 );
 
+router.get(
+  "/world-courses",
+  verifyToken,
+  async (req,res)=>{
+
+    const world =
+      req.query.world;
+
+    const courses =
+      await pool.query(
+        `
+        SELECT *
+        FROM kids_courses
+        WHERE world_slug = $1
+        ORDER BY id DESC
+        `,
+        [world]
+      );
+
+    res.json({
+      success:true,
+      courses:courses.rows
+    });
+
+  }
+);
+
+router.post(
+  "/admin/kids-courses",
+  async (req, res) => {
+
+    try {
+
+      const {
+
+        title,
+        description,
+        price,
+        class_level,
+        subject,
+        learning_path,
+        world_slug,
+        kids_style,
+        thumbnail_icon,
+        status
+
+      } = req.body;
+
+      const result =
+        await pool.query(
+          `
+          INSERT INTO kids_courses
+          (
+
+            title,
+            description,
+            price,
+            class_level,
+            subject,
+            learning_path,
+            world_slug,
+            kids_style,
+            thumbnail_icon,
+            status
+
+          )
+
+          VALUES
+          (
+            $1,$2,$3,$4,$5,
+            $6,$7,$8,$9,$10
+          )
+
+          RETURNING *
+          `,
+          [
+
+            title,
+            description,
+            Number(price || 0),
+            class_level,
+            subject,
+            learning_path,
+            world_slug || "learning-village",
+            kids_style,
+            thumbnail_icon,
+            status || "active"
+
+          ]
+        );
+
+      return res.json({
+
+        success:true,
+
+        course:
+          result.rows[0]
+
+      });
+
+    }
+
+    catch(err) {
+
+      console.error(
+        "CREATE COURSE ERROR:",
+        err
+      );
+
+      return res.status(500)
+      .json({
+
+        success:false,
+
+        message:err.message
+
+      });
+
+    }
+
+  }
+);
+
 
 module.exports = router;

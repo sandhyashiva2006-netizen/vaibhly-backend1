@@ -12,6 +12,19 @@ const {
 } =
 require("../middleware/auth.middleware");
 
+const child =
+  await pool.query(
+    `
+    SELECT parent_id
+    FROM kids_profiles
+    WHERE id = $1
+    `,
+    [child_id]
+  );
+
+const userId =
+  child.rows[0].parent_id;
+
 router.get(
   "/list",
   verifyToken,
@@ -239,7 +252,7 @@ if (
     `
 INSERT INTO kids_purchases
 (
-  child_id,
+  user_id,
   item_id
 )
 VALUES
@@ -250,9 +263,9 @@ VALUES
     ON CONFLICT DO NOTHING
     `,
     [
-      child_id,
-      frameItem.rows[0].id
-    ]
+  userId,
+  frameItem.rows[0].id
+]
   );
 
 }
@@ -291,7 +304,7 @@ console.log(
       `
 INSERT INTO kids_purchases
 (
-  child_id,
+  user_id,
   item_id
 )
 VALUES
@@ -302,9 +315,9 @@ VALUES
       ON CONFLICT DO NOTHING
       `,
       [
-        child_id,
-        petItem.rows[0].id
-      ]
+  userId,
+  petItem.rows[0].id
+]
     );
 
   }
@@ -341,7 +354,7 @@ console.log(
       `
 INSERT INTO kids_purchases
 (
-  child_id,
+  user_id,
   item_id
 )
 VALUES
@@ -352,9 +365,9 @@ VALUES
       ON CONFLICT DO NOTHING
       `,
       [
-        child_id,
-        themeItem.rows[0].id
-      ]
+  userId,
+  themeItem.rows[0].id
+]
     );
 
   }

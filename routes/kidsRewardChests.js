@@ -12,18 +12,7 @@ const {
 } =
 require("../middleware/auth.middleware");
 
-const child =
-  await pool.query(
-    `
-    SELECT parent_id
-    FROM kids_profiles
-    WHERE id = $1
-    `,
-    [child_id]
-  );
 
-const userId =
-  child.rows[0].parent_id;
 
 router.get(
   "/list",
@@ -78,6 +67,19 @@ router.post(
         child_id,
         chest_id
       } = req.body;
+
+const child =
+  await pool.query(
+    `
+    SELECT parent_id
+    FROM kids_profiles
+    WHERE id = $1
+    `,
+    [child_id]
+  );
+
+const userId =
+  child.rows[0].parent_id;
 
       const chest =
         await pool.query(

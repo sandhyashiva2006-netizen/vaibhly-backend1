@@ -216,52 +216,143 @@ router.post(
           "frame";
 
         rewardValue =
-          "gold-frame";
+  "purple-frame";
+
+const frameItem =
+  await pool.query(
+    `
+    SELECT id
+    FROM kids_shop_items
+    WHERE item_value = 'purple-frame'
+    LIMIT 1
+    `
+  );
+
+if (
+  frameItem.rows.length
+) {
+
+  await pool.query(
+    `
+    INSERT INTO
+    kids_purchases
+    (
+      child_id,
+      item_id
+    )
+    VALUES
+    (
+      $1,
+      $2
+    )
+    ON CONFLICT DO NOTHING
+    `,
+    [
+      child_id,
+      frameItem.rows[0].id
+    ]
+  );
+
+}
 
       }
 
       else if (
-        random < 0.95
-      ) {
+  random < 0.95
+) {
 
-        rewardType =
-          "pet";
+  rewardType =
+    "pet";
 
-        rewardValue =
-          "dragon-pet";
+  rewardValue =
+    "tiger-pet";
 
-      }
+  const petItem =
+    await pool.query(
+      `
+      SELECT id
+      FROM kids_shop_items
+      WHERE item_value = 'tiger-pet'
+      LIMIT 1
+      `
+    );
+
+  if (
+    petItem.rows.length
+  ) {
+
+    await pool.query(
+      `
+      INSERT INTO
+      kids_purchases
+      (
+        child_id,
+        item_id
+      )
+      VALUES
+      (
+        $1,
+        $2
+      )
+      ON CONFLICT DO NOTHING
+      `,
+      [
+        child_id,
+        petItem.rows[0].id
+      ]
+    );
+
+  }
+
+}
 
       else {
 
-        rewardType =
-          "badge";
+  rewardType =
+    "theme";
 
-        rewardValue =
-          "Lucky Explorer";
+  rewardValue =
+    "rocket-theme";
 
-        await pool.query(
-          `
-          INSERT INTO
-          kids_badges
-          (
-            child_id,
-            badge_name,
-            badge_icon,
-            badge_type
-          )
-          VALUES
-          (
-            $1,
-            'Lucky Explorer',
-            '🎁',
-            'achievement'
-          )
-          `,
-          [child_id]
-        );
+  const themeItem =
+    await pool.query(
+      `
+      SELECT id
+      FROM kids_shop_items
+      WHERE item_value = 'rocket-theme'
+      LIMIT 1
+      `
+    );
 
-      }
+  if (
+    themeItem.rows.length
+  ) {
+
+    await pool.query(
+      `
+      INSERT INTO
+      kids_purchases
+      (
+        child_id,
+        item_id
+      )
+      VALUES
+      (
+        $1,
+        $2
+      )
+      ON CONFLICT DO NOTHING
+      `,
+      [
+        child_id,
+        themeItem.rows[0].id
+      ]
+    );
+
+  }
+
+}
+
 
       await pool.query(
         `

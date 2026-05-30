@@ -95,6 +95,10 @@ const kidsWeeklyChallengesRoutes =
 require(
   "./routes/kidsWeeklyChallenges"
 );
+const kidsRewardChestsRoutes =
+require(
+  "./routes/kidsRewardChests"
+);
 
 
 /* ================= MIDDLEWARE ================= */
@@ -354,6 +358,10 @@ app.use(
 app.use(
   "/api/kids/weekly-challenges",
   kidsWeeklyChallengesRoutes
+);
+app.use(
+  "/api/kids/reward-chests",
+  kidsRewardChestsRoutes
 );
 
 

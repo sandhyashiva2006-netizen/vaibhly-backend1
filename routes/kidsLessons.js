@@ -4567,29 +4567,45 @@ router.get(
   verifyToken,
   async (req,res)=>{
 
-    const world =
-      req.query.world;
+    try{
 
-    const courses =
+      const { world } =
+      req.query;
+
+      const result =
       await pool.query(
-        `
-        SELECT *
-        FROM kids_courses
-        WHERE world_slug = $1
-        ORDER BY id DESC
-        `,
-        [world]
+      `
+      SELECT
+        id,
+        title,
+        thumbnail_icon,
+        class_level
+      FROM courses
+      WHERE
+        is_kids = true
+        AND world_slug = $1
+      ORDER BY id DESC
+      `,
+      [world]
       );
 
-    res.json({
-      success:true,
-      courses:courses.rows
-    });
+      res.json({
+        success:true,
+        courses:result.rows
+      });
+
+    }catch(err){
+
+      console.error(err);
+
+      res.status(500).json({
+        success:false
+      });
+
+    }
 
   }
 );
-
-
 
 
 module.exports = router;

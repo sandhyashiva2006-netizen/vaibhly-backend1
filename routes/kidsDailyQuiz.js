@@ -505,10 +505,11 @@ LIMIT 1
         await pool.query(
           `
           SELECT id
-          FROM kids_daily_quiz_attempts
-          WHERE
-          child_id = $1
-          AND daily_quiz_id = $2
+FROM kids_daily_quiz_attempts
+WHERE
+  child_id = $1
+  AND daily_quiz_id = $2
+  AND DATE(attempted_at) = CURRENT_DATE
           `,
           [
             childId,
@@ -608,10 +609,11 @@ router.post(
   await pool.query(
     `
     SELECT id
-    FROM kids_daily_quiz_attempts
-    WHERE
-      child_id = $1
-      AND daily_quiz_id = $2
+FROM kids_daily_quiz_attempts
+WHERE
+  child_id = $1
+  AND daily_quiz_id = $2
+  AND DATE(attempted_at) = CURRENT_DATE
     `,
     [
       child_id,

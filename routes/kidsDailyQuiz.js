@@ -479,8 +479,10 @@ router.get(
         await pool.query(
           `
           SELECT *
-          FROM kids_daily_quizzes
-          WHERE quiz_date = CURRENT_DATE
+FROM kids_daily_quizzes
+WHERE quiz_date <= CURRENT_DATE
+ORDER BY quiz_date DESC
+LIMIT 1
           `
         );
 

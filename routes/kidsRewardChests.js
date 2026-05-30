@@ -156,8 +156,7 @@ router.post(
         ]
       );
 
-      const random =
-        Math.random();
+      const random = 0.90;
 
       let rewardType;
       let rewardValue;
@@ -215,6 +214,10 @@ router.post(
         rewardType =
           "frame";
 
+console.log(
+  "CHEST REWARD = FRAME"
+);
+
         rewardValue =
   "purple-frame";
 
@@ -234,17 +237,16 @@ if (
 
   await pool.query(
     `
-    INSERT INTO
-    kids_purchases
-    (
-      child_id,
-      item_id
-    )
-    VALUES
-    (
-      $1,
-      $2
-    )
+INSERT INTO kids_purchases
+(
+  child_id,
+  item_id
+)
+VALUES
+(
+  $1,
+  $2
+)
     ON CONFLICT DO NOTHING
     `,
     [
@@ -263,6 +265,10 @@ if (
 
   rewardType =
     "pet";
+
+console.log(
+  "CHEST REWARD = PET"
+);
 
   rewardValue =
     "tiger-pet";
@@ -283,17 +289,16 @@ if (
 
     await pool.query(
       `
-      INSERT INTO
-      kids_purchases
-      (
-        child_id,
-        item_id
-      )
-      VALUES
-      (
-        $1,
-        $2
-      )
+INSERT INTO kids_purchases
+(
+  child_id,
+  item_id
+)
+VALUES
+(
+  $1,
+  $2
+)
       ON CONFLICT DO NOTHING
       `,
       [
@@ -310,6 +315,10 @@ if (
 
   rewardType =
     "theme";
+
+console.log(
+  "CHEST REWARD = THEME"
+);
 
   rewardValue =
     "rocket-theme";
@@ -330,17 +339,16 @@ if (
 
     await pool.query(
       `
-      INSERT INTO
-      kids_purchases
-      (
-        child_id,
-        item_id
-      )
-      VALUES
-      (
-        $1,
-        $2
-      )
+INSERT INTO kids_purchases
+(
+  child_id,
+  item_id
+)
+VALUES
+(
+  $1,
+  $2
+)
       ON CONFLICT DO NOTHING
       `,
       [

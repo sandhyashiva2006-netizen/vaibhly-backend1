@@ -394,7 +394,10 @@ if (
 
     catch(err) {
 
-      console.error(err);
+      console.error(
+  "CHEST ERROR:",
+  err
+);
 
       return res.status(500)
       .json({

@@ -596,38 +596,11 @@ else if (quiz.correct_answer === "D") {
   correctAnswerText = quiz.option_d;
 }
 
-console.log("ANSWER FROM FRONTEND:", answer);
-
-console.log("CORRECT LETTER:",
-  quiz.correct_answer);
-
-console.log("OPTION A:",
-  quiz.option_a);
-
-console.log("OPTION B:",
-  quiz.option_b);
-
-console.log("OPTION C:",
-  quiz.option_c);
-
-console.log("OPTION D:",
-  quiz.option_d);
-
-console.log("CORRECT TEXT:",
-  correctAnswerText);
-
-console.log("DAILY QUIZ ANSWER:", answer);
-console.log("CORRECT ANSWER:", quiz.correct_answer);
 
 const correct =
   String(answer).trim() ===
   String(quiz.correct_answer).trim();
 
-console.log("ANSWER =", answer);
-console.log("DB CORRECT =", quiz.correct_answer);
-console.log("ANSWER TYPE =", typeof answer);
-console.log("DB TYPE =", typeof quiz.correct_answer);
-console.log("CORRECT RESULT =", correct);
 
       const xp =
         correct
@@ -638,12 +611,6 @@ console.log("CORRECT RESULT =", correct);
         correct
           ? quiz.coin_reward
           : 0;
-
-
-console.log(
-  "IS CORRECT:",
-  correct
-);
 
       const existingAttempt =
   await pool.query(

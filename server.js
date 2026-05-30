@@ -91,6 +91,10 @@ const kidsAchievementsRoutes =
 require(
   "./routes/kidsAchievements"
 );
+const kidsWeeklyChallengesRoutes =
+require(
+  "./routes/kidsWeeklyChallenges"
+);
 
 
 /* ================= MIDDLEWARE ================= */
@@ -346,6 +350,10 @@ app.use(
 app.use(
   "/api/kids/achievements",
   kidsAchievementsRoutes
+);
+app.use(
+  "/api/kids/weekly-challenges",
+  kidsWeeklyChallengesRoutes
 );
 
 

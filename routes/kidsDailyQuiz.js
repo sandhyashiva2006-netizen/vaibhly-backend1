@@ -620,16 +620,14 @@ console.log("DAILY QUIZ ANSWER:", answer);
 console.log("CORRECT ANSWER:", quiz.correct_answer);
 
 const correct =
+  String(answer).trim() ===
+  String(quiz.correct_answer).trim();
 
-  String(answer)
-    .trim()
-    .toUpperCase()
-
-===
-
-  String(correctAnswerText)
-    .trim()
-    .toUpperCase();
+console.log("ANSWER =", answer);
+console.log("DB CORRECT =", quiz.correct_answer);
+console.log("ANSWER TYPE =", typeof answer);
+console.log("DB TYPE =", typeof quiz.correct_answer);
+console.log("CORRECT RESULT =", correct);
 
       const xp =
         correct
@@ -640,6 +638,7 @@ const correct =
         correct
           ? quiz.coin_reward
           : 0;
+
 
 console.log(
   "IS CORRECT:",

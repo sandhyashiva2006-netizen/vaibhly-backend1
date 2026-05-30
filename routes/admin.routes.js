@@ -1112,6 +1112,7 @@ router.get("/kids-courses", verifyToken, isAdmin, async (req, res) => {
         class_level,
         subject,
         learning_path,
+world_slug,
         kids_style,
         thumbnail_icon,
         created_at

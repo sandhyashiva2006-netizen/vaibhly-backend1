@@ -68,18 +68,7 @@ router.post(
         chest_id
       } = req.body;
 
-const child =
-  await pool.query(
-    `
-    SELECT parent_id
-    FROM kids_profiles
-    WHERE id = $1
-    `,
-    [child_id]
-  );
 
-const userId =
-  child.rows[0].parent_id;
 
       const chest =
         await pool.query(
@@ -171,7 +160,8 @@ const userId =
         ]
       );
 
-      const random = 0.90;
+      const random =
+  Math.random();
 
       let rewardType;
       let rewardValue;
@@ -254,7 +244,7 @@ if (
     `
 INSERT INTO kids_purchases
 (
-  user_id,
+  child_id,
   item_id
 )
 VALUES
@@ -265,7 +255,7 @@ VALUES
     ON CONFLICT DO NOTHING
     `,
     [
-  userId,
+  child_id,
   frameItem.rows[0].id
 ]
   );
@@ -306,7 +296,7 @@ console.log(
       `
 INSERT INTO kids_purchases
 (
-  user_id,
+ child_id,
   item_id
 )
 VALUES
@@ -317,7 +307,7 @@ VALUES
       ON CONFLICT DO NOTHING
       `,
       [
-  userId,
+  child_id,
   petItem.rows[0].id
 ]
     );
@@ -356,7 +346,7 @@ console.log(
       `
 INSERT INTO kids_purchases
 (
-  user_id,
+  child_id,
   item_id
 )
 VALUES
@@ -367,7 +357,7 @@ VALUES
       ON CONFLICT DO NOTHING
       `,
       [
-  userId,
+  child_id,
   themeItem.rows[0].id
 ]
     );

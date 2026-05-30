@@ -3894,38 +3894,40 @@ WHERE child_id = $1
 
       // COURSES
       const coursesResult =
-        await pool.query(
-          `
-          SELECT
+  await pool.query(
+    `
+    SELECT
 
-  c.id AS course_id,
+      c.id AS course_id,
 
-  c.title,
+      c.title,
 
-  c.subject,
+      c.subject,
 
-  c.path,
+      c.learning_path,
 
-  e.progress,
+      c.thumbnail_icon,
 
-  e.completed_lessons,
+      e.progress,
 
-  e.total_lessons,
+      e.completed_lessons,
 
-  e.completed
+      e.total_lessons,
 
-FROM kids_enrollments e
+      e.completed
 
-JOIN kids_courses c
+    FROM kids_enrollments e
 
-ON c.id = e.course_id
+    JOIN courses c
 
-WHERE e.child_id = $1
+    ON c.id = e.course_id
 
-ORDER BY e.id DESC
-          `,
-          [childId]
-        );
+    WHERE e.child_id = $1
+
+    ORDER BY e.id DESC
+    `,
+    [childId]
+  );
 
       // BADGES
       const badges =

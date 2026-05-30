@@ -596,6 +596,26 @@ else if (quiz.correct_answer === "D") {
   correctAnswerText = quiz.option_d;
 }
 
+console.log("ANSWER FROM FRONTEND:", answer);
+
+console.log("CORRECT LETTER:",
+  quiz.correct_answer);
+
+console.log("OPTION A:",
+  quiz.option_a);
+
+console.log("OPTION B:",
+  quiz.option_b);
+
+console.log("OPTION C:",
+  quiz.option_c);
+
+console.log("OPTION D:",
+  quiz.option_d);
+
+console.log("CORRECT TEXT:",
+  correctAnswerText);
+
 const correct =
 
   String(answer)
@@ -617,6 +637,11 @@ const correct =
         correct
           ? quiz.coin_reward
           : 0;
+
+console.log(
+  "IS CORRECT:",
+  correct
+);
 
       const existingAttempt =
   await pool.query(

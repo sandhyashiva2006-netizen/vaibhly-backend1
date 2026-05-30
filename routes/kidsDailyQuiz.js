@@ -616,6 +616,9 @@ console.log("OPTION D:",
 console.log("CORRECT TEXT:",
   correctAnswerText);
 
+console.log("DAILY QUIZ ANSWER:", answer);
+console.log("CORRECT ANSWER:", quiz.correct_answer);
+
 const correct =
 
   String(answer)

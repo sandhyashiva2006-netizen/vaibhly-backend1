@@ -3234,26 +3234,38 @@ router.post(
 
       }
 
-      await pool.query(
-        `
-        INSERT INTO kids_active_items
-        (child_id, ${field})
+await pool.query(
+  `
+  INSERT INTO kids_active_items
+  (
+    user_id,
+    child_id,
+    ${field}
+  )
 
-        VALUES ($1, $2)
+  VALUES
+  (
+    $1,
+    $2,
+    $3
+  )
 
-        ON CONFLICT (child_id)
+  ON CONFLICT (user_id)
 
-        DO UPDATE SET
+  DO UPDATE SET
 
-        ${field} = $2,
+    child_id = $2,
 
-        updated_at = NOW()
-        `,
-        [
-  child_id,
-  shopItem.item_value
-]
-      );
+    ${field} = $3,
+
+    updated_at = NOW()
+  `,
+  [
+    userId,
+    child_id,
+    shopItem.item_value
+  ]
+);
 
       return res.json({
 

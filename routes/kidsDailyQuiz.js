@@ -581,19 +581,32 @@ router.post(
       const quiz =
         quizResult.rows[0];
 
-      const correct =
+      let correctAnswerText = "";
+
+if (quiz.correct_answer === "A") {
+  correctAnswerText = quiz.option_a;
+}
+else if (quiz.correct_answer === "B") {
+  correctAnswerText = quiz.option_b;
+}
+else if (quiz.correct_answer === "C") {
+  correctAnswerText = quiz.option_c;
+}
+else if (quiz.correct_answer === "D") {
+  correctAnswerText = quiz.option_d;
+}
+
+const correct =
 
   String(answer)
-    .toUpperCase()
     .trim()
+    .toUpperCase()
 
 ===
 
-  String(
-    quiz.correct_answer
-  )
-    .toUpperCase()
-    .trim();
+  String(correctAnswerText)
+    .trim()
+    .toUpperCase();
 
       const xp =
         correct

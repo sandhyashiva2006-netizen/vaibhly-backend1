@@ -13,6 +13,12 @@ const {
   "../middleware/auth.middleware"
 );
 
+const puppeteer =
+  require("puppeteer");
+
+const chromium =
+  require("@sparticuz/chromium");
+
 console.log(
   "✅ kidsCertificates routes loaded"
 );
@@ -143,5 +149,123 @@ router.get(
 
   }
 );
+
+
+
+router.get(
+  "/download/:certificateId",
+
+  async (req, res) => {
+
+    const certificateId =
+      req.params.certificateId;
+
+    try {
+
+      const browser =
+        await puppeteer.launch({
+
+          args:
+            chromium.args,
+
+          defaultViewport:
+            chromium.defaultViewport,
+
+          executablePath:
+            await chromium.executablePath(),
+
+          headless:
+            chromium.headless
+
+        });
+
+      const page =
+        await browser.newPage();
+
+      const frontendUrl =
+
+        process.env.FRONTEND_URL ||
+
+        "https://vaibhly-frontend.pages.dev";
+
+      const url =
+
+        `${frontendUrl}/kids-certificate.html?id=${certificateId}`;
+
+      await page.goto(
+        url,
+        {
+          waitUntil: "load",
+          timeout: 60000
+        }
+      );
+
+      await new Promise(
+        resolve =>
+          setTimeout(
+            resolve,
+            1500
+          )
+      );
+
+      await page.emulateMediaType(
+        "print"
+      );
+
+      const pdfBuffer =
+        await page.pdf({
+
+          format: "A4",
+
+          landscape: true,
+
+          printBackground: true
+
+        });
+
+      await browser.close();
+
+      res.set({
+
+        "Content-Type":
+          "application/pdf",
+
+        "Content-Disposition":
+
+          `attachment; filename="certificate-${certificateId}.pdf"`,
+
+        "Content-Length":
+          pdfBuffer.length
+
+      });
+
+      return res.end(
+        pdfBuffer
+      );
+
+    }
+
+    catch (err) {
+
+      console.error(
+        "KIDS PDF ERROR:",
+        err
+      );
+
+      return res.status(500)
+      .json({
+
+        success: false,
+
+        message:
+          err.message
+
+      });
+
+    }
+
+  }
+);
+
 
 module.exports = router;

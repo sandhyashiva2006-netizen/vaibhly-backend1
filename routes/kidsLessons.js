@@ -4628,70 +4628,60 @@ try{
 
   }
 
-  const pets =
-  await pool.query(
-    `
-    SELECT *
-    FROM kids_pets
-    WHERE child_id = $1
-    `,
-    [childId]
-  );
-
-  const themes =
-  await pool.query(
-    `
-    SELECT *
-    FROM kids_themes
-    WHERE child_id = $1
-    `,
-    [childId]
-  );
-
-  const frames =
-  await pool.query(
-    `
-    SELECT *
-    FROM kids_frames
-    WHERE child_id = $1
-    `,
-    [childId]
-  );
-
   const badges =
   await pool.query(
-    `
-    SELECT *
-    FROM kids_badges
-    WHERE child_id = $1
-    `,
-    [childId]
+  `
+  SELECT *
+  FROM kids_badges
+  WHERE child_id = $1
+  ORDER BY earned_at DESC
+  `,
+  [childId]
   );
 
   const certificates =
   await pool.query(
-    `
-    SELECT *
-    FROM kids_certificates
-    WHERE child_id = $1
-    `,
-    [childId]
+  `
+  SELECT *
+  FROM kids_certificates
+  WHERE child_id = $1
+  ORDER BY created_at DESC
+  `,
+  [childId]
   );
 
-  return res.json({
+  const rewards =
+  await pool.query(
+  `
+  SELECT
+
+    xp,
+    coins
+
+  FROM kids_rewards
+
+  WHERE child_id = $1
+  `,
+  [childId]
+  );
+
+  res.json({
 
     success:true,
 
-    pets:pets.rows,
-
-    themes:themes.rows,
-
-    frames:frames.rows,
-
-    badges:badges.rows,
+    badges:
+    badges.rows,
 
     certificates:
-    certificates.rows
+    certificates.rows,
+
+    rewards:
+    rewards.rows[0] || {
+
+      xp:0,
+      coins:0
+
+    }
 
   });
 
@@ -4703,8 +4693,7 @@ catch(err){
     err
   );
 
-  return res.status(500)
-  .json({
+  res.status(500).json({
 
     success:false,
 
@@ -4717,6 +4706,5 @@ catch(err){
 
 }
 );
-
 
 module.exports = router;

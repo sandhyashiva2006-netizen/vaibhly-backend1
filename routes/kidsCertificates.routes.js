@@ -73,8 +73,6 @@ router.get(
 router.get(
   "/:certificateId",
 
-  verifyToken,
-
   async (req,res) => {
 
     try {

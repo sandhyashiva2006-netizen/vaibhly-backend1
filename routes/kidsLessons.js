@@ -4604,79 +4604,81 @@ router.get(
 verifyToken,
 async(req,res)=>{
 
+try{
+
   const childId =
-parseInt(
-  req.query.child_id,
-  10
-);
+  parseInt(
+    req.query.child_id,
+    10
+  );
 
-if(
-  Number.isNaN(childId)
-){
+  if(
+    Number.isNaN(childId)
+  ){
 
-  return res.status(400)
-  .json({
+    return res.status(400)
+    .json({
 
-    success:false,
+      success:false,
 
-    message:
-    "Invalid child id"
+      message:
+      "Invalid child id"
 
-  });
+    });
 
-}
+  }
 
   const pets =
   await pool.query(
-  `
-  SELECT *
-  FROM kids_pets
-  WHERE child_id = $1
-  `,
-  [childId]
+    `
+    SELECT *
+    FROM kids_pets
+    WHERE child_id = $1
+    `,
+    [childId]
   );
 
   const themes =
   await pool.query(
-  `
-  SELECT *
-  FROM kids_themes
-  WHERE child_id = $1
-  `,
-  [childId]
+    `
+    SELECT *
+    FROM kids_themes
+    WHERE child_id = $1
+    `,
+    [childId]
   );
 
   const frames =
   await pool.query(
-  `
-  SELECT *
-  FROM kids_frames
-  WHERE child_id = $1
-  `,
-  [childId]
+    `
+    SELECT *
+    FROM kids_frames
+    WHERE child_id = $1
+    `,
+    [childId]
   );
 
   const badges =
   await pool.query(
-  `
-  SELECT *
-  FROM kids_badges
-  WHERE child_id = $1
-  `,
-  [childId]
+    `
+    SELECT *
+    FROM kids_badges
+    WHERE child_id = $1
+    `,
+    [childId]
   );
 
   const certificates =
   await pool.query(
-  `
-  SELECT *
-  FROM kids_certificates
-  WHERE child_id = $1
-  `,
-  [childId]
+    `
+    SELECT *
+    FROM kids_certificates
+    WHERE child_id = $1
+    `,
+    [childId]
   );
 
-  res.json({
+  return res.json({
 
     success:true,
 
@@ -4694,6 +4696,27 @@ if(
   });
 
 }
+catch(err){
+
+  console.error(
+    "COLLECTION ERROR:",
+    err
+  );
+
+  return res.status(500)
+  .json({
+
+    success:false,
+
+    message:
+    err.message
+
+  });
+
+}
+
+}
 );
+
 
 module.exports = router;

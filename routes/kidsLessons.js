@@ -496,52 +496,34 @@ l.position
 ]
 );
 
+let lessons =
+  result.rows;
+
+if (
+  !purchased
+) {
+
+  lessons =
+    lessons.filter(
+      lesson =>
+        Number(
+          lesson.position
+        ) === 1
+    );
+
+}
+
       return res.json({
 
         success:true,
 
         lessons:
-result.rows.map(
+lessons.map(
  lesson => ({
 
    ...lesson,
 
-   locked:
-     !purchased &&
-     Number(
-       lesson.position
-     ) > 1,
-
-   video_file:
-     (
-       !purchased &&
-       Number(
-         lesson.position
-       ) > 1
-     )
-     ? null
-     : (
-       lesson.content_type === "video"
-       ? lesson.content
-       : null
-     ),
-
-   pdf_file:
-     (
-       !purchased &&
-       Number(
-         lesson.position
-       ) > 1
-     )
-     ? null
-     : (
-       lesson.content_type === "pdf"
-       ? lesson.content
-       : null
-     )
-
- })
-)
+ 
 
            });
 

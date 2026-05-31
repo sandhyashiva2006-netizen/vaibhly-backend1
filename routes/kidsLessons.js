@@ -400,40 +400,62 @@ router.get(
       const courseId =
       Number(req.params.courseId);
 
-      const result =
-      await pool.query(
-      `
-      SELECT
 
-        l.id,
-        l.title,
+      const childId =
+Number(req.query.child_id);
 
-        l.content_type,
+const result =
+await pool.query(
+`
+SELECT
 
-        l.content,
+  l.id,
+  l.title,
 
-        l.position,
+  l.content_type,
 
-        false AS completed,
+  l.content,
 
-        0 AS watched_seconds,
+  l.position,
 
-        false AS course_completed
+  COALESCE(
+    p.completed,
+    false
+  ) AS completed,
 
-      FROM course_modules m
+  COALESCE(
+    p.watched_seconds,
+    0
+  ) AS watched_seconds,
 
-      JOIN course_lessons l
+  COALESCE(
+    p.completed,
+    false
+  ) AS course_completed
 
-      ON l.module_id = m.id
+FROM course_modules m
 
-      WHERE m.course_id = $1
+JOIN course_lessons l
+ON l.module_id = m.id
 
-      ORDER BY
-      m.position,
-      l.position
-      `,
-      [courseId]
-      );
+LEFT JOIN
+kids_lesson_progress p
+
+ON p.lesson_id = l.id
+
+AND p.child_id = $2
+
+WHERE m.course_id = $1
+
+ORDER BY
+m.position,
+l.position
+`,
+[
+  courseId,
+  childId
+]
+);
 
       return res.json({
 

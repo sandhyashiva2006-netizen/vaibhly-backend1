@@ -499,17 +499,11 @@ l.position
 let lessons =
   result.rows;
 
-if (
-  !purchased
-) {
+if (!purchased) {
 
-  lessons =
-    lessons.filter(
-      lesson =>
-        Number(
-          lesson.position
-        ) === 1
-    );
+  lessons = [
+    result.rows[0]
+  ];
 
 }
 
@@ -833,6 +827,83 @@ router.post(
   child_id,
   course_id
 } = req.body;
+
+const courseCheck =
+await pool.query(
+`
+SELECT price
+FROM courses
+WHERE id = $1
+`,
+[course_id]
+);
+
+const price =
+Number(
+  courseCheck.rows[0]?.price || 0
+);
+
+if(price > 0){
+
+  const purchased =
+  await pool.query(
+  `
+  SELECT id
+  FROM user_courses
+  WHERE
+    user_id = $1
+    AND course_id = $2
+  LIMIT 1
+  `,
+  [
+    req.user.id,
+    course_id
+  ]
+  );
+
+  const isPurchased =
+    purchased.rows.length > 0;
+
+  const firstLesson =
+    await pool.query(
+    `
+    SELECT l.id
+
+    FROM course_lessons l
+
+    JOIN course_modules m
+    ON m.id = l.module_id
+
+    WHERE m.course_id = $1
+
+    ORDER BY
+    m.position,
+    l.position
+
+    LIMIT 1
+    `,
+    [course_id]
+    );
+
+  if(
+    !isPurchased &&
+    Number(lessonId) !==
+    Number(firstLesson.rows[0].id)
+  ){
+
+    return res.status(403)
+    .json({
+
+      success:false,
+
+      message:
+      "Purchase required"
+
+    });
+
+  }
+
+}
 
       await pool.query(
         `

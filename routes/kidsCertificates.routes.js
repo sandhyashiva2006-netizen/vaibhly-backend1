@@ -221,6 +221,8 @@ await page.pdf({
 
   printBackground: true,
 
+  preferCSSPageSize: true,
+
   margin: {
     top: 0,
     right: 0,

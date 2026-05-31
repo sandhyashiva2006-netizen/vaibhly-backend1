@@ -4605,7 +4605,26 @@ verifyToken,
 async(req,res)=>{
 
   const childId =
-  req.query.child_id;
+parseInt(
+  req.query.child_id,
+  10
+);
+
+if(
+  Number.isNaN(childId)
+){
+
+  return res.status(400)
+  .json({
+
+    success:false,
+
+    message:
+    "Invalid child id"
+
+  });
+
+}
 
   const pets =
   await pool.query(

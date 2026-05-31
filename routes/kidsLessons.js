@@ -404,6 +404,45 @@ router.get(
       const childId =
 Number(req.query.child_id);
 
+const courseResult =
+await pool.query(
+`
+SELECT price
+FROM courses
+WHERE id = $1
+`,
+[courseId]
+);
+
+const price =
+Number(
+  courseResult.rows[0]?.price || 0
+);
+
+let purchased = true;
+
+if(price > 0){
+
+  const purchaseCheck =
+  await pool.query(
+  `
+  SELECT id
+  FROM user_courses
+  WHERE
+    user_id = $1
+    AND course_id = $2
+  LIMIT 1
+  `,
+  [
+    req.user.id,
+    courseId
+  ]
+  );
+
+  purchased =
+    purchaseCheck.rows.length > 0;
+}
+
 const result =
 await pool.query(
 `
@@ -462,30 +501,49 @@ l.position
         success:true,
 
         lessons:
-        result.rows.map(
-          lesson=>({
+result.rows.map(
+ lesson => ({
 
-            ...lesson,
+   ...lesson,
 
-            video_file:
-              lesson.content_type ===
-              "video"
-              ? lesson.content
-              : null,
+   locked:
+     !purchased &&
+     Number(
+       lesson.position
+     ) > 1,
 
-            pdf_file:
-              lesson.content_type ===
-              "pdf"
-              ? lesson.content
-              : null,
+   video_file:
+     (
+       !purchased &&
+       Number(
+         lesson.position
+       ) > 1
+     )
+     ? null
+     : (
+       lesson.content_type === "video"
+       ? lesson.content
+       : null
+     ),
 
-            description:"",
-            notes:""
+   pdf_file:
+     (
+       !purchased &&
+       Number(
+         lesson.position
+       ) > 1
+     )
+     ? null
+     : (
+       lesson.content_type === "pdf"
+       ? lesson.content
+       : null
+     )
 
-          })
-        )
+ })
+)
 
-      });
+           });
 
     }
     catch(err){

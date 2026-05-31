@@ -1645,6 +1645,37 @@ router.get(
   }
 );
 
+router.get(
+"/lesson-quiz/:lessonId",
+verifyToken,
+async (req,res)=>{
+
+  const lessonId =
+  req.params.lessonId;
+
+  const result =
+  await pool.query(
+  `
+  SELECT *
+  FROM kids_quizzes
+  WHERE lesson_id = $1
+  ORDER BY id
+  `,
+  [lessonId]
+  );
+
+  res.json({
+
+    success:true,
+
+    questions:
+    result.rows
+
+  });
+
+}
+);
+
 // =====================================
 // SUBMIT QUIZ
 // =====================================
@@ -3892,9 +3923,9 @@ WHERE child_id = $1
 
     FROM kids_enrollments e
 
-    JOIN courses c
+JOIN kids_courses c
 
-    ON c.id = e.course_id
+ON c.id = e.course_id
 
     WHERE e.child_id = $1
 
@@ -4552,14 +4583,13 @@ router.get(
       await pool.query(
       `
       SELECT
-        id,
-        title,
-        thumbnail_icon,
-        class_level
-      FROM courses
-      WHERE
-        is_kids = true
-        AND world_slug = $1
+  id,
+  title,
+  thumbnail_icon,
+  class_level
+FROM kids_courses
+WHERE
+  world_slug = $1
       ORDER BY id DESC
       `,
       [world]

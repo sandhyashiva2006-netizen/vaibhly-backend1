@@ -3646,7 +3646,7 @@ ON l.id = lp.lesson_id
 JOIN course_modules m
 ON m.id = l.module_id
 
-JOIN kids_courses c
+JOIN courses c
 ON c.id = m.course_id
 
           WHERE lp.child_id = $1
@@ -3732,21 +3732,16 @@ if (
 
   COUNT(
     DISTINCT l.id
-  )::int
-  AS total_lessons,
+  )::int AS total_lessons,
 
   COUNT(
     DISTINCT CASE
-
       WHEN lp.completed = true
-
       THEN lp.lesson_id
-
     END
-  )::int
-  AS completed_lessons
+  )::int AS completed_lessons
 
-FROM kids_courses c
+FROM courses c
 
 LEFT JOIN course_modules m
 ON m.course_id = c.id
@@ -3754,20 +3749,12 @@ ON m.course_id = c.id
 LEFT JOIN course_lessons l
 ON l.module_id = m.id
 
-ON l.course_id = c.id
-
 LEFT JOIN kids_enrollments e
-
-ON
-e.course_id = c.id
-
+ON e.course_id = c.id
 AND e.child_id = $1
 
 LEFT JOIN kids_lesson_progress lp
-
-ON
-lp.lesson_id = l.id
-
+ON lp.lesson_id = l.id
 AND lp.child_id = $1
 
 GROUP BY
@@ -4586,10 +4573,10 @@ router.get(
   title,
   thumbnail_icon,
   class_level
-FROM kids_courses
-WHERE
-  world_slug = $1
-      ORDER BY id DESC
+FROM courses
+WHERE world_slug = $1
+AND active = true
+ORDER BY id DESC
       `,
       [world]
       );
@@ -4612,5 +4599,82 @@ WHERE
   }
 );
 
+router.get(
+"/collection",
+verifyToken,
+async(req,res)=>{
+
+  const childId =
+  req.query.child_id;
+
+  const pets =
+  await pool.query(
+  `
+  SELECT *
+  FROM kids_pets
+  WHERE child_id = $1
+  `,
+  [childId]
+  );
+
+  const themes =
+  await pool.query(
+  `
+  SELECT *
+  FROM kids_themes
+  WHERE child_id = $1
+  `,
+  [childId]
+  );
+
+  const frames =
+  await pool.query(
+  `
+  SELECT *
+  FROM kids_frames
+  WHERE child_id = $1
+  `,
+  [childId]
+  );
+
+  const badges =
+  await pool.query(
+  `
+  SELECT *
+  FROM kids_badges
+  WHERE child_id = $1
+  `,
+  [childId]
+  );
+
+  const certificates =
+  await pool.query(
+  `
+  SELECT *
+  FROM kids_certificates
+  WHERE child_id = $1
+  `,
+  [childId]
+  );
+
+  res.json({
+
+    success:true,
+
+    pets:pets.rows,
+
+    themes:themes.rows,
+
+    frames:frames.rows,
+
+    badges:badges.rows,
+
+    certificates:
+    certificates.rows
+
+  });
+
+}
+);
 
 module.exports = router;

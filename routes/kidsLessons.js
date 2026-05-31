@@ -813,57 +813,46 @@ router.post(
         );
 
       const totalLessonsResult =
-        await pool.query(
-          `
-          SELECT COUNT(*)::int AS total
+await pool.query(
+`
+SELECT COUNT(*)::int AS total
 
-          FROM kids_lessons
+FROM course_lessons l
 
-          WHERE course_id = (
+JOIN course_modules m
+ON m.id = l.module_id
 
-            SELECT course_id
-
-            FROM kids_lessons
-
-            WHERE id = $1
-
-          )
-          `,
-          [lessonId]
-        );
+WHERE m.course_id = $1
+`,
+[course_id]
+);
 
       const completedLessonsResult =
-        await pool.query(
-          `
-          SELECT COUNT(*)::int AS completed
+await pool.query(
+`
+SELECT COUNT(*)::int AS completed
 
-          FROM kids_lesson_progress lp
+FROM kids_lesson_progress lp
 
-          JOIN kids_lessons l
+JOIN course_lessons l
+ON l.id = lp.lesson_id
 
-          ON l.id = lp.lesson_id
+JOIN course_modules m
+ON m.id = l.module_id
 
-          WHERE
+WHERE
 
-            lp.child_id = $1
+lp.child_id = $1
 
-            AND l.course_id = (
+AND m.course_id = $2
 
-              SELECT course_id
-
-              FROM kids_lessons
-
-              WHERE id = $2
-
-            )
-
-            AND lp.completed = true
-          `,
-          [
-            child_id,
-            lessonId
-          ]
-        );
+AND lp.completed = true
+`,
+[
+child_id,
+course_id
+]
+);
 
       
 
@@ -1191,9 +1180,12 @@ if (
           `
           SELECT COUNT(*)
 
-          FROM kids_lessons
+          FROM course_lessons l
 
-          WHERE course_id = $1
+JOIN course_modules m
+ON m.id = l.module_id
+
+WHERE m.course_id = $1
           `,
 
           [courseId]
@@ -1208,12 +1200,14 @@ if (
 
           FROM kids_lesson_progress p
 
-          JOIN kids_lessons l
+          JOIN course_lessons l
+ON l.id = p.lesson_id
 
-          ON l.id = p.lesson_id
+JOIN course_modules m
+ON m.id = l.module_id
 
           WHERE
-          l.course_id = $1
+          m.course_id = $1
 
           AND
           p.child_id = $2
@@ -3646,13 +3640,14 @@ if (
 
           FROM kids_lesson_progress lp
 
-          JOIN kids_lessons l
+          JOIN course_lessons l
+ON l.id = lp.lesson_id
 
-          ON l.id = lp.lesson_id
+JOIN course_modules m
+ON m.id = l.module_id
 
-          JOIN kids_courses c
-
-          ON c.id = l.course_id
+JOIN kids_courses c
+ON c.id = m.course_id
 
           WHERE lp.child_id = $1
 
@@ -3753,7 +3748,11 @@ if (
 
 FROM kids_courses c
 
-LEFT JOIN kids_lessons l
+LEFT JOIN course_modules m
+ON m.course_id = c.id
+
+LEFT JOIN course_lessons l
+ON l.module_id = m.id
 
 ON l.course_id = c.id
 

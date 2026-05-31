@@ -918,6 +918,56 @@ console.log(
 
 if (progress >= 100) {
 
+const worldResult =
+await pool.query(
+`
+SELECT world_slug
+FROM courses
+WHERE id = $1
+`,
+[course_id]
+);
+
+const worldSlug =
+worldResult.rows[0]
+?.world_slug;
+
+if(worldSlug){
+
+  await pool.query(
+  `
+  INSERT INTO
+  kids_world_progress (
+
+    child_id,
+    world_slug,
+    missions_completed,
+    total_missions,
+    progress_percent
+
+  )
+
+  VALUES (
+
+    $1,
+    $2,
+    1,
+    10,
+    10
+
+  )
+
+  ON CONFLICT
+  DO NOTHING
+  `,
+  [
+    child_id,
+    worldSlug
+  ]
+  );
+
+}
+
   const existingCert =
     await pool.query(
       `
@@ -4706,5 +4756,56 @@ catch(err){
 
 }
 );
+
+router.get(
+"/world-progress",
+verifyToken,
+async(req,res)=>{
+
+try{
+
+  const childId =
+  parseInt(
+    req.query.child_id,
+    10
+  );
+
+  const progress =
+  await pool.query(
+  `
+  SELECT *
+  FROM kids_world_progress
+  WHERE child_id = $1
+  ORDER BY id
+  `,
+  [childId]
+  );
+
+  res.json({
+
+    success:true,
+
+    worlds:
+    progress.rows
+
+  });
+
+}
+catch(err){
+
+  res.status(500).json({
+
+    success:false,
+
+    message:
+    err.message
+
+  });
+
+}
+
+}
+);
+
 
 module.exports = router;

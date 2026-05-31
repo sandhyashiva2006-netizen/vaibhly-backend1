@@ -3922,9 +3922,9 @@ WHERE child_id = $1
 
     FROM kids_enrollments e
 
-JOIN kids_courses c
+    JOIN courses c
 
-ON c.id = e.course_id
+    ON c.id = e.course_id
 
     WHERE e.child_id = $1
 

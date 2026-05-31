@@ -513,6 +513,14 @@ if (
 
 }
 
+console.log(
+  result.rows.map(l => ({
+    id: l.id,
+    title: l.title,
+    position: l.position
+  }))
+);
+
 console.log({
   courseId,
   childId,

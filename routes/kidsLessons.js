@@ -4200,21 +4200,49 @@ router.get(
 
       }
 
-      const pets =
+      // ACTIVE PET
+      const activeItems =
         await pool.query(
           `
           SELECT
-            s.item_name
-          FROM kids_purchases p
-          JOIN kids_shop_items s
-          ON s.id = p.item_id
-          WHERE
-            p.child_id = $1
-            AND s.item_type = 'pet'
+            active_pet
+          FROM kids_active_items
+          WHERE child_id = $1
           `,
           [childId]
         );
 
+      const pets = [];
+
+      const activePet =
+        activeItems.rows[0]
+        ?.active_pet;
+
+      if (activePet) {
+
+        let petName =
+          activePet;
+
+        if (
+          activePet ===
+          "tiger-pet"
+        ) {
+
+          petName =
+          "🐯 Tiger Pet";
+
+        }
+
+        pets.push({
+
+          item_name:
+            petName
+
+        });
+
+      }
+
+      // FRAMES
       const frames =
         await pool.query(
           `
@@ -4230,6 +4258,7 @@ router.get(
           [childId]
         );
 
+      // THEMES
       const themes =
         await pool.query(
           `
@@ -4245,6 +4274,7 @@ router.get(
           [childId]
         );
 
+      // BADGES
       const badges =
         await pool.query(
           `
@@ -4261,8 +4291,7 @@ router.get(
 
         success:true,
 
-        pets:
-          pets.rows,
+        pets,
 
         frames:
           frames.rows,

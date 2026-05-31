@@ -513,6 +513,14 @@ if (
 
 }
 
+console.log({
+  courseId,
+  childId,
+  price,
+  purchased,
+  lessonCount: result.rows.length
+});
+
 return res.json({
 
   success: true,

@@ -513,19 +513,13 @@ if (
 
 }
 
-      return res.json({
+return res.json({
 
-        success:true,
+  success: true,
 
-        lessons:
-lessons.map(
- lesson => ({
+  lessons
 
-   ...lesson,
-
- 
-
-           });
+});
 
     }
     catch(err){

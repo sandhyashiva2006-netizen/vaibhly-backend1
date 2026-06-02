@@ -313,6 +313,27 @@ if (order.purchase_type === "theme") {
       [req.user.id, course_id, razorpay_payment_id]
     );
 
+if(req.body.child_id){
+
+  await pool.query(
+  `
+  INSERT INTO kids_course_purchases
+  (
+    child_id,
+    course_id,
+    payment_id
+  )
+  VALUES($1,$2,$3)
+  ON CONFLICT DO NOTHING
+  `,
+  [
+    req.body.child_id,
+    course_id,
+    razorpay_payment_id
+  ]);
+
+}
+
     /* ================= INSTRUCTOR PROFIT SHARE ================= */
 
 const courseInfo = await pool.query(

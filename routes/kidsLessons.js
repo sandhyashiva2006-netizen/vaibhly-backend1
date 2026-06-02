@@ -423,21 +423,21 @@ let purchased = true;
 
 if(price > 0){
 
-  const purchaseCheck =
-  await pool.query(
-  `
-  SELECT id
-  FROM user_courses
-  WHERE
-    user_id = $1
-    AND course_id = $2
-  LIMIT 1
-  `,
-  [
-    req.user.id,
-    courseId
-  ]
-  );
+ const purchaseCheck =
+await pool.query(
+`
+SELECT id
+FROM kids_course_purchases
+WHERE
+  child_id = $1
+  AND course_id = $2
+LIMIT 1
+`,
+[
+  childId,
+  courseId
+]
+);
 
   purchased =
     purchaseCheck.rows.length > 0;
@@ -844,21 +844,21 @@ Number(
 
 if(price > 0){
 
-  const purchased =
-  await pool.query(
-  `
-  SELECT id
-  FROM user_courses
-  WHERE
-    user_id = $1
-    AND course_id = $2
-  LIMIT 1
-  `,
-  [
-    req.user.id,
-    course_id
-  ]
-  );
+const purchased =
+await pool.query(
+`
+SELECT id
+FROM kids_course_purchases
+WHERE
+  child_id = $1
+  AND course_id = $2
+LIMIT 1
+`,
+[
+  child_id,
+  course_id
+]
+);
 
   const isPurchased =
     purchased.rows.length > 0;

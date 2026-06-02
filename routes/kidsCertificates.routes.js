@@ -107,7 +107,7 @@ router.get(
 
           ON kp.id = kc.child_id
 
-          JOIN kids_courses c
+          JOIN courses c
 
           ON c.id = kc.course_id
 

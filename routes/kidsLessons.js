@@ -524,11 +524,10 @@ console.log({
 });
 
 return res.json({
-
   success: true,
-
+  course_price: price,
+  purchased,
   lessons
-
 });
 
     }

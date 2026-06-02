@@ -38,22 +38,21 @@ router.get(
         `
         SELECT
 
-          kc.certificate_id,
+  kc.certificate_id,
 
-          kc.issued_at,
+  kc.issued_at,
 
-          c.title
-            AS course_title
+  c.title AS course_title
 
-        FROM kids_certificates kc
+FROM kids_certificates kc
 
-        JOIN kids_courses c
+JOIN courses c
 
-        ON c.id = kc.course_id
+ON c.id = kc.course_id
 
-        WHERE kc.child_id = $1
+WHERE kc.child_id = $1
 
-        ORDER BY kc.id DESC
+ORDER BY kc.id DESC
         `,
         [childId]
       );

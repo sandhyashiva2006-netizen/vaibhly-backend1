@@ -52,32 +52,35 @@ router.get("/parent-dashboard", verifyToken, async (req, res) => {
     const coursesResult = await pool.query(
   `
   SELECT
-    ke.course_id,
+  ke.course_id,
 
-    kc.title,
-    kc.subject,
-    kc.path,
+  c.title,
+  c.subject,
+  c.path,
 
-    COALESCE(ke.progress, 0)::int AS progress,
+  COALESCE(
+    ke.progress,
+    0
+  )::int AS progress,
 
-    COALESCE(
-      ke.completed_lessons,
-      0
-    )::int AS completed_lessons,
+  COALESCE(
+    ke.completed_lessons,
+    0
+  )::int AS completed_lessons,
 
-    COALESCE(
-      ke.total_lessons,
-      2
-    )::int AS total_lessons
+  COALESCE(
+    ke.total_lessons,
+    0
+  )::int AS total_lessons
 
-  FROM kids_enrollments ke
+FROM kids_enrollments ke
 
-  INNER JOIN kids_courses kc
-    ON kc.id = ke.course_id
+INNER JOIN courses c
+  ON c.id = ke.course_id
 
-  WHERE ke.child_id = $1
+WHERE ke.child_id = $1
 
-  ORDER BY ke.id DESC
+ORDER BY ke.id DESC
   `,
   [selectedChild.id]
 );
@@ -187,8 +190,8 @@ router.get("/dashboard", verifyToken, async (req, res) => {
 
   FROM kids_enrollments e
 
-  JOIN kids_courses c
-    ON c.id = e.course_id
+JOIN courses c
+  ON c.id = e.course_id
 
   WHERE
     e.parent_id = $1

@@ -58,6 +58,16 @@ router.get(
         [childId]
       );
 
+console.log(
+  "CERTIFICATE REQUEST",
+  childId
+);
+
+console.log(
+  "CERTIFICATES FOUND",
+  result.rows
+);
+
     res.json({
 
       success:true,

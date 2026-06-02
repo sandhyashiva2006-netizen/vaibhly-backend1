@@ -56,12 +56,9 @@ router.get("/parent-dashboard", verifyToken, async (req, res) => {
 
   c.title,
   c.subject,
-  c.path,
+  c.world_slug,
 
-  COALESCE(
-    ke.progress,
-    0
-  )::int AS progress,
+  COALESCE(ke.progress, 0)::int AS progress,
 
   COALESCE(
     ke.completed_lessons,
@@ -185,7 +182,7 @@ router.get("/dashboard", verifyToken, async (req, res) => {
     c.description,
     c.class_level,
     c.subject,
-    c.path,
+    c.world_slug,
     c.thumbnail
 
   FROM kids_enrollments e

@@ -1137,6 +1137,117 @@ console.log(
   "🏆 CREATING CERTIFICATE"
 );
 
+const nodeResult =
+await pool.query(
+`
+SELECT
+id,
+node_order,
+world_slug
+FROM kids_world_nodes
+WHERE course_id = $1
+LIMIT 1
+`,
+[course_id]
+);
+
+if(nodeResult.rows.length){
+
+const node =
+nodeResult.rows[0];
+
+await pool.query(
+`
+INSERT INTO
+kids_world_node_progress
+(
+child_id,
+node_id,
+unlocked,
+completed,
+completed_at
+)
+
+VALUES
+(
+$1,
+$2,
+true,
+true,
+NOW()
+)
+
+ON CONFLICT
+(
+child_id,
+node_id
+)
+
+DO UPDATE SET
+
+completed = true,
+
+completed_at = NOW()
+`,
+[
+child_id,
+node.id
+]
+);
+
+const nextNode =
+await pool.query(
+`
+SELECT id
+
+FROM kids_world_nodes
+
+WHERE
+
+world_slug = $1
+
+AND
+
+node_order = $2
+`,
+[
+node.world_slug,
+node.node_order + 1
+]
+);
+
+if(nextNode.rows.length){
+
+await pool.query(
+`
+INSERT INTO
+kids_world_node_progress
+(
+child_id,
+node_id,
+unlocked
+)
+
+VALUES
+(
+$1,
+$2,
+true
+)
+
+ON CONFLICT
+DO NOTHING
+`,
+[
+child_id,
+nextNode.rows[0].id
+]
+);
+
+}
+
+}
+
     const certId =
       "KID-" +
       Math.random()

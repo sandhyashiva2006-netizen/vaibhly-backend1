@@ -1185,6 +1185,86 @@ console.log(
         totalLessons
       });
 
+const node =
+await pool.query(
+`
+SELECT id
+FROM kids_world_nodes
+WHERE course_id = $1
+LIMIT 1
+`,
+[course_id]
+);
+
+if(node.rows.length){
+
+await pool.query(
+`
+UPDATE
+kids_world_node_progress
+
+SET
+
+completed = true,
+
+completed_at = NOW()
+
+WHERE
+
+child_id = $1
+
+AND
+
+node_id = $2
+`,
+[
+child_id,
+node.rows[0].id
+]
+);
+
+await pool.query(
+`
+INSERT INTO
+kids_world_node_progress
+(
+child_id,
+node_id,
+unlocked
+)
+
+SELECT
+
+$1,
+
+id,
+
+true
+
+FROM kids_world_nodes
+
+WHERE node_order =
+
+(
+SELECT
+node_order + 1
+
+FROM kids_world_nodes
+
+WHERE id = $2
+)
+
+ON CONFLICT
+DO NOTHING
+`,
+[
+child_id,
+node.rows[0].id
+]
+);
+
+}
+
 await updateDailyQuestProgress(
 
   child_id,

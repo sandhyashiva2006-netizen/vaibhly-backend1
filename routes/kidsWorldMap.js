@@ -8,7 +8,7 @@ verifyToken
 
 router.get(
 "/world-map",
-verifyToken,
+
 async(req,res)=>{
 
 try{

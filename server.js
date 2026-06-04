@@ -379,6 +379,14 @@ app.use(
 "/api/kids",
 kidsWorldMapRoutes
 );
+app.get(
+  "/api/test-world",
+  (req,res)=>{
+    res.json({
+      success:true
+    });
+  }
+);
 
 
 app.get("/kids", (req, res) => {

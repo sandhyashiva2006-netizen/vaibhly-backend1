@@ -18,6 +18,23 @@ stars
 let rewardXp = 10;
 let rewardCoins = 5;
 
+const existingScore =
+await pool.query(
+`
+SELECT *
+FROM kids_world_game_scores
+WHERE child_id = $1
+AND node_id = $2
+`,
+[
+child_id,
+node_id
+]
+);
+
+const firstCompletion =
+existingScore.rows.length === 0;
+
 await pool.query(
 `
 INSERT INTO
@@ -58,23 +75,6 @@ score || 100,
 stars || 3
 ]
 );
-
-const existingScore =
-await pool.query(
-`
-SELECT *
-FROM kids_world_game_scores
-WHERE child_id = $1
-AND node_id = $2
-`,
-[
-child_id,
-node_id
-]
-);
-
-const firstCompletion =
-existingScore.rows.length === 0;
 
 if(firstCompletion){
 
@@ -187,20 +187,39 @@ nextNode.rows[0].id
 
 await pool.query(
 `
-UPDATE kids
-SET
-xp = COALESCE(xp,0) + $1,
-reward_coins =
-COALESCE(
-reward_coins,
-0
-) + $2
-WHERE id = $3
+INSERT INTO
+kids_rewards
+(
+child_id,
+xp,
+coins
+)
+
+VALUES
+(
+$1,
+$2,
+$3
+)
+
+ON CONFLICT (child_id)
+
+DO UPDATE SET
+
+xp =
+kids_rewards.xp +
+EXCLUDED.xp,
+
+coins =
+kids_rewards.coins +
+EXCLUDED.coins,
+
+updated_at = NOW()
 `,
 [
+child_id,
 rewardXp,
-rewardCoins,
-child_id
+rewardCoins
 ]
 );
 

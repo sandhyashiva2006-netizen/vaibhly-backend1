@@ -15,6 +15,9 @@ score,
 stars
 } = req.body;
 
+let rewardXp = 10;
+let rewardCoins = 5;
+
 await pool.query(
 `
 INSERT INTO
@@ -55,6 +58,30 @@ score || 100,
 stars || 3
 ]
 );
+
+const existingScore =
+await pool.query(
+`
+SELECT *
+FROM kids_world_game_scores
+WHERE child_id = $1
+AND node_id = $2
+`,
+[
+child_id,
+node_id
+]
+);
+
+const firstCompletion =
+existingScore.rows.length === 0;
+
+if(firstCompletion){
+
+rewardXp = 50;
+rewardCoins = 20;
+
+}
 
 await pool.query(
 `
@@ -158,8 +185,36 @@ nextNode.rows[0].id
 
 }
 
+await pool.query(
+`
+UPDATE kids
+SET
+xp = COALESCE(xp,0) + $1,
+reward_coins =
+COALESCE(
+reward_coins,
+0
+) + $2
+WHERE id = $3
+`,
+[
+rewardXp,
+rewardCoins,
+child_id
+]
+);
+
 return res.json({
-success:true
+
+success:true,
+
+xp:rewardXp,
+
+coins:rewardCoins,
+
+first_completion:
+firstCompletion
+
 });
 
 }

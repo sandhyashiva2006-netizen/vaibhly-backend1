@@ -115,6 +115,8 @@ const kidsWorldChestRoutes =
 require(
 "./routes/kidsWorldChest"
 );
+const kidsWorldBoss =
+require("./routes/kidsWorldBoss");
 
 
 /* ================= MIDDLEWARE ================= */
@@ -394,6 +396,10 @@ kidsWorldGamesRoutes
 app.use(
 "/api/kids",
 kidsWorldChestRoutes
+);
+app.use(
+"/api/kids",
+kidsWorldBoss
 );
 
 

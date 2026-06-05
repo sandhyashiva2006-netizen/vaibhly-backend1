@@ -111,6 +111,10 @@ const kidsWorldGamesRoutes =
 require(
 "./routes/kidsWorldGames"
 );
+const kidsWorldChestRoutes =
+require(
+"./routes/kidsWorldChest"
+);
 
 
 /* ================= MIDDLEWARE ================= */
@@ -386,6 +390,10 @@ kidsWorldMapRoutes
 app.use(
 "/api/kids",
 kidsWorldGamesRoutes
+);
+app.use(
+"/api/kids",
+kidsWorldChestRoutes
 );
 
 

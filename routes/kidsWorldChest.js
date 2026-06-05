@@ -3,183 +3,268 @@ const router = express.Router();
 const pool = require("../config/db");
 
 router.post(
-"/open-chest",
-async(req,res)=>{
+  "/open-chest",
+  async (req, res) => {
 
-try{
+    try {
 
-const {
-child_id,
-node_id
-} = req.body;
+      const {
+        child_id,
+        node_id
+      } = req.body;
 
-const existing =
-await pool.query(
-`
-SELECT *
-FROM kids_world_chest_claims
-WHERE child_id = $1
-AND node_id = $2
-`,
-[
-child_id,
-node_id
-]
-);
+      const existing =
+        await pool.query(
+          `
+          SELECT *
+          FROM kids_world_chest_claims
+          WHERE child_id = $1
+          AND node_id = $2
+          `,
+          [
+            child_id,
+            node_id
+          ]
+        );
 
-if(
-existing.rows.length
-){
+      if (
+        existing.rows.length
+      ) {
 
-return res.json({
+        return res.json({
 
-success:true,
+          success: true,
 
-already_claimed:true,
+          already_claimed: true,
 
-reward_type:
-existing.rows[0].reward_type,
+          reward_type:
+            existing.rows[0]
+              .reward_type,
 
-reward_value:
-existing.rows[0].reward_value
+          reward_value:
+            existing.rows[0]
+              .reward_value
 
-});
+        });
 
-}
+      }
 
-const rewards = [
+      const rewards = [
 
-{
-type:"coins",
-value:"100"
-},
+        {
+          type: "coins",
+          value: "100"
+        },
 
-{
-type:"xp",
-value:"200"
-},
+        {
+          type: "xp",
+          value: "200"
+        },
 
-{
-type:"coins",
-value:"150"
-},
+        {
+          type: "coins",
+          value: "150"
+        },
 
-{
-type:"xp",
-value:"300"
-}
+        {
+          type: "xp",
+          value: "300"
+        }
 
-];
+      ];
 
-const reward =
-rewards[
-Math.floor(
-Math.random() *
-rewards.length
-)
-];
+      const reward =
+        rewards[
+          Math.floor(
+            Math.random() *
+            rewards.length
+          )
+        ];
 
-await pool.query(
-`
-INSERT INTO
-kids_world_chest_claims
-(
-child_id,
-node_id,
-reward_type,
-reward_value
-)
+      await pool.query(
+        `
+        INSERT INTO
+        kids_world_chest_claims
+        (
+          child_id,
+          node_id,
+          reward_type,
+          reward_value
+        )
+        VALUES
+        (
+          $1,
+          $2,
+          $3,
+          $4
+        )
+        `,
+        [
+          child_id,
+          node_id,
+          reward.type,
+          reward.value
+        ]
+      );
 
-VALUES
-(
-$1,$2,$3,$4
-)
-`,
-[
-child_id,
-node_id,
-reward.type,
-reward.value
-]
-);
+      let rewardXp = 0;
+      let rewardCoins = 0;
 
-if(
-reward.type ===
-"coins"
-){
+      if (
+        reward.type === "xp"
+      ) {
 
-await pool.query(
-`
-UPDATE kids
-SET reward_coins =
-COALESCE(
-reward_coins,
-0
-) + $1
-WHERE id = $2
-`,
-[
-Number(
-reward.value
-),
-child_id
-]
-);
+        rewardXp =
+          Number(
+            reward.value
+          );
 
-}
+      }
 
-if(
-reward.type ===
-"xp"
-){
+      if (
+        reward.type === "coins"
+      ) {
 
-await pool.query(
-`
-UPDATE kids
-SET xp =
-COALESCE(
-xp,
-0
-) + $1
-WHERE id = $2
-`,
-[
-Number(
-reward.value
-),
-child_id
-]
-);
+        rewardCoins =
+          Number(
+            reward.value
+          );
 
-}
+      }
 
-return res.json({
+      await pool.query(
+        `
+        INSERT INTO
+        kids_rewards
+        (
+          child_id,
+          xp,
+          coins
+        )
+        VALUES
+        (
+          $1,
+          $2,
+          $3
+        )
+        ON CONFLICT (child_id)
+        DO UPDATE SET
 
-success:true,
+        xp =
+          kids_rewards.xp +
+          EXCLUDED.xp,
 
-reward_type:
-reward.type,
+        coins =
+          kids_rewards.coins +
+          EXCLUDED.coins,
 
-reward_value:
-reward.value
+        updated_at = NOW()
+        `,
+        [
+          child_id,
+          rewardXp,
+          rewardCoins
+        ]
+      );
 
-});
+      const currentNode =
+        await pool.query(
+          `
+          SELECT
+            world_slug,
+            node_order
+          FROM kids_world_nodes
+          WHERE id = $1
+          `,
+          [node_id]
+        );
 
-}
-catch(err){
+      if (
+        currentNode.rows.length
+      ) {
 
-console.error(err);
+        const node =
+          currentNode.rows[0];
 
-return res.status(500)
-.json({
+        const nextNode =
+          await pool.query(
+            `
+            SELECT id
+            FROM kids_world_nodes
+            WHERE world_slug = $1
+            AND node_order = $2
+            `,
+            [
+              node.world_slug,
+              node.node_order + 1
+            ]
+          );
 
-success:false
+        if (
+          nextNode.rows.length
+        ) {
 
-});
+          await pool.query(
+            `
+            INSERT INTO
+            kids_world_node_progress
+            (
+              child_id,
+              node_id,
+              unlocked
+            )
+            VALUES
+            (
+              $1,
+              $2,
+              true
+            )
+            ON CONFLICT DO NOTHING
+            `,
+            [
+              child_id,
+              nextNode.rows[0].id
+            ]
+          );
 
-}
+        }
 
-}
+      }
+
+      return res.json({
+
+        success: true,
+
+        reward_type:
+          reward.type,
+
+        reward_value:
+          reward.value,
+
+        xp:
+          rewardXp,
+
+        coins:
+          rewardCoins
+
+      });
+
+    }
+    catch (err) {
+
+      console.error(err);
+
+      return res
+        .status(500)
+        .json({
+
+          success: false
+
+        });
+
+    }
+
+  }
 );
 
 module.exports = router;

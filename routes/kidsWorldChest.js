@@ -107,6 +107,45 @@ router.post(
         ]
       );
 
+await pool.query(
+`
+INSERT INTO
+kids_world_node_progress
+(
+child_id,
+node_id,
+unlocked,
+completed,
+completed_at
+)
+
+VALUES
+(
+$1,
+$2,
+true,
+true,
+NOW()
+)
+
+ON CONFLICT
+(
+child_id,
+node_id
+)
+
+DO UPDATE SET
+
+completed = true,
+
+completed_at = NOW()
+`,
+[
+child_id,
+node_id
+]
+);
+
       let rewardXp = 0;
       let rewardCoins = 0;
 

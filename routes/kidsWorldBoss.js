@@ -150,6 +150,28 @@ rewardCoins
 ]
 );
 
+const nodeInfo =
+await pool.query(
+`
+SELECT world_slug
+FROM kids_world_nodes
+WHERE id = $1
+`,
+[node_id]
+);
+
+if(
+!nodeInfo.rows.length
+){
+return res.status(400).json({
+success:false,
+message:"Invalid node"
+});
+}
+
+const worldSlug =
+nodeInfo.rows[0].world_slug;
+
 console.log(
 "INSERTING WORLD COMPLETION",
 child_id
@@ -165,24 +187,48 @@ kids_world_completions
 child_id,
 world_slug
 )
-
 VALUES
 (
 $1,
-'learning-village'
+$2
 )
-
 ON CONFLICT
 DO NOTHING
 `,
 [
-child_id
+child_id,
+worldSlug
 ]
 );
 
 console.log(
 "WORLD COMPLETION SAVED"
 );
+
+let nextWorld = null;
+
+if(
+worldSlug ===
+"learning-village"
+){
+nextWorld = "jungle";
+}
+
+if(
+worldSlug ===
+"jungle"
+){
+nextWorld = "pirate";
+}
+
+if(
+worldSlug ===
+"pirate"
+){
+nextWorld = "kingdom";
+}
+
+if(nextWorld){
 
 await pool.query(
 `
@@ -196,24 +242,26 @@ total_missions,
 progress_percent,
 completed
 )
-
 VALUES
 (
 $1,
-'jungle',
+$2,
 0,
 0,
 0,
 false
 )
-
 ON CONFLICT
 DO NOTHING
 `,
 [
-child_id
+child_id,
+nextWorld
 ]
 );
+
+}
+
 
 return res.json({
 

@@ -155,9 +155,7 @@ console.log(
 child_id
 );
 
-console.log(
-"WORLD COMPLETION SAVED"
-);
+
 
 await pool.query(
 `
@@ -182,6 +180,10 @@ child_id
 ]
 );
 
+console.log(
+"WORLD COMPLETION SAVED"
+);
+
 await pool.query(
 `
 INSERT INTO
@@ -189,14 +191,20 @@ kids_world_progress
 (
 child_id,
 world_slug,
-unlocked
+missions_completed,
+total_missions,
+progress_percent,
+completed
 )
 
 VALUES
 (
 $1,
 'jungle',
-true
+0,
+0,
+0,
+false
 )
 
 ON CONFLICT

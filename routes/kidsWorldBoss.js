@@ -177,7 +177,29 @@ console.log(
 child_id
 );
 
+await pool.query(
+`
+UPDATE
+kids_world_progress
 
+SET
+
+completed = true,
+missions_completed = 5,
+total_missions = 5,
+progress_percent = 100
+
+WHERE
+
+child_id = $1
+
+AND world_slug = $2
+`,
+[
+child_id,
+worldSlug
+]
+);
 
 await pool.query(
 `

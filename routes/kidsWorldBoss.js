@@ -150,6 +150,63 @@ rewardCoins
 ]
 );
 
+console.log(
+"INSERTING WORLD COMPLETION",
+child_id
+);
+
+console.log(
+"WORLD COMPLETION SAVED"
+);
+
+await pool.query(
+`
+INSERT INTO
+kids_world_completions
+(
+child_id,
+world_slug
+)
+
+VALUES
+(
+$1,
+'learning-village'
+)
+
+ON CONFLICT
+DO NOTHING
+`,
+[
+child_id
+]
+);
+
+await pool.query(
+`
+INSERT INTO
+kids_world_progress
+(
+child_id,
+world_slug,
+unlocked
+)
+
+VALUES
+(
+$1,
+'jungle',
+true
+)
+
+ON CONFLICT
+DO NOTHING
+`,
+[
+child_id
+]
+);
+
 return res.json({
 
 success:true,

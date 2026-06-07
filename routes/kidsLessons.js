@@ -3434,6 +3434,58 @@ WHERE child_id = $1
   }
 );
 
+
+router.get(
+"/my-purchases",
+verifyToken,
+async(req,res)=>{
+
+try{
+
+const childId =
+parseInt(
+req.query.child_id,
+10
+);
+
+const purchases =
+await pool.query(
+`
+SELECT item_id
+FROM kids_purchases
+WHERE child_id = $1
+`,
+[childId]
+);
+
+return res.json({
+
+success:true,
+
+items:
+purchases.rows.map(
+r => r.item_id
+)
+
+});
+
+}catch(err){
+
+console.error(err);
+
+return res.status(500)
+.json({
+
+success:false
+
+});
+
+}
+
+}
+);
+
+
 // =====================================
 // GET ACTIVE CUSTOMIZATION
 // =====================================

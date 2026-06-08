@@ -100,13 +100,15 @@ router.post(
       }
 
       const uploadResult =
-      await cloudinary.uploader.upload(
-        req.file.path,
-        {
-          resource_type: "auto",
-          folder: "vaibhly/videos"
-        }
-      );
+await cloudinary.uploader.upload(
+  req.file.path,
+  {
+    resource_type: "video",
+    folder: "vaibhly/videos",
+    type: "upload",
+    access_mode: "public"
+  }
+);
 
 console.log(uploadResult);
 
@@ -174,12 +176,14 @@ router.post(
         });
       }
 
-      const uploadResult =
+const uploadResult =
 await cloudinary.uploader.upload(
   req.file.path,
   {
     resource_type: "auto",
-    folder: "vaibhly/pdfs"
+    folder: "vaibhly/pdfs",
+    type: "upload",
+    access_mode: "public"
   }
 );
 

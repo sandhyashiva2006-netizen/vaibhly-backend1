@@ -6,6 +6,9 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
+const cloudinary =
+require("../config/cloudinary");
+
 /* ================= ENSURE UPLOAD FOLDERS EXIST ================= */
 const PDF_DIR = "uploads/pdfs";
 const VIDEO_DIR = "uploads/videos";
@@ -173,7 +176,33 @@ router.post(
         return res.status(400).json({ error: "No PDF uploaded" });
       }
 
-      const pdfUrl = "/uploads/pdfs/" + req.file.filename;
+      const cloudinary =
+require("../config/cloudinary");
+
+const uploadResult =
+await cloudinary.uploader.upload(
+  req.file.path,
+  {
+    resource_type: "raw",
+    folder: "vaibhly/pdfs"
+  }
+);
+
+const pdfUrl =
+uploadResult.secure_url;
+
+if (fs.existsSync(req.file.path)) {
+  fs.unlinkSync(req.file.path);
+}
+
+await pool.query(
+`
+UPDATE lessons
+SET pdf_url = $1
+WHERE id = $2
+`,
+[pdfUrl, lessonId]
+);
 
       await pool.query(
         `
@@ -230,7 +259,31 @@ router.post(
         return res.status(400).json({ error: "No video uploaded" });
       }
 
-      const videoUrl = "/uploads/videos/" + req.file.filename;
+const uploadResult =
+await cloudinary.uploader.upload(
+  req.file.path,
+  {
+    resource_type: "video",
+    folder: "vaibhly/videos"
+  }
+);
+
+const videoUrl =
+uploadResult.secure_url;
+
+if (fs.existsSync(req.file.path)) {
+  fs.unlinkSync(req.file.path);
+}
+
+await pool.query(
+`
+UPDATE lessons
+SET video_url = $1
+WHERE id = $2
+`,
+[videoUrl, lessonId]
+);
+
 
       await pool.query(
         `
@@ -240,6 +293,12 @@ router.post(
         `,
         [videoUrl, lessonId]
       );
+
+const fs = require("fs");
+
+if (fs.existsSync(req.file.path)) {
+  fs.unlinkSync(req.file.path);
+}
 
       res.json({
         success: true,

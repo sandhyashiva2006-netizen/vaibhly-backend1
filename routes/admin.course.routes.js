@@ -103,7 +103,7 @@ router.post(
       await cloudinary.uploader.upload(
         req.file.path,
         {
-          resource_type: "video",
+          resource_type: "auto",
           folder: "vaibhly/videos"
         }
       );
@@ -173,13 +173,13 @@ router.post(
       }
 
       const uploadResult =
-      await cloudinary.uploader.upload(
-        req.file.path,
-        {
-          resource_type: "raw",
-          folder: "vaibhly/pdfs"
-        }
-      );
+await cloudinary.uploader.upload(
+  req.file.path,
+  {
+    resource_type: "auto",
+    folder: "vaibhly/pdfs"
+  }
+);
 
       const pdfUrl =
         uploadResult.secure_url;
@@ -203,6 +203,8 @@ router.post(
           req.file.path
         );
       }
+
+console.log(uploadResult);
 
       res.json({
         success: true,

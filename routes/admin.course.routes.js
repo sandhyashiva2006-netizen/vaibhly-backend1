@@ -11,6 +11,9 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
+const cloudinary =
+require("../config/cloudinary");
+
 const PDF_DIR = "uploads/pdfs";
 const VIDEO_DIR = "uploads/videos";
 
@@ -84,26 +87,68 @@ router.post(
   isAdminOnly,
   uploadVideo.single("video"),
   async (req, res) => {
+
     try {
-      const lessonId = req.params.id;
+
+      const lessonId =
+        req.params.id;
 
       if (!req.file) {
-        return res.status(400).json({ error: "No video uploaded" });
+        return res.status(400).json({
+          error: "No video uploaded"
+        });
       }
 
-      const videoUrl = "/uploads/videos/" + req.file.filename;
-
-      await pool.query(
-        `UPDATE lessons SET video_url = $1 WHERE id = $2`,
-        [videoUrl, lessonId]
+      const uploadResult =
+      await cloudinary.uploader.upload(
+        req.file.path,
+        {
+          resource_type: "video",
+          folder: "vaibhly/videos"
+        }
       );
 
-      res.json({ success: true, video_url: videoUrl });
+      const videoUrl =
+        uploadResult.secure_url;
+
+      await pool.query(
+        `
+        UPDATE lessons
+        SET video_url = $1
+        WHERE id = $2
+        `,
+        [
+          videoUrl,
+          lessonId
+        ]
+      );
+
+      if (
+        fs.existsSync(req.file.path)
+      ) {
+        fs.unlinkSync(
+          req.file.path
+        );
+      }
+
+      res.json({
+        success: true,
+        video_url: videoUrl
+      });
 
     } catch (err) {
-      console.error("Video upload error:", err);
-      res.status(500).json({ error: "Video upload failed" });
+
+      console.error(
+        "Video upload error:",
+        err
+      );
+
+      res.status(500).json({
+        error: "Video upload failed"
+      });
+
     }
+
   }
 );
 
@@ -115,26 +160,68 @@ router.post(
   isAdminOnly,
   uploadPdf.single("pdf"),
   async (req, res) => {
+
     try {
-      const lessonId = req.params.id;
+
+      const lessonId =
+        req.params.id;
 
       if (!req.file) {
-        return res.status(400).json({ error: "No PDF uploaded" });
+        return res.status(400).json({
+          error: "No PDF uploaded"
+        });
       }
 
-      const pdfUrl = "/uploads/pdfs/" + req.file.filename;
-
-      await pool.query(
-        `UPDATE lessons SET pdf_url = $1 WHERE id = $2`,
-        [pdfUrl, lessonId]
+      const uploadResult =
+      await cloudinary.uploader.upload(
+        req.file.path,
+        {
+          resource_type: "raw",
+          folder: "vaibhly/pdfs"
+        }
       );
 
-      res.json({ success: true, pdf_url: pdfUrl });
+      const pdfUrl =
+        uploadResult.secure_url;
+
+      await pool.query(
+        `
+        UPDATE lessons
+        SET pdf_url = $1
+        WHERE id = $2
+        `,
+        [
+          pdfUrl,
+          lessonId
+        ]
+      );
+
+      if (
+        fs.existsSync(req.file.path)
+      ) {
+        fs.unlinkSync(
+          req.file.path
+        );
+      }
+
+      res.json({
+        success: true,
+        pdf_url: pdfUrl
+      });
 
     } catch (err) {
-      console.error("PDF upload error:", err);
-      res.status(500).json({ error: "PDF upload failed" });
+
+      console.error(
+        "PDF upload error:",
+        err
+      );
+
+      res.status(500).json({
+        error: "PDF upload failed"
+      });
+
     }
+
   }
 );
 

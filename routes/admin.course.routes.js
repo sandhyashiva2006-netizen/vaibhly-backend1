@@ -108,6 +108,8 @@ router.post(
         }
       );
 
+console.log(uploadResult);
+
       const videoUrl =
         uploadResult.secure_url;
 
